@@ -202,8 +202,12 @@ def load_protein_phosphorylation(results_folder):
 
 # TODO: merge with read_kinase_scoring function in TOPAS_kinase_scoring.py
 def load_kinase_scores(results_folder, kinase_results_folder: str = "kinase_results"):
+    kinase_score_file = os.path.join(results_folder, kinase_results_folder, "kinase_scores.tsv")
+    if not os.path.isfile(kinase_score_file):
+        kinase_score_file = os.path.join(results_folder, kinase_results_folder, "kinase_scores_original.tsv")
+    
     kinase_scores_df = pd.read_csv(
-        os.path.join(results_folder, kinase_results_folder, "kinase_scores.tsv"),
+        kinase_score_file,
         sep="\t",
         index_col="PSP Kinases",
     )

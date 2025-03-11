@@ -18,10 +18,15 @@
         "debug": false,
         "run_lfq": false
     },
+    "extra_kinase_annot": 0,
     "data_types": [
         "fp",
         "pp"
     ],
+    "report": {
+        "samples_for_report": "all",
+        "drug_list_file": ""
+    },
     "portal": {
         "update": 0
     },

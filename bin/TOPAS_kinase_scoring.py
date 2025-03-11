@@ -17,13 +17,15 @@ pd.set_option('display.width', None)
 
 
 def read_kinase_scoring(results_folder: Union[str, Path], kinase_results_folder='kinase_results'):
-    if os.path.exists(os.path.join(results_folder, kinase_results_folder, 'kinase_scores.tsv')):
-        try:
-            kinase_scores = os.path.join(results_folder, kinase_results_folder, 'kinase_scores.tsv')
-            kinase_scores_df = pd.read_csv(kinase_scores, index_col=['PSP Kinases', 'No. of total targets'], sep='\t')
-        except PermissionError:
-            raise PermissionError(
-                f'Cannot open kinase scores file, check if you have it open in Excel. {kinase_scores}')
+    kinase_score_file = os.path.join(results_folder, kinase_results_folder, "kinase_scores.tsv")
+    if not os.path.isfile(kinase_score_file):
+        kinase_score_file = os.path.join(results_folder, kinase_results_folder, "kinase_scores_original.tsv")
+    
+    try:
+        kinase_scores_df = pd.read_csv(kinase_score_file, index_col=['PSP Kinases', 'No. of total targets'], sep='\t')
+    except PermissionError:
+        raise PermissionError(
+            f'Cannot open kinase scores file, check if you have it open in Excel. {kinase_score_file}')
     return kinase_scores_df
 
 
