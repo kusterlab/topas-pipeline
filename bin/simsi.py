@@ -45,10 +45,14 @@ def main(argv):
     if not configs["preprocessing"]["run_simsi"]:
         logger.info(f"run_simsi flag is set to False, skipping SIMSI")
         return
-    
-    logger.info(f'WP3-sample-pipeline-SIMSI version {__version__} {__git_commit_hash__}')
-    logger.info(f'{__copyright__}')
-    logger.info(f'Issued command: {os.path.basename(__file__)} {" ".join(map(str, argv))}')
+
+    logger.info(
+        f"WP3-sample-pipeline-SIMSI version {__version__} {__git_commit_hash__}"
+    )
+    logger.info(f"{__copyright__}")
+    logger.info(
+        f'Issued command: {os.path.basename(__file__)} {" ".join(map(str, argv))}'
+    )
 
     # Check if we have already processed results in our results folder and skip if so
     # data_types = configs["data_types"]
@@ -71,7 +75,9 @@ def main(argv):
     # Check for sample + metadata annotation errors before starting pipeline
     # _ = prep.check_annot(configs["sample_annotation"], configs["metadata_annotation"], prep.in_metadata)
     sample_annot_df = load_sample_annotation(configs["sample_annotation"])
-    sample_annot_df.to_csv(os.path.join(configs["results_folder"], "sample_annotation.csv"))
+    sample_annot_df.to_csv(
+        os.path.join(configs["results_folder"], "sample_annotation.csv")
+    )
 
     # check_config(configs)
 
@@ -79,9 +85,10 @@ def main(argv):
         configs["results_folder"],
         configs["preprocessing"]["raw_data_location"],
         configs["sample_annotation"],
+        configs["raw_file_folders"],
         **configs["simsi"],
         data_types=configs["data_types"],
-        slack_webhook_url=configs['slack_webhook_url'],
+        slack_webhook_url=configs["slack_webhook_url"],
     )
 
 
@@ -110,7 +117,7 @@ def run_simsi(*args, **kwargs) -> None:
     ).handlers
 
     data_types = kwargs.pop("data_types")
-    processingPool = JobPool(processes=2, timeout=110000)  # 100,000 seconds 
+    processingPool = JobPool(processes=2, timeout=110000)  # 100,000 seconds
     for data_type in data_types:
         kwargs_with_data_type = kwargs.copy()
         kwargs_with_data_type["data_type"] = data_type
@@ -123,6 +130,7 @@ def run_simsi_data_type(
     results_folder: str,
     search_result_folder: str,
     sample_annotation_file: str,
+    raw_file_folders: List[str],
     simsi_folder: str,
     tmt_ms_level: str,
     stringencies: int,
@@ -130,7 +138,7 @@ def run_simsi_data_type(
     num_threads: int,
     data_type: str,
     slack_webhook_url: str,
-    tmt_requantify: bool=True,
+    tmt_requantify: bool = True,
 ):
     init_file_logger(results_folder, f"SIMSI_log_{data_type}.txt")
 
@@ -142,16 +150,17 @@ def run_simsi_data_type(
 
     exit_code = 0  # exit code 0: no error
     try:
-        summary_files = prep.get_summary_files(search_result_folder, data_type, sample_annotation_file)
+        summary_files = prep.get_summary_files(
+            search_result_folder, data_type, sample_annotation_file
+        )
 
-        raw_file_folders = get_raw_file_folders(data_type)
         copy_raw_files(raw_file_folders, summary_files, data_type, simsi_folder)
         meta_input_file = mi.get_meta_input_file_path(results_folder, data_type)
 
         # manually create meta input files
         create_meta_input_file(summary_files, data_type, simsi_folder, meta_input_file)
 
-        meta_input_df = pd.read_csv(meta_input_file, sep='\t')
+        meta_input_df = pd.read_csv(meta_input_file, sep="\t")
 
         result_folder_name = Path(results_folder).name
         simsi_output_folder = get_simsi_output_folder(
@@ -165,32 +174,41 @@ def run_simsi_data_type(
                 f"Found a summaries folder that matches the current list of folders: {matched_summaries_folder}\nSkipping SIMSI processing."
             )
             return
-        
+
         # TODO: clean this up!
         # now that we know we have to run simsi we can do this (is quite slow though)
-        for folder in meta_input_df['mq_txt_folder']:
-            matches = re.findall(r'Batch([A-Za-z]*\d+)', folder)
-            
+        for folder in meta_input_df["mq_txt_folder"]:
+            matches = re.findall(r"Batch([A-Za-z]*\d+)", folder)
+
             if matches[0].isdigit():
                 if int(matches[0]) < 230:
                     continue
             else:
-                if 'CL' not in matches[0] and 'PDX' not in matches[0]:
+                if "CL" not in matches[0] and "PDX" not in matches[0]:
                     continue
-    
+
             # check if any missingness in Min scan number or Max scan number - if so fix file
-            if not os.path.isfile(folder + '/allPeptides.txt'):
+            if not os.path.isfile(folder + "/allPeptides.txt"):
                 continue
 
-            allpep = pd.read_csv(folder + '/allPeptides.txt', sep='\t')
-            if allpep['Min scan number'].isna().any() or allpep['Max scan number'].isna().any():
-            
-                msms = pd.read_csv(folder + '/msms.txt', sep='\t')
-                msms_max_scans = msms.groupby('Raw file')['Precursor full scan number'].max()
+            allpep = pd.read_csv(folder + "/allPeptides.txt", sep="\t")
+            if (
+                allpep["Min scan number"].isna().any()
+                or allpep["Max scan number"].isna().any()
+            ):
 
-                allpep.loc[allpep['Max scan number'].isna(), 'Max scan number'] = allpep.loc[allpep['Max scan number'].isna(), 'Raw file'].map(msms_max_scans)
-                allpep.loc[allpep['Min scan number'].isna(), 'Min scan number'] = 1
-                allpep.to_csv(folder + '/allPeptides.txt', sep='\t', index=False)
+                msms = pd.read_csv(folder + "/msms.txt", sep="\t")
+                msms_max_scans = msms.groupby("Raw file")[
+                    "Precursor full scan number"
+                ].max()
+
+                allpep.loc[allpep["Max scan number"].isna(), "Max scan number"] = (
+                    allpep.loc[allpep["Max scan number"].isna(), "Raw file"].map(
+                        msms_max_scans
+                    )
+                )
+                allpep.loc[allpep["Min scan number"].isna(), "Min scan number"] = 1
+                allpep.to_csv(folder + "/allPeptides.txt", sep="\t", index=False)
 
         run_simsi_single(
             meta_input_file,
@@ -244,7 +262,6 @@ def get_simsi_output_folder(simsi_folder: str, data_type: str, result_folder_nam
         / Path(data_type.upper())
         / Path(result_folder_name)
     )
-
 
 
 def get_simsi_cache_folder(simsi_folder: str, data_type: str):
@@ -506,7 +523,9 @@ def create_meta_input_file(
         experiments, correction_file_mapping_file, mq_queue_file, correction_file_folder
     )
 
-    mi.write_meta_input_file(meta_input_file, mq_txt_folders, simsi_raw_folders, tmt_correction_files)
+    mi.write_meta_input_file(
+        meta_input_file, mq_txt_folders, simsi_raw_folders, tmt_correction_files
+    )
 
 
 def copy_raw_files(raw_file_folders, summary_files, data_type, simsi_folder):
@@ -547,34 +566,24 @@ def copy_raw_files(raw_file_folders, summary_files, data_type, simsi_folder):
                 raise RuntimeError(f"Failed to find or copy the raw file {f}.")
 
 
-def get_raw_file_folders(data_type: str):
-    # TODO: move this to the config.json file
-    machines = ["lumos_1", "eclipse_1", "lumos_3", "eclipse_2", "lumos_2", "eclipse_3"]
-    if data_type == "pp":
-        machines = ["lumos_2", "eclipse_2", "eclipse_3"]
-
-    return [os.path.join("/media", "raw_files", machine, "raw") for machine in machines]
-
-
 def get_simsi_raw_file_folder(simsi_folder, data_type, experiment):
     return os.path.join(simsi_folder, "raw_files", data_type.upper(), experiment)
 
 
 def copy_with_subprocess(source, dest):
-    
     if not os.path.exists(source):
-        logger.info(f"Could not find source file {source}")
+        logger.debug(f"Could not find source file {source}")
         return False
-    
+
     if os.path.exists(dest) and os.stat(source).st_size == os.stat(dest).st_size:
-        # logger.info(f"Skipping dest file {dest}, already copied")
+        # logger.debug(f"Skipping dest file {dest}, already copied")
         return True
 
     logger.debug(" ".join(["cp", source, dest]))
-    proc = subprocess.Popen(
+    with subprocess.Popen(
         ["cp", source, dest], stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
-    return proc.wait() == 0  # wait() returns the process' exit code, 0 means success
+    ) as proc:
+        return proc.wait() == 0
 
 
 """
