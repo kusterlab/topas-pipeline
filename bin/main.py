@@ -44,7 +44,7 @@ def main(argv):
     t0 = time.time()
 
     try:
-        # 1) preprocess data (~1.5 hours, mostly slow because of Picked Group FDR)
+        # 1) preprocess data (~1.5 hours, mostly slow because of MaxLFQ)
         preprocess.preprocess_raw(
             configs["results_folder"],
             configs["sample_annotation"],
@@ -54,7 +54,7 @@ def main(argv):
             data_types=configs["data_types"])
 
         start_time = time.time()
-        # 2) clinical processing (~3 minutes) - 1 minute - check here for optimizations
+        # 2) clinical processing (~3 minutes)
         clinical_process.clinical_process(
             configs["results_folder"],
             configs["extra_kinase_annot"],
@@ -64,7 +64,7 @@ def main(argv):
         logger.info("--- %s seconds --- clinical processing" % (time.time() - start_time))
 
         start_time = time.time()
-        # 3) compute rank, z-score, fold change and p-value  - 8 sek
+        # 3) compute rank, z-score, fold change and p-value (<1 minute)
         metrics.compute_metrics(
             configs["results_folder"],
             configs["preprocessing"]["debug"],
@@ -72,7 +72,7 @@ def main(argv):
         logger.info("--- %s seconds --- metrics" % (time.time() - start_time))
 
         start_time = time.time()
-        # 4) Run WP2 scoring  - 30 sek
+        # 4) Run WP2 scoring (<1 minute)
         TOPAS_psite_scoring.psite_scoring(
             configs["results_folder"],
             configs["extra_kinase_annot"],
@@ -80,7 +80,7 @@ def main(argv):
         logger.info("--- %s seconds --- wp2 scoring" % (time.time() - start_time))
 
         start_time = time.time()
-        # 5) compute basket scores  - 10 sek
+        # 5) compute basket scores (<1 minute)
         basket_scoring.compute_TOPAS_scores(
             configs["results_folder"],
             configs["preprocessing"]["debug"],
@@ -90,7 +90,7 @@ def main(argv):
         logger.info("--- %s seconds --- basket scoring" % (time.time() - start_time))
 
         start_time = time.time()
-        # 6) report creation (~18 minutes)   - 6.3 minutes -  investigate slow steps
+        # 6) report creation (~18 minutes)
         report_creation.create_report(
             configs["results_folder"],
             configs["sample_annotation"],
