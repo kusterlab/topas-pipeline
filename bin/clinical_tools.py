@@ -207,7 +207,7 @@ def map_identifier_list_to_annot_types(identifier_list: pd.Series,
             if len(annotations) > 0:
                 annotations = ";".join(annotations)
 
-        return pd.Series(annotations)
+        return pd.Series(annotations, dtype="object")
       
 
 def create_identifier_to_basket_dict(basket_annotation: pd.DataFrame, data_type: Union[str, None] = 'fp',

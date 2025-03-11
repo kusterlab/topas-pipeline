@@ -159,7 +159,11 @@ err.out
 adc_ids.txt
 
 # config files
-config_*.json
+config*.json
 
 # file used to save the current git commit
 hash.file
+
+# folders with example data and results
+example
+results
