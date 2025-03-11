@@ -1,0 +1,28 @@
+IMAGE ?= gitlab.lrz.de:5005/proteomics/topas/wp3_sample_pipeline:master
+DATA ?= $(HOME)/git/wp3_sample_pipeline
+
+LOCAL_DIR ?= /root/data
+CONFIG_FILE ?= config_patients.json
+
+INTERACTIVE := $(shell [ -t 0 ] && echo 1)
+MEMORY_LIMIT ?= 300gb
+CPU_LIMIT ?= 16
+PERC_TEST_FDR ?= 0.01
+PERC_TRAIN_FDR ?= 0.01
+
+ifdef INTERACTIVE
+	USE_TTY= -t
+else
+	USE_TTY=
+endif
+
+DOCKER_CMD ?= docker run -i ${USE_TTY} \
+					-v "$(DATA)":/root/data/ \
+					-v /media:/media/ \
+					--memory=$(MEMORY_LIMIT) \
+					--cpus=$(CPU_LIMIT) \
+
+
+# clean up err.out file when restarting a job
+rm_err_file:
+	rm -f $(DATA)/err.out
