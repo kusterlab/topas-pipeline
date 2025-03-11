@@ -32,7 +32,7 @@ def main(argv):
     os.makedirs(configs["results_folder"], exist_ok=True)
     init_file_logger(configs["results_folder"], 'Pipeline_log.txt')
     
-    logger.info(f'WP3-sample-pipeline version {__version__} {__git_commit_hash__}')
+    logger.info(f'TOPAS-pipeline version {__version__} {__git_commit_hash__}')
     logger.info(f'{__copyright__}')
     logger.info(f'Issued command: {os.path.basename(__file__)} {" ".join(map(str, argv))}')
     logger.info('Pipeline started')

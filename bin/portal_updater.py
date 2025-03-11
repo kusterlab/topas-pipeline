@@ -2,7 +2,7 @@ import json
 import urllib.request
 
 """
-For Automatic updating of the portal with the wp3 generated pipeline 
+For Automatic updating of the portal with the TOPAS-pipeline generated results 
 
 USAGE:
 python portal_updater.py -c configs.json

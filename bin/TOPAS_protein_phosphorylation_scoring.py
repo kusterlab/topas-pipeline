@@ -96,7 +96,7 @@ def protein_phospho_scoring(results_folder, preprocessed_protein_df):
 if __name__ == "__main__":
     
     parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config", default='/home/fhamood/PycharmProjects/WP3_Pipeline/wp3_sample_pipeline/config_patients.json',
+    parser.add_argument("-c", "--config",
                         help="Absolute path to configuration file.")
     args = parser.parse_args(sys.argv[1:])
     configs = config.load(args.config)

@@ -1,5 +1,5 @@
-IMAGE ?= gitlab.lrz.de:5005/proteomics/topas/wp3_sample_pipeline:master
-DATA ?= $(HOME)/git/wp3_sample_pipeline
+IMAGE ?= gitlab.lrz.de:5005/proteomics/topas/topas-pipeline:master
+DATA ?= $(HOME)/git/topas-pipeline
 
 LOCAL_DIR ?= /root/data
 CONFIG_FILE ?= config_patients.json

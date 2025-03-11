@@ -47,7 +47,7 @@ def main(argv):
         return
 
     logger.info(
-        f"WP3-sample-pipeline-SIMSI version {__version__} {__git_commit_hash__}"
+        f"TOPAS-pipeline-SIMSI version {__version__} {__git_commit_hash__}"
     )
     logger.info(f"{__copyright__}")
     logger.info(

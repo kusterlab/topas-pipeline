@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "wp3_sample_pipeline"
+name = "topas-pipeline"
 version = "0.1.0"
 description = ""
 authors = ["Cecilia Jensen <cecilia.jensen@tum.de>", "Matthew The <matthew.the@tum.de>", "Firas Hamood <firas.hamood@tum.de>"]

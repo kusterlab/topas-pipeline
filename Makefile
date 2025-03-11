@@ -1,5 +1,5 @@
-WP3_SAMPLE_PIPELINE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-include $(WP3_SAMPLE_PIPELINE_DIR)MakefileShared
+TOPAS_PIPELINE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+include $(TOPAS_PIPELINE_DIR)MakefileShared
 
 save_git_hash:
 	git describe --dirty --always > hash.file
@@ -104,12 +104,12 @@ build: dependencies save_git_hash
 
 registry:
 	docker login gitlab.lrz.de:5005
-	docker build -t gitlab.lrz.de:5005/proteomics/topas/wp3_sample_pipeline .
-	docker push gitlab.lrz.de:5005/proteomics/topas/wp3_sample_pipeline
+	docker build -t gitlab.lrz.de:5005/proteomics/topas/topas-pipeline .
+	docker push gitlab.lrz.de:5005/proteomics/topas/topas-pipeline
 
 pull:
 	docker login gitlab.lrz.de:5005
-	docker pull gitlab.lrz.de:5005/proteomics/topas/wp3_sample_pipeline:master
+	docker pull gitlab.lrz.de:5005/proteomics/topas/topas-pipeline:master
 
 jump:
 	$(DOCKER_CMD) \

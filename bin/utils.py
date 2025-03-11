@@ -227,9 +227,9 @@ def send_slack_message(message: str, results_folder: str, webhook_url: str):
         message = f"Results folder: {Path(results_folder).name}\n{message}"
 
         slack_data = {
-            "username": "WP3 sample pipeline",
+            "username": "TOPAS pipeline",
             "icon_emoji": ":gem:",
-            "channel": "#wp3_pipeline",
+            "channel": "#topas_pipeline",
             "attachments": [
                 {"fields": [{"title": "New Incoming Message", "value": message}]}
             ],

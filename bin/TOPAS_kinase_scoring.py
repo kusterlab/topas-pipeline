@@ -160,7 +160,7 @@ def kinase_scoring(kinase_results_output_folder: Union[str, Path], preprocessed_
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config", default='/home/fhamood/PycharmProjects/WP3_Pipeline/wp3_sample_pipeline/config_patients.json',
+    parser.add_argument("-c", "--config",
                         help="Absolute path to configuration file.")
     parser.add_argument("-k", "--kinase_results_folder", default='kinase_results',
                         help="Relative path to kinase results folder inside the results folder.")
