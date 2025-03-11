@@ -302,7 +302,7 @@ class TestComputeBasketScores4thGen:
         basket_results_folder = "basket_results"
 
         # Call the function
-        basket_scoring.compute_basket_scores_4th_gen(
+        basket_scoring.compute_TOPAS_scores(
             results_folder,
             debug,
             metadata_file,

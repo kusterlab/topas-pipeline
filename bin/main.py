@@ -15,10 +15,7 @@ from . import report_creation
 from . import metrics
 from . import TOPAS_psite_scoring
 from . import basket_scoring
-from . import mtb_scoring
-from . import check_results_quality
 from . import portal_updater
-from . import maxquant_qc
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +81,7 @@ def main(argv):
 
         start_time = time.time()
         # 5) compute basket scores  - 10 sek
-        basket_scoring.compute_basket_scores(
+        basket_scoring.compute_TOPAS_scores(
             configs["results_folder"],
             configs["preprocessing"]["debug"],
             data_types=configs["data_types"],
@@ -101,22 +98,6 @@ def main(argv):
             **configs["report"],
             data_types=configs["data_types"])
         logger.info("--- %s seconds --- report creation" % (time.time() - start_time))
-
-        # 7) additional MTB plots and tables (~10 minutes)
-        mtb_scoring.create_plots_and_tables(configs["results_folder"], data_types=configs["data_types"])
-
-        # 8) check results
-        check_results_quality.check_results(
-            configs["results_folder"],
-            configs["new_batch"],
-            configs["sample_annotation"],
-            configs["metadata_annotation"],
-            configs["data_types"])
-
-        # 9) generate MaxQuant QC table for portal
-        maxquant_qc.maxquant_qc(
-            configs["results_folder"],
-            data_types=configs["data_types"])
 
         message = 'Pipeline finished'
     except Exception as e:
