@@ -1,0 +1,21 @@
+"Sample name","Cohort","Program","Entity","Histologic subtype","Batch Name","TMT Channel","QC","is_reference"
+"ref-channel-batch1","UCEC","ref","other","other","01",1,"passed","TRUE"
+"C3N-00858-1","UCEC","Tumor","other","other","01",2,"passed",
+"C3N-00858-5","UCEC","Normal","other","other","01",3,"passed",
+"C3L-01252-2","UCEC","Normal","other","other","01",4,"passed",
+"C3L-01252-1","UCEC","Tumor","other","other","01",5,"passed",
+"C3L-00947-1","UCEC","Tumor","other","other","01",6,"passed",
+"C3L-00947-2","UCEC","Normal","other","other","01",7,"passed",
+"C3N-00734-1","UCEC","Tumor","other","other","01",8,"passed",
+"C3L-01248-1","UCEC","Tumor","other","other","01",9,"passed",
+"C3N-00850-2","UCEC","Tumor","other","other","01",10,"passed",
+"ref-channel-batch2","UCEC","ref","other","other","02",1,"passed","TRUE"
+"C3L-00361-6","UCEC","Normal","other","other","02",2,"passed",
+"C3L-00361-1","UCEC","Tumor","other","other","02",3,"passed",
+"C3L-01249-2","UCEC","Normal","other","other","02",4,"passed",
+"C3L-01249-1","UCEC","Tumor","other","other","02",5,"passed",
+"C3N-00383-4","UCEC","Tumor","other","other","02",6,"passed",
+"C3N-00383-6","UCEC","Normal","other","other","02",7,"passed",
+"C3N-01001-3","UCEC","Tumor","other","other","02",8,"passed",
+"C3L-00949-1","UCEC","Tumor","other","other","02",9,"passed",
+"C3L-00032-1","UCEC","Tumor","other","other","02",10,"passed",

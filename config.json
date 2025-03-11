@@ -1,0 +1,57 @@
+{
+    "results_folder": "results/2025.03.11_example_run",
+    "sample_annotation": "example/cptac_annotation_subset.csv",
+    "metadata_annotation": "example/METADATA_UCEC.xlsx",
+    "raw_file_folders": [
+        "example/raw_fp/01CPTAC_UCEC_Proteome_PNNL_20170922_raw",
+        "example/raw_fp/02CPTAC_UCEC_Proteome_PNNL_20170922_raw",
+        "example/raw_pp/01CPTAC_UCEC_Phosphoproteome_PNNL_20170922_raw",
+        "example/raw_pp/02CPTAC_UCEC_Phosphoproteome_PNNL_20170922_raw"
+    ],
+    "simsi": {
+        "simsi_folder": "results/SIMSI",
+        "tmt_ms_level": "ms2",
+        "stringencies": 10,
+        "tmt_requantify": false,
+        "maximum_pep": 1,
+        "num_threads": 8
+    },
+    "preprocessing": {
+        "raw_data_location": "example/CPTAC_searches",
+        "fasta_file": "example/uniprot_proteome_up000005640_03112020_cdkn2a_isoforms.fasta",
+        "picked_fdr": 0.01,
+        "fdr_num_threads": 8,
+        "program": "",
+        "entity": "",
+        "histologic_subtype": "",
+        "imputation": true,
+        "run_simsi": true,
+        "normalize_to_reference": true,
+        "debug": false,
+        "run_lfq": false
+    },
+    "extra_kinase_annot": 0,
+    "clinic_proc": {
+        "pspFastaFile": "example/PSP_annotations/Phosphosite_seq.fasta",
+        "pspKinaseSubstrateFile": "example/PSP_annotations/Kinase_Substrate_Dataset",
+        "pspAnnotationFile": "example/PSP_annotations/Phosphorylation_site_dataset",
+        "pspRegulatoryFile": "example/PSP_annotations/Regulatory_sites",
+        "prot_baskets": "example/TOPASscores_POI_AS_250307.xlsx"
+    },
+    "report": {
+        "samples_for_report": "all",
+        "drug_list_file": ""
+    },
+    "data_types": [
+        "fp",
+        "pp"
+    ],
+    "portal": {
+        "update": 0,
+        "cohort": "",
+        "url": "",
+        "config": ""
+    },
+    "slack_webhook_url": ""
+}
+

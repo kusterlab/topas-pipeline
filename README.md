@@ -146,7 +146,7 @@ python -m topas_pipeline.clinical_process -c config.json
 ## Example
 
 An example of the project folder setup and configuration file can be found in the `/example` folder.
-
+Check the ReadMe in the `/example` folder for details.
 
 ## Integration tests
 
