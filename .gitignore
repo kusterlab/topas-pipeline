@@ -161,6 +161,9 @@ adc_ids.txt
 # config files
 config*.json
 
+# memory profiling results
+mprofile*.dat
+
 # file used to save the current git commit
 hash.file
 

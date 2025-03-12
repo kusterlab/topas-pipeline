@@ -93,7 +93,6 @@ def main(argv):
         # 6) report creation (~18 minutes)
         report_creation.create_report(
             configs["results_folder"],
-            configs["sample_annotation"],
             configs["preprocessing"]["debug"],
             **configs["report"],
             data_types=configs["data_types"])

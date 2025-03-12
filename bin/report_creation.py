@@ -1,6 +1,5 @@
 import os.path
 import sys
-import re
 import json
 import math
 import logging
@@ -25,7 +24,6 @@ logger = logging.getLogger(__name__)
 
 
 def create_report(results_folder: Union[str, Path],
-                  sample_annotation: Union[str, Path],
                   debug: bool,
                   samples_for_report: str,
                   drug_list_file: Union[str, Path],
@@ -83,12 +81,8 @@ def create_report(results_folder: Union[str, Path],
         else:
             samples_for_report = get_samples_for_report(sample_annotation_df, samples_list)
     batch_phospho_scores['measures'] = compute_in_batch_rank(measure_dfs['pp']['metrics']['z-score'], sample_annotation_df)
-    # biomarkers = pd.read_csv(os.path.join(results_folder, 'biomarker_scores.tsv'), sep='\t', index_col='Gene names')
 
-    samples_for_report.reverse() # print reports for newest batch first 
-    # write_patient_reports(results_folder, measure_dfs, basket_scores, batch_basket_scores, subbasket_scores,
-    #                       batch_subbasket_scores, kinase_scores, batch_kinase_scores, protein_scores, batch_protein_scores,
-    #                       batch_phospho_scores, samples_for_report, basket_annot_dicts, sample_annotation_df, biomarkers)
+    samples_for_report.reverse() # print reports for newest batch first
     write_patient_reports(results_folder, measure_dfs, basket_scores, batch_basket_scores, subbasket_scores,
                           batch_subbasket_scores, kinase_scores, batch_kinase_scores, protein_scores, batch_protein_scores,
                           batch_phospho_scores, samples_for_report, basket_annot_dicts, sample_annotation_df)
@@ -735,5 +729,5 @@ if __name__ == '__main__':
 
     configs = config.load(args.config)
 
-    create_report(configs["results_folder"], configs["sample_annotation"], configs["preprocessing"]["debug"], **configs["report"],
+    create_report(configs["results_folder"], configs["preprocessing"]["debug"], **configs["report"],
                   data_types=configs["data_types"])

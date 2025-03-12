@@ -44,7 +44,7 @@ genomics_annotations:
 	python3 -u -m bin.Oncostar_genomics_alterations && python3 -u -m bin.oncoKB_annotations 
 
 
-# runs sarcoma cohort locally
+# runs pipeline locally
 all: DOCKER_CMD=
 all: IMAGE=
 all: LOCAL_DIR=.
