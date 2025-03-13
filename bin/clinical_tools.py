@@ -155,11 +155,12 @@ def map_identifier_list_to_annot_types(identifier_list: pd.Series,
     matching the first identifier with annotations and weights
     Input identifier list has to be pd.Series and if method used via apply it has to be of type dataframe
     """
+    # TODO: Refactor this function!
     # TODO: throw error if no annot_dict given
     # TODO: make less hardcoded and optimize 
 
     annotations = []
-    for identifier in identifier_list[0].split(';'):
+    for identifier in identifier_list.iloc[0].split(';'):
 
         # TODO: instead of else if statements do small functions?
         if identifier in annot_dict:

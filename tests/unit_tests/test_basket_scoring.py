@@ -313,7 +313,7 @@ class TestComputeBasketScores4thGen:
 
         # first [0]: first call
         # second [0]: first of (args, kwargs) tuple
-        # thrid [0]: first argument
+        # third [0]: first argument
         result = mock_save_basket_scores.call_args_list[0][0][0]
 
         expected_result = pd.DataFrame(

@@ -27,6 +27,7 @@ Input parameters:
 | results_folder |  | yes |
 | sample_annotation |  | yes |
 | metadata_annotation |  | yes |
+| raw_file_folders |  | yes |
 | simsi_folder |  | yes |
 | tmt_ms_level |  |  |
 | stringencies |  |  |

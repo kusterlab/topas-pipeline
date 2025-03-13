@@ -22,6 +22,9 @@ import bin.TOPAS_protein_phosphorylation_scoring as protein_phoshorylation_scori
 
 logger = logging.getLogger(__name__)
 
+TOPAS_SCORE_COLUMNS = clinical_process.TOPAS_SCORE_COLUMNS
+TOPAS_SUBSCORE_COLUMNS = clinical_process.TOPAS_SUBSCORE_COLUMNS
+
 
 def create_report(
     results_folder: Union[str, Path],
@@ -135,6 +138,7 @@ def create_report(
 
 
 def get_basket_annot_dicts(results_folder, data_types):
+    # TODO: get rid of this function and take the info directly from annot_<fp|pp>.csv
     basket_annot_dicts = {}
     for data_type in data_types + ["fp_with_ref", "pp_with_ref"]:
         # try to loop through data types and when a fitting dict is found load it
@@ -309,7 +313,6 @@ def write_patient_reports(
     samples_for_report,
     basket_annot_dicts: List[Union[Dict, None]],
     sample_annotation_df,
-    #   biomarkers: pd.DataFrame
 ):
     report_folder = os.path.join(results_folder, "Reports")
     os.makedirs(report_folder, mode=0o700, exist_ok=True)
@@ -318,7 +321,13 @@ def write_patient_reports(
     logger.info("Queueing reports for multiprocessing")
 
     # TODO: make the number of cores configurable in the config.json
-    processingPool = JobPool(processes=6)
+    # each extra core adds ~300MB extra memory
+    processingPool = JobPool(
+        processes=6,
+        total_jobs=len(samples_for_report),
+        max_jobs_queued=10,
+        print_progress_every=1,
+    )
     for i, patient in enumerate(samples_for_report):
         if "zscore" in patient:
             patient = patient.split("zscore_")[1]
@@ -326,54 +335,52 @@ def write_patient_reports(
         report_file = os.path.join(report_folder, f"{patient}_proteomics_results.xlsx")
         if os.path.exists(report_file):
             continue
+
+        patient_data = create_patient_data(measure_dfs, patient)
+
+        # patient data is ~70MB per patient
+        patient_data = add_scores_to_patient_data(
+            patient_data,
+            patient,
+            basket_scores,
+            batch_basket_scores,
+            subbasket_scores,
+            batch_subbasket_scores,
+            kinase_scores,
+            batch_kinase_scores,
+            protein_scores,
+            batch_protein_scores,
+            batch_phospho_scores,
+            batch,
+        )
+
+        annotation_columns = get_annotation_columns(patient)
+
+        # annotation_columns_patient is ~135MB per patient
+        annotation_columns_patient = {}
+        for data_type, dfs in measure_dfs.items():
+            annotation_columns_patient[data_type] = {
+                "metadata": dfs["metadata"][annotation_columns[data_type].keys()].copy()
+            }
+
         processingPool.applyAsync(
             create_patient_report,
             [
                 report_file,
                 patient,
-                measure_dfs,
-                basket_scores,
-                batch_basket_scores,
-                subbasket_scores,
-                batch_subbasket_scores,
-                kinase_scores,
-                batch_kinase_scores,
-                protein_scores,
-                batch_protein_scores,
-                batch_phospho_scores,
+                patient_data,
+                annotation_columns_patient,
                 basket_annot_dicts,
-                batch,
             ],
         )
-        # for debugging purpose :)
-        # create_patient_report(report_file, patient, measure_dfs, basket_scores, batch_basket_scores, subbasket_scores,
-        #                      batch_subbasket_scores, kinase_scores, batch_kinase_scores, protein_scores, batch_protein_scores,
-        #                      batch_phospho_scores, basket_annot_dicts, batch)  # useful for debugging
 
     processingPool.checkPool(printProgressEvery=1)
 
 
-def create_patient_report(
-    report_file: Union[str, Path],
-    patient: str,
-    metrics_dfs: Dict[str, Dict[str, pd.DataFrame]],
-    basket_scores: Dict[str, Dict[str, pd.DataFrame]],
-    batch_basket_score: Dict[str, Dict[str, pd.DataFrame]],
-    subbasket_scores: Dict[str, Dict[str, pd.DataFrame]],
-    batch_subbasket_scores: Dict[str, Dict[str, pd.DataFrame]],
-    kinase_scores: Dict[str, Dict[str, pd.DataFrame]],
-    batch_kinase_scores: Dict[str, Dict[str, pd.DataFrame]],
-    protein_scores: Dict[str, Dict[str, pd.DataFrame]],
-    batch_protein_scores: Dict[str, Dict[str, pd.DataFrame]],
-    batch_phospho_scores: Dict[str, Dict[str, pd.DataFrame]],
-    basket_annot_dicts: List[Union[Dict[str, Dict], None]],
-    batch: int,
-    #   biomarkers: pd.DataFrame
-) -> None:
-
+def create_patient_data(measure_dfs, patient: str):
     # save patient column from each metric measure dataframe to patient dict for both data types
     patient_data = {}
-    for data_type, dfs in metrics_dfs.items():
+    for data_type, dfs in measure_dfs.items():
         ranked, fold_change, z_scores, p_values = dfs["metrics"].values()
         patient_data[data_type] = pd.concat(
             [
@@ -392,28 +399,15 @@ def create_patient_report(
             "Z-score",
             "P-value",
         ]
-    # sub basket - do we want to keep sarcoma subtype as annotation?
-    patient_data = add_scores_to_patient_data(
-        patient_data,
-        patient,
-        basket_scores,
-        batch_basket_score,
-        subbasket_scores,
-        batch_subbasket_scores,
-        kinase_scores,
-        batch_kinase_scores,
-        protein_scores,
-        batch_protein_scores,
-        batch_phospho_scores,
-        batch,
-    )
+    return patient_data
 
-    annotation_columns, annotation_columns_baskets = dict(), dict()
+
+def get_annotation_columns(patient: str):
+    annotation_columns = dict()
     annotation_columns["pp"] = {
         patient: "Intensity",
         f"Identification metadata {patient.split('pat_')[1]}": "Identification metadata",
-        "TOPAS_score": "TOPAS annot",
-        "POI": "POI category",
+        **TOPAS_SCORE_COLUMNS,
         "Site positions identified (MQ)": "Site positions (MQ identified - PSP)",
         "Site positions": "Site positions (PSP)",
         "PSP Kinases": "Kinases (PSP)",
@@ -429,24 +423,31 @@ def create_patient_report(
     annotation_columns["fp"] = {
         f"Identification metadata {patient.split('pat_')[1]}": "Identification metadata",
         patient: "Intensity",
-        "TOPAS_score": "TOPAS annot",
-        "POI": "POI category",
+        **TOPAS_SCORE_COLUMNS,
     }
+    return annotation_columns
+
+
+def create_patient_report(
+    report_file: Union[str, Path],
+    patient: str,
+    patient_data: Dict,
+    metrics_dfs: Dict[str, Dict[str, pd.DataFrame]],
+    basket_annot_dicts: List[Union[Dict[str, Dict], None]],
+) -> None:
+    annotation_columns = get_annotation_columns(patient)
     annotation_columns_topas = {
         "rank_" + patient: "Rank",
         "zscore_" + patient: "Z-score",
         "occurrence": "Occurrence",
-        "TOPAS_score": "TOPAS annot",
-        "TOPAS_subscore": "TOPAS sublevel annot",
-        "POI": "POI category",
+        **TOPAS_SCORE_COLUMNS,
+        **TOPAS_SUBSCORE_COLUMNS,
     }
 
     # # Create a Pandas Excel writer using XlsxWriter as the engine
     with pd.ExcelWriter(report_file, engine="xlsxwriter") as writer:
-
         # Create basket worksheets
-        score_types = ["TOPAS scores", "TOPAS subscores"]
-        for score_type in score_types:
+        for score_type in ["TOPAS scores", "TOPAS subscores"]:
             create_score_worksheet(
                 score_type, patient_data, writer, score_type, annotation_columns_topas
             )
@@ -477,7 +478,7 @@ def create_patient_report(
             basket_annot_dicts,
         )
         create_wp2_worksheet(
-            "Protein score",
+            "Protein phosphorylation score",
             patient_data,
             writer,
             annotation_columns_topas,
@@ -622,8 +623,8 @@ def add_scores_to_patient_data(
         "Batch TOPAS subscores",
         "Substrate phosphorylation score",
         "Batch Substrate phosphorylation score",
-        "Protein score",
-        "Batch Protein score",
+        "Protein phosphorylation score",
+        "Batch Protein phosphorylation score",
         "Batch Phospho",
     ]
     scoring_ranks = [
@@ -672,11 +673,8 @@ def add_scores_to_patient_data(
     ]
 
     for i, scoring in enumerate(scoring_types):
-
         if "scores" in scoring_dfs[i].keys():
             patient_data[scoring] = scoring_dfs[i]["scores"].loc[:, patient]
-        else:
-            pass
 
         if scoring == "Substrate phosphorylation score":
             patient_data[scoring] = pd.concat(
@@ -828,7 +826,7 @@ def create_wp2_worksheet(
 
     if basket_annot_dict is not None:
         index_values = "Gene names"
-        for i, score_type in enumerate(["POI", "TOPAS_score"]):
+        for i, score_type in enumerate(TOPAS_SCORE_COLUMNS.keys()):
             # for i, score_type in enumerate(['POI']):
             # use dictionary to assign basket annotation - NB! has to be dataframe
             if sheet_name == "Substrate phosphorylation score":
@@ -859,7 +857,7 @@ def create_wp2_worksheet(
             else:
                 basket_df = basket_df.drop("Gene names", axis=1)
             measures = pd.merge(left=measures, right=basket_df, on=index_values)
-        for basket_type in ["POI", "TOPAS_score"]:
+        for basket_type in TOPAS_SCORE_COLUMNS.keys():
             # remove duplicated basket annotation
             measures[basket_type] = measures[basket_type].apply(
                 clinical_process.get_unique_baskets
@@ -873,9 +871,8 @@ def create_wp2_worksheet(
         extra_annotation_columns, axis="columns"
     ).add_prefix("Batch ")
 
-    if sheet_name == "Protein score":
+    if sheet_name == "Protein phosphorylation score":
         wp2_score = dfs[sheet_name]
-        sheet_name = "Protein" + " phosphorylation score"
         df_subset = [
             "Score",
             "Rank",

@@ -13,6 +13,21 @@ from . import utils
 
 logger = logging.getLogger(__name__)
 
+TOPAS_SCORE_COLUMNS = {
+    "TOPAS_score": "TOPAS annot",
+    "POI_category": "POI category",
+}
+TOPAS_SUBSCORE_COLUMNS = {
+    "TOPAS_subscore": "TOPAS sublevel annot",
+}
+
+# # Old annotation file format column names
+# TOPAS_SCORE_COLUMNS = {
+#     "basket": "TOPAS annot",
+# }
+# TOPAS_SUBSCORE_COLUMNS = {
+#     "sub_basket": "TOPAS annot",
+# }
 
 def clinical_process(*args, **kwargs) -> None:
     data_types = kwargs.pop('data_types')
@@ -76,7 +91,7 @@ def clinical_process_data_type(results_folder: Union[str, Path],
                                          pspAnnotationFile, pspRegulatoryFile)
             dfs[data_type_with_ref] = clinical_tools.add_psp_urls(dfs[data_type_with_ref])
 
-    annot_levels = ['TOPAS_score', 'TOPAS_subscore', 'POI_category'] 
+    annot_levels = list(TOPAS_SCORE_COLUMNS.keys()) + list(TOPAS_SUBSCORE_COLUMNS.keys())
     
     for data_type in dfs.keys():
         for annot_type, annot_files in zip(annot_levels, len(annot_levels) * [prot_baskets]):
@@ -86,7 +101,7 @@ def clinical_process_data_type(results_folder: Union[str, Path],
                                                                             annot_type=annot_type)
 
             # save the basket annot_dict once per data type
-            if '_with_ref' in data_type and annot_type == 'TOPAS_score':
+            if '_with_ref' in data_type and annot_type == list(TOPAS_SCORE_COLUMNS.keys())[0]:
                 with open(os.path.join(results_folder, f'topas_annot_dict_{data_type}.json'), 'w') as write_file:
                     json.dump(annot_dict, write_file, indent=4)
                 logger.info(f'Dictionary for {data_type} of length {len(annot_dict)} saved to file')
@@ -97,10 +112,10 @@ def clinical_process_data_type(results_folder: Union[str, Path],
 
 
 def merge_baskets_with_subbaskets(row: pd.Series) -> str:
-    subbasket = row['TOPAS_subscore']
-    if not pd.isnull(row['TOPAS_subscore']):
-        subbasket_list = row['TOPAS_subscore'].split(';')
-        basket_list = row['TOPAS_score'].split(';')
+    subbasket = row[list(TOPAS_SUBSCORE_COLUMNS.keys())[0]]
+    if not pd.isnull(row[list(TOPAS_SUBSCORE_COLUMNS.keys())[0]]):
+        subbasket_list = row[list(TOPAS_SUBSCORE_COLUMNS.keys())[0]].split(';')
+        basket_list = row[list(TOPAS_SCORE_COLUMNS.keys())[0]].split(';')
         subbasket = [basket_list[i] + " - " + subbasket_list[i] if len(basket_list[i]) > 0 else '' for i in
                      range(len(subbasket_list))]
         subbasket = get_unique_baskets(subbasket)
@@ -127,20 +142,17 @@ def read_annotation_files(results_folder: Union[str, Path],
     if debug:
         annot_ref = pd.read_csv(os.path.join(results_folder, f'annot_{data_type}_with_ref.csv'), index_col=index_cols)
         if post_process_basket_columns:
-            # annot_ref['sub_basket'] = annot_ref.apply(merge_baskets_with_subbaskets, axis=1)
-            # annot_ref['basket'] = annot_ref['basket'].apply(get_unique_baskets)
-            annot['TOPAS_subscore'] = annot.apply(merge_baskets_with_subbaskets, axis=1)
-            annot['TOPAS_score'] = annot['TOPAS_score'].apply(get_unique_baskets) # i think is not necessary anymore but let's see?
-            annot['POI'] = annot['POI_category'].apply(get_unique_baskets)
+            for key in TOPAS_SUBSCORE_COLUMNS.keys():
+                annot_ref[key] = annot_ref.apply(merge_baskets_with_subbaskets, axis=1)
+            for key in TOPAS_SCORE_COLUMNS.keys():
+                annot_ref[key] = annot_ref[key].apply(get_unique_baskets)
     
     if post_process_basket_columns:
-
-        # 'TOPAS_score', 'TOPAS_subscore', 'POI_category'
-
         # Get unique baskets and add main basket name to subbasket level
-        annot['TOPAS_subscore'] = annot.apply(merge_baskets_with_subbaskets, axis=1)
-        annot['TOPAS_score'] = annot['TOPAS_score'].apply(get_unique_baskets) # i think is not necessary anymore but let's see?
-        annot['POI'] = annot['POI_category'].apply(get_unique_baskets)
+        for key in TOPAS_SUBSCORE_COLUMNS.keys():
+            annot[key] = annot.apply(merge_baskets_with_subbaskets, axis=1)
+        for key in TOPAS_SCORE_COLUMNS.keys():
+            annot[key] = annot[key].apply(get_unique_baskets)
     return annot, annot_ref
 
 

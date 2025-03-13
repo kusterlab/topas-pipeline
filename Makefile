@@ -10,8 +10,11 @@ simsi: rm_err_file save_git_hash
 full_pipeline: simsi save_git_hash
 	$(DOCKER_CMD) $(IMAGE) python3 -u -m bin -c $(LOCAL_DIR)/$(CONFIG_FILE) || (echo "2" > $(DATA)/err.out; exit 2)
 
-picked_group_fdr: simsi save_git_hash
+picked_group_fdr: save_git_hash
 	$(DOCKER_CMD) $(IMAGE) python3 -u -m bin.picked_group -c $(LOCAL_DIR)/$(CONFIG_FILE) || (echo "1" > $(DATA)/err.out; exit 1)
+
+report_creation: save_git_hash
+	$(DOCKER_CMD) $(IMAGE) python3 -u -m bin.report_creation -c $(LOCAL_DIR)/$(CONFIG_FILE) || (echo "1" > $(DATA)/err.out; exit 1)
 
 # runs sarcoma cohort in docker
 docker_all: pull full_pipeline
