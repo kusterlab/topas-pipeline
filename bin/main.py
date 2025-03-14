@@ -95,6 +95,7 @@ def main(argv):
             configs["results_folder"],
             configs["preprocessing"]["debug"],
             **configs["report"],
+            annot_file=configs["clinic_proc"]["prot_baskets"],
             data_types=configs["data_types"])
         logger.info("--- %s seconds --- report creation" % (time.time() - start_time))
 

@@ -109,22 +109,23 @@ def add_url_columns(row) -> Tuple[str, List]:
 
 
 def prot_clinical_annotation(df: pd.DataFrame,
-                           annot_files: Union[str, Path],
+                           annot_file: Union[str, Path],
                            data_type: str,
                            annot_type: str) -> Tuple[pd.DataFrame, Dict]:
     """
     Adds columns with basket annotations and weights to a dataframe
 
     :param df: dataframe with a 'Gene names' column to be annotated
-    :param prot_baskets: list of path(s) to file(s) with annotations
+    :param annot_file: path to file with annotations
     :param data_type: either 'pp' for phospho or 'fp' for full proteome
-    :param basket_type: either 'basket', 'other', 'rtk' corresponding to the sheets in the annotation file
+    :param annot_type: either 'TOPAS score', 'TOPAS subscore', 'POI'
     """
     logger.info(f'Proteomics baskets annotation {data_type} {annot_type}')
 
     # Some dataframes might have empty cells so let's exchange them with nans
     df = df.replace(r'^\s*$', np.nan, regex=True)
-    annot_dict = read_clinical_annotation(annot_files, data_type, annot_type)
+    topas_annotation_df = read_clinical_annotation(annot_file)
+    annot_dict = create_identifier_to_basket_dict(topas_annotation_df, data_type)
 
     if 'fp' in data_type:
         gene_df = df.index.to_frame()
@@ -132,7 +133,6 @@ def prot_clinical_annotation(df: pd.DataFrame,
         gene_df = df[['Gene names']].fillna("")
 
     if 'POI' in annot_type:
-
         df[annot_type] = gene_df.apply(map_identifier_list_to_annot_types, annot_dict=annot_dict,
                                                                 annot_type=annot_type,
                                                                 with_weights=False,
@@ -143,7 +143,7 @@ def prot_clinical_annotation(df: pd.DataFrame,
                                                                     with_weights=True,
                                                                     axis=1, result_type="expand")
             
-    return df, annot_dict
+    return df
 
 
 def map_identifier_list_to_annot_types(identifier_list: pd.Series,
@@ -216,45 +216,32 @@ def create_identifier_to_basket_dict(basket_annotation: pd.DataFrame, data_type:
     """
     collect all the baskets per gene in a dictionary of {'gene_name': 'basket1;basket2;...'}
     """
-    basket_annotation = basket_annotation[basket_annotation['GROUP'] != 'OTHER']
-    if 'fp' in data_type:
-        accepted_type = ['expression', 'kinase activity']
-        # remove non fp types
+    if 'fp' in data_type or 'pp' in data_type:
+        if 'fp' in data_type:
+            accepted_type = ['expression', 'kinase activity']
+        elif 'pp' in data_type:
+            accepted_type = ['phosphorylation', 'important phosphorylation', 'kinase activity']
+        basket_annotation = basket_annotation[basket_annotation['GROUP'] != 'OTHER']
         basket_annotation = basket_annotation[basket_annotation['LEVEL'].isin(accepted_type)]
-        basket_annotation = basket_annotation.groupby([identifier_type]).agg(lambda x: ";".join(map(str, x)))
-    elif 'pp' in data_type:
-        accepted_type = ['phosphorylation', 'important phosphorylation', 'kinase activity']
-        # remove non pp types
-        basket_annotation = basket_annotation[basket_annotation['LEVEL'].isin(accepted_type)]
-        basket_annotation = basket_annotation.groupby([identifier_type]).agg(lambda x: ";".join(map(str, x)))
-    annot_dict = basket_annotation.to_dict('index')
-    return annot_dict
-
-
-def create_identifier_to_poi_dict(basket_annotation: pd.DataFrame, data_type: Union[str, None] = 'fp',
-                                  identifier_type: str = 'gene') -> Dict[str, str]:
-    """
-    """
-    basket_annotation = basket_annotation[basket_annotation['GROUP'] == 'OTHER']
+    else: # other proteins of interest (POI)
+        basket_annotation = basket_annotation[basket_annotation['GROUP'] == 'OTHER']
+    
     basket_annotation = basket_annotation.groupby([identifier_type]).agg(lambda x: ";".join(map(str, x)))
     annot_dict = basket_annotation.to_dict('index')
     return annot_dict
 
 
-def read_clinical_annotation(annot_file: str, data_type: str, annot_type: str = 'TOPAS_score') -> pd.DataFrame:
-    topas_annotation = pd.read_excel(annot_file)
-    topas_annotation = utils.whitespace_remover(topas_annotation)
-    topas_annotation['topas_subscore_level'] = topas_annotation['TOPAS_SUBSCORE'] + " - " + topas_annotation['LEVEL']  # basket_annotation['BASKET'] + " - " +
-    topas_annotation['WEIGHT'] = topas_annotation['WEIGHT'].fillna(1)  # empty cell in WEIGHT column means weight = 1
-    topas_annotation = topas_annotation.rename(
-        {'TOPAS_SCORE': 'TOPAS_score', 'TOPAS_SUBSCORE': 'TOPAS_subscore', 'WEIGHT': 'weight', 'GENE NAME': 'gene'}, axis=1)
+def read_clinical_annotation(annot_file: str) -> pd.DataFrame:
+    topas_annotation_df = pd.read_excel(annot_file)
+    topas_annotation_df = utils.whitespace_remover(topas_annotation_df)
+    topas_annotation_df['topas_subscore_level'] = topas_annotation_df['TOPAS_SUBSCORE'] + " - " + topas_annotation_df['LEVEL']  # basket_annotation['BASKET'] + " - " +
+    topas_annotation_df['WEIGHT'] = topas_annotation_df['WEIGHT'].fillna(1)  # empty cell in WEIGHT column means weight = 1
+    # topas_annotation_df = topas_annotation_df.rename(
+    #     {'TOPAS_SCORE': 'TOPAS_score', 'TOPAS_SUBSCORE': 'TOPAS_subscore', 'WEIGHT': 'weight', 'GENE NAME': 'gene'}, axis=1)
+    topas_annotation_df = topas_annotation_df.rename(
+        {'TOPAS_SCORE': 'basket', 'TOPAS_SUBSCORE': 'sub_basket', 'WEIGHT': 'weight', 'GENE NAME': 'gene'}, axis=1)
     
-    if 'POI' in annot_type:
-        return create_identifier_to_poi_dict(topas_annotation, data_type)
-    elif annot_type == 'TOPAS_score':
-        return create_identifier_to_basket_dict(topas_annotation, data_type)
-    else:
-        return create_identifier_to_basket_dict(topas_annotation, data_type)
+    return topas_annotation_df
 
 
 """
@@ -286,15 +273,14 @@ if __name__ == "__main__":
         index_col = 'Modified sequence'
 
     df = pd.read_csv(args.input_file, sep='\t', index_col=index_col)
-    basket_file = configs["clinic_proc"]["prot_baskets"]
+    annot_file = configs["clinic_proc"]["prot_baskets"]
 
     # Start pipeline
     t0 = time.time()
-    # TODO: fix.. outdated basket scheme
-    for basket_type, baskets in zip(['basket', 'rtk'], [basket_file, basket_file]):
-        df = prot_clinical_annotation(df, baskets,
+    for annot_type in ['TOPAS score', 'POI']:
+        df, _ = prot_clinical_annotation(df, annot_file,
                                     data_type=args.data_type,
-                                    basket_type=basket_type)
+                                    basket_type=annot_type)
 
     df.to_csv(args.output_file, sep='\t')
 

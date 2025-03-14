@@ -31,6 +31,7 @@ def create_report(
     debug: bool,
     samples_for_report: str,
     drug_list_file: Union[str, Path],
+    annot_file: Union[str, Path],
     data_types: List[str],
 ) -> None:
     """Creates an Excel report for each sample
@@ -55,7 +56,7 @@ def create_report(
         samples_list = samples_for_report
 
     # Read basket scoring dictionary from json
-    basket_annot_dicts = get_basket_annot_dicts(results_folder, data_types)
+    topas_annotation_df = clinical_tools.read_clinical_annotation(annot_file)
 
     # Load sample annotation file
     sample_annotation_df = sa.load_sample_annotation(
@@ -132,7 +133,7 @@ def create_report(
         batch_protein_scores,
         batch_phospho_scores,
         samples_for_report,
-        basket_annot_dicts,
+        topas_annotation_df,
         sample_annotation_df,
     )
 
@@ -311,8 +312,8 @@ def write_patient_reports(
     batch_protein_scores,
     batch_phospho_scores,
     samples_for_report,
-    basket_annot_dicts: List[Union[Dict, None]],
-    sample_annotation_df,
+    topas_annotation_df: pd.DataFrame,
+    sample_annotation_df: pd.DataFrame,
 ):
     report_folder = os.path.join(results_folder, "Reports")
     os.makedirs(report_folder, mode=0o700, exist_ok=True)
@@ -334,6 +335,7 @@ def write_patient_reports(
         batch = sample_annotation_df.loc[patient.split("pat_")[1], "Batch Name"]
         report_file = os.path.join(report_folder, f"{patient}_proteomics_results.xlsx")
         if os.path.exists(report_file):
+            processingPool.applyAsync(create_patient_report_dummy, ())
             continue
 
         patient_data = create_patient_data(measure_dfs, patient)
@@ -354,14 +356,10 @@ def write_patient_reports(
             batch,
         )
 
-        annotation_columns = get_annotation_columns(patient)
-
         # annotation_columns_patient is ~135MB per patient
-        annotation_columns_patient = {}
-        for data_type, dfs in measure_dfs.items():
-            annotation_columns_patient[data_type] = {
-                "metadata": dfs["metadata"][annotation_columns[data_type].keys()].copy()
-            }
+        annotation_columns_patient = get_patient_annotation_columns(
+            patient, measure_dfs
+        )
 
         processingPool.applyAsync(
             create_patient_report,
@@ -370,11 +368,15 @@ def write_patient_reports(
                 patient,
                 patient_data,
                 annotation_columns_patient,
-                basket_annot_dicts,
+                topas_annotation_df,
             ],
         )
 
     processingPool.checkPool(printProgressEvery=1)
+
+
+def create_patient_report_dummy():
+    return
 
 
 def create_patient_data(measure_dfs, patient: str):
@@ -400,6 +402,17 @@ def create_patient_data(measure_dfs, patient: str):
             "P-value",
         ]
     return patient_data
+
+
+def get_patient_annotation_columns(patient, measure_dfs):
+    annotation_columns = get_annotation_columns(patient)
+
+    annotation_columns_patient = {}
+    for data_type, dfs in measure_dfs.items():
+        annotation_columns_patient[data_type] = {
+            "metadata": dfs["metadata"][annotation_columns[data_type].keys()].copy()
+        }
+    return annotation_columns_patient
 
 
 def get_annotation_columns(patient: str):
@@ -433,7 +446,7 @@ def create_patient_report(
     patient: str,
     patient_data: Dict,
     metrics_dfs: Dict[str, Dict[str, pd.DataFrame]],
-    basket_annot_dicts: List[Union[Dict[str, Dict], None]],
+    topas_annotation_df: pd.DataFrame,
 ) -> None:
     annotation_columns = get_annotation_columns(patient)
     annotation_columns_topas = {
@@ -475,14 +488,14 @@ def create_patient_report(
             patient_data,
             writer,
             annotation_columns_topas,
-            basket_annot_dicts,
+            topas_annotation_df,
         )
         create_wp2_worksheet(
             "Protein phosphorylation score",
             patient_data,
             writer,
             annotation_columns_topas,
-            basket_annot_dicts,
+            topas_annotation_df,
         )
 
 
@@ -803,8 +816,7 @@ def create_wp2_worksheet(
     dfs: Dict[str, pd.DataFrame],
     writer: pd.ExcelWriter,
     extra_annotation_columns: Dict[str, str],
-    basket_annot_dict,
-    basket_subset=None,
+    topas_annotation_df: pd.DataFrame,
 ) -> None:
     valid_columns = list(
         set(extra_annotation_columns.keys()).intersection(
@@ -824,44 +836,39 @@ def create_wp2_worksheet(
             level="No. of total targets", drop=True
         )
 
-    if basket_annot_dict is not None:
-        index_values = "Gene names"
-        for i, score_type in enumerate(TOPAS_SCORE_COLUMNS.keys()):
-            # for i, score_type in enumerate(['POI']):
-            # use dictionary to assign basket annotation - NB! has to be dataframe
-            if sheet_name == "Substrate phosphorylation score":
-                index_values = "PSP Kinases"
+    index_values = "Gene names"
+    for score_type in TOPAS_SCORE_COLUMNS.keys():
+        # for i, score_type in enumerate(['POI']):
+        # use dictionary to assign basket annotation - NB! has to be dataframe
+        if sheet_name == "Substrate phosphorylation score":
+            index_values = "PSP Kinases"
 
-            basket_df = measures.index.get_level_values(index_values).to_frame()
+        basket_df = measures.index.get_level_values(index_values).to_frame()
 
-            # if sheet_name == 'Substrate phosphorylation score':
-            #     annot_dict = basket_annot_dict['fp']
+        data_type = "fp"
+        if score_type == "POI_category":
+            data_type = "POI"
+        annot_dict = clinical_tools.create_identifier_to_basket_dict(topas_annotation_df, data_type)
 
-            if score_type == "POI":
-                annot_dict = basket_annot_dict["poi"]
-                # annot_dict = clinical_tools.read_clinical_annotation(annot_files, 'fp', 'POI') # fp not used if annot type == poi
-            else:
-                annot_dict = basket_annot_dict["fp"]
+        basket_df[score_type] = basket_df.apply(
+            clinical_tools.map_identifier_list_to_annot_types,
+            annot_dict=annot_dict,
+            annot_type=score_type,
+            with_weights=False,
+            axis=1,
+        )
 
-            basket_df[score_type] = basket_df.apply(
-                clinical_tools.map_identifier_list_to_annot_types,
-                annot_dict=annot_dict,
-                annot_type=score_type,
-                with_weights=False,
-                axis=1,
-            )
-
-            basket_df.index = measures.index
-            if sheet_name == "Substrate phosphorylation score":
-                basket_df = basket_df.drop(["PSP Kinases"], axis=1)
-            else:
-                basket_df = basket_df.drop("Gene names", axis=1)
-            measures = pd.merge(left=measures, right=basket_df, on=index_values)
-        for basket_type in TOPAS_SCORE_COLUMNS.keys():
-            # remove duplicated basket annotation
-            measures[basket_type] = measures[basket_type].apply(
-                clinical_process.get_unique_baskets
-            )
+        basket_df.index = measures.index
+        if sheet_name == "Substrate phosphorylation score":
+            basket_df = basket_df.drop(["PSP Kinases"], axis=1)
+        else:
+            basket_df = basket_df.drop("Gene names", axis=1)
+        measures = pd.merge(left=measures, right=basket_df, on=index_values)
+    for basket_type in TOPAS_SCORE_COLUMNS.keys():
+        # remove duplicated basket annotation
+        measures[basket_type] = measures[basket_type].apply(
+            clinical_process.get_unique_baskets
+        )
 
     # rename the metric columns and baskets
     measures = measures.rename(extra_annotation_columns, axis="columns")
@@ -879,8 +886,7 @@ def create_wp2_worksheet(
             "Occurrence",
             "Z-score",
             "Significance",
-            "TOPAS annot",
-            "POI category",
+            *TOPAS_SCORE_COLUMNS.values(),
             "Batch Rank",
             "Batch Occurrence",
         ]
@@ -896,8 +902,7 @@ def create_wp2_worksheet(
             "Occurrence",
             "Z-score",
             "Significance",
-            "TOPAS annot",
-            "POI category",
+            *TOPAS_SCORE_COLUMNS.values(),
             "Batch Rank",
             "Batch Occurrence",
         ]
@@ -915,7 +920,7 @@ def create_wp2_worksheet(
     df.index.name = (
         "Kinase" if sheet_name == "Substrate phosphorylation score" else "Protein"
     )
-    if basket_annot_dict is not None:
+    if topas_annotation_df is not None:
         df = df[df_subset]
 
     # Get the xlsxwriter workbook and worksheet objects
@@ -953,7 +958,6 @@ def create_score_worksheet(
     writer: pd.ExcelWriter,
     basket_column: str,
     extra_annotation_columns: Dict[str, str],
-    basket_subset=None,
 ) -> None:
     valid_columns = list(
         set(extra_annotation_columns.keys()).intersection(
@@ -1104,5 +1108,6 @@ if __name__ == "__main__":
         configs["results_folder"],
         configs["preprocessing"]["debug"],
         **configs["report"],
+        annot_file=configs["clinic_proc"]["prot_baskets"],
         data_types=configs["data_types"],
     )

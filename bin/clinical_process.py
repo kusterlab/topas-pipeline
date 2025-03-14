@@ -26,7 +26,7 @@ TOPAS_SUBSCORE_COLUMNS = {
 #     "basket": "TOPAS annot",
 # }
 # TOPAS_SUBSCORE_COLUMNS = {
-#     "sub_basket": "TOPAS annot",
+#     "sub_basket": "TOPAS sublevel annot",
 # }
 
 def clinical_process(*args, **kwargs) -> None:
@@ -38,7 +38,7 @@ def clinical_process(*args, **kwargs) -> None:
 def clinical_process_data_type(results_folder: Union[str, Path],
                                extra_kinase_annot: Union[str, Path, None, int],
                                debug: bool,
-                               prot_baskets: Union[str, Path],
+                               annot_file: Union[str, Path],
                                pspFastaFile: Union[str, Path],
                                pspKinaseSubstrateFile: Union[str, Path],
                                pspAnnotationFile: Union[str, Path],
@@ -94,20 +94,10 @@ def clinical_process_data_type(results_folder: Union[str, Path],
     annot_levels = list(TOPAS_SCORE_COLUMNS.keys()) + list(TOPAS_SUBSCORE_COLUMNS.keys())
     
     for data_type in dfs.keys():
-        for annot_type, annot_files in zip(annot_levels, len(annot_levels) * [prot_baskets]):
-
-            dfs[data_type], annot_dict = clinical_tools.prot_clinical_annotation(dfs[data_type], annot_files,
+        for annot_type in annot_levels:
+            dfs[data_type] = clinical_tools.prot_clinical_annotation(dfs[data_type], annot_file,
                                                                             data_type=data_type,
                                                                             annot_type=annot_type)
-
-            # save the basket annot_dict once per data type
-            if '_with_ref' in data_type and annot_type == list(TOPAS_SCORE_COLUMNS.keys())[0]:
-                with open(os.path.join(results_folder, f'topas_annot_dict_{data_type}.json'), 'w') as write_file:
-                    json.dump(annot_dict, write_file, indent=4)
-                logger.info(f'Dictionary for {data_type} of length {len(annot_dict)} saved to file')
-            if '_with_ref' in data_type and annot_type == 'POI_category':
-                with open(os.path.join(results_folder, f'poi_annot_dict_{data_type}.json'), 'w') as write_file:
-                    json.dump(annot_dict, write_file, indent=4)
         dfs[data_type].to_csv(os.path.join(results_folder, f'annot_{data_type}.csv'))
 
 
