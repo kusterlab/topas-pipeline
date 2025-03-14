@@ -157,8 +157,8 @@ class TestLogTransfromIntensities:
     # Log transformation is applied correctly to all intensity columns
     def test_log_transform_applied_correctly(self, mocker):
         data = {
-            "Reporter intensity corrected 1": [100, 200, 300],
-            "Reporter intensity corrected 2": [400, 500, 600],
+            "Reporter intensity corrected 1": [100.0, 200.0, 300.0],
+            "Reporter intensity corrected 2": [400.0, 500.0, 600.0],
             "Metadata column": [400, 500, 600],
         }
         df = pd.DataFrame(data)
@@ -168,8 +168,8 @@ class TestLogTransfromIntensities:
 
         # Expected DataFrame after log transformation
         expected_data = {
-            "Reporter intensity corrected 1": np.log10([100, 200, 300]),
-            "Reporter intensity corrected 2": np.log10([400, 500, 600]),
+            "Reporter intensity corrected 1": np.log10([100.0, 200.0, 300.0]),
+            "Reporter intensity corrected 2": np.log10([400.0, 500.0, 600.0]),
             "Metadata column": [400, 500, 600],
         }
         expected_df = pd.DataFrame(expected_data)

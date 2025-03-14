@@ -78,10 +78,8 @@ def replace_detected_in_batch(
         dict(zip(detected_in_batch_df.columns, patient_columns_prefix)), axis=1
     )
 
-    detected_in_batch_df = detected_in_batch_df[df.columns]
-    detected_in_batch_df = detected_in_batch_df.replace(False, np.nan).replace(
-        True, value
-    )
+    detected_in_batch_df = detected_in_batch_df[df.columns].astype('object')
+    detected_in_batch_df[:] = np.where(detected_in_batch_df, value, np.nan)
     df.update(
         detected_in_batch_df, overwrite=False
     )  # for some reason update can only be done in place
@@ -110,7 +108,7 @@ def mark_num_peptides(df: pd.DataFrame) -> pd.DataFrame:
 def get_num_peptides(df: pd.DataFrame) -> pd.DataFrame:
     metadata_df = get_metadata_columns(df)
     return metadata_df.apply(
-        lambda x: x.str.extract("num_peptides=(\d+);")[0], axis=1
+        lambda x: x.str.extract(r"num_peptides=(\d+);")[0], axis=1
     ).astype(float)
 
 

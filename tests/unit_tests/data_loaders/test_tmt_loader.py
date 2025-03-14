@@ -10,9 +10,9 @@ def test_scale_ms1_to_reference():
         "Modified sequence": ["pep1", "pep1", "pep2", "pep2"],
         "Charge": [2, 2, 3, 3],
         "Batch": ["01", "02", "01", "02"],
-        "MS1": [100, 0, 300, 200],  # MS1 with a zero to test replacement with NaN
-        "Reporter intensity corrected 1": [200, 700, 400, 300],
-        "Reporter intensity corrected 2": [300, 300, 400, 500],
+        "MS1": [100.0, 0.0, 300.0, 200.0],  # MS1 with a zero to test replacement with NaN
+        "Reporter intensity corrected 1": [200.0, 700.0, 400.0, 300.0],
+        "Reporter intensity corrected 2": [300.0, 300.0, 400.0, 500.0],
     }
 
     # pep1:
@@ -53,9 +53,9 @@ def test_scale_ms1_to_reference_and_redistribute():
         "Modified sequence": ["pep1", "pep1", "pep2", "pep2"],
         "Charge": [2, 2, 3, 3],
         "Batch": ["01", "02", "01", "02"],
-        "MS1": [100, 0, 300, 200],  # MS1 with a zero to test replacement with NaN
-        "Reporter intensity corrected 1": [200, 700, 400, 300],
-        "Reporter intensity corrected 2": [300, 300, 400, 500],
+        "MS1": [100.0, 0.0, 300.0, 200.0],  # MS1 with a zero to test replacement with NaN
+        "Reporter intensity corrected 1": [200.0, 700.0, 400.0, 300.0],
+        "Reporter intensity corrected 2": [300.0, 300.0, 400.0, 500.0],
     }
 
     sample_annot = {

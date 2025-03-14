@@ -141,7 +141,7 @@ def remove_ref_empty_batch(
         if "Reporter intensity corrected" in col:
             # TODO: handle case where "Batch" is not contained in column name
             # TODO: check if this works for batch numbers with 3 or more digits
-            batch = re.search("Batch\d{1,2}", col).group()
+            batch = re.search(r"Batch\d{1,2}", col).group()
             batch = re.findall(r"\d+", batch)[0]
             qc_passed = sample_annotation_df.loc[
                 sample_annotation_df["Batch Name"] == int(batch), "QC"
@@ -261,7 +261,7 @@ def sum_peptide_intensities(
             },
             **{
                 f"Reporter intensity corrected {i}": pd.NamedAgg(
-                    column=f"Reporter intensity corrected {i}", aggfunc=sum
+                    column=f"Reporter intensity corrected {i}", aggfunc="sum"
                 )
                 for i in range(1, 12)
             },  # TODO: replace this hard coded number of TMT channels
@@ -281,7 +281,7 @@ def sum_peptide_intensities(
             },
             **{
                 "Reporter intensity corrected 1": pd.NamedAgg(
-                    column="Reporter intensity corrected 1", aggfunc=sum
+                    column="Reporter intensity corrected 1", aggfunc="sum"
                 )
             },
             **{
@@ -299,7 +299,7 @@ def sum_peptide_intensities(
             },
             **{
                 f"Reporter intensity corrected {i}": pd.NamedAgg(
-                    column=f"Reporter intensity corrected {i}", aggfunc=sum
+                    column=f"Reporter intensity corrected {i}", aggfunc="sum"
                 )
                 for i in range(1, 12)
             },  # TODO: replace this hard coded number of TMT channels

@@ -95,7 +95,7 @@ def protein_phospho_scoring(results_folder, preprocessed_protein_df):
     score_dataframe = score_dataframe.agg(
         **(
             {
-                score: pd.NamedAgg(column=score, aggfunc=sum)
+                score: pd.NamedAgg(column=score, aggfunc="sum")
                 for score in protein_df.columns
                 if "pat_" in score
             }

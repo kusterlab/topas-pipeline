@@ -23,7 +23,6 @@ openpyxl = "^3.1.2"
 networkx = "^2.8"
 XlsxWriter = "^3.0.3"
 toml = ">=0.10.2"
-pytest-cov = "^3.0.0"
 ppca = "^0.0.4"
 requests = "^2.28.1"
 umap-learn = "^0.5.3"
@@ -36,13 +35,12 @@ triqler = ">=0.8.1"
 statsmodels = "^0.14.2"
 pyarrow = ">=16.0.0"
 
-[tool.poetry.dev-dependencies]
-pytest = "^7.1.2"
-
 [tool.poetry.group.dev.dependencies]
+pytest = "^7.1.2"
 ipykernel = "^6.24.0"
 pytest-mock = "^3.14.0"
 squarify = "^0.4.4"
+pytest-cov = "^6.0.0"
 
 [build-system]
 requires = ["poetry-core>=1.5.1"]
