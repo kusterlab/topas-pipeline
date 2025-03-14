@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 def preprocess_raw(*args, **kwargs) -> None:
     # Unpack directories and do checks on annotation (sample annot, metadata)
-    results_folder, sample_annotation_file, metadata_annotation, simsi_folder = args
+    results_folder, sample_annotation_file, metadata_annotation, run_simsi, simsi_folder = args
     sample_annotation_df = prep.check_annot(
         sample_annotation_file, metadata_annotation, prep.in_metadata
     )  # just for our pipeline
@@ -29,6 +29,7 @@ def preprocess_raw(*args, **kwargs) -> None:
     for data_type in data_types:
         preprocess_raw_data_type(
             results_folder,
+            run_simsi,
             simsi_folder,
             sample_annotation_df,
             **kwargs,
@@ -38,6 +39,7 @@ def preprocess_raw(*args, **kwargs) -> None:
 
 def preprocess_raw_data_type(
     results_folder: Union[str, Path],
+    run_simsi: bool,
     simsi_folder: Union[str, Path],
     sample_annotation_df: pd.DataFrame,
     raw_data_location: Union[str, Path],
@@ -48,7 +50,6 @@ def preprocess_raw_data_type(
     entity: str,
     histologic_subtype: str,
     imputation: bool,
-    run_simsi: bool,
     run_lfq: bool,
     debug: bool,
     data_type: str,
@@ -57,6 +58,7 @@ def preprocess_raw_data_type(
     """
     Calling function for preprocessing of both phospho and full proteome data
     :param results_folder: location in which to save preprocessed files
+    :param run_simsi: boolean for whether to use simsi for identification transfer between batches
     :param simsi_folder: location in which simsi saves its processed files
     :param sample_annotation_df: df containing possible subfolder (of raw folder), metadata and sample information (tmt: batch and channel)
     :param raw_data_location: location of data to preprocess (MaxQuant search folders)
@@ -67,7 +69,6 @@ def preprocess_raw_data_type(
     :param entity: subsetting of data for <entity> during rest of pipeline when multiple is used for simsi and normalization
     :param histologic_subtype: subsetting of data for <histologic subtype> during rest of pipeline when multiple is used for simsi and normalization
     :param imputation: boolean for whether to impute or not (only for TMT phospho)
-    :param run_simsi: boolean for whether to use simsi for identification transfer between batches
     :param run_lfq: boolean for when data is lfq else tmt is expected
     :param debug: boolean for saving more intermediate results files for debugging purpose
     :param data_type: full protome (fp) or phospho proteome (pp) for which data is analyzed (for lfq only fp)
@@ -96,9 +97,9 @@ def preprocess_raw_data_type(
         df = load_sample_data(
             results_folder,
             sample_annotation_df,
+            run_simsi,
             simsi_folder,
             raw_data_location,
-            run_simsi,
             run_lfq,
             debug,
             data_type,
@@ -183,9 +184,9 @@ def get_prefix_renaming_dict(df, patient_columns):
 def load_sample_data(
     results_folder: Union[str, Path],
     sample_annotation_df: pd.DataFrame,
+    run_simsi: bool,
     simsi_folder: Union[str, Path],
     raw_data_location: Union[str, Path],
-    run_simsi: bool,
     run_lfq: bool,
     debug: bool,
     data_type: str,
@@ -335,6 +336,7 @@ if __name__ == "__main__":
         configs["results_folder"],
         configs["sample_annotation"],
         configs["metadata_annotation"],
+        configs["simsi"]["run_simsi"],
         configs["simsi"]["simsi_folder"],
         **configs["preprocessing"],
         data_types=configs["data_types"],

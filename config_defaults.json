@@ -1,5 +1,6 @@
 {
     "simsi": {
+        "run_simsi": true,
         "tmt_ms_level": "ms2",
         "stringencies": 10,
         "tmt_requantify": false,
@@ -13,7 +14,6 @@
         "entity": "",
         "histologic_subtype": "",
         "imputation": true,
-        "run_simsi": true,
         "normalize_to_reference": false,
         "debug": false,
         "run_lfq": false

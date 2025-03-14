@@ -9,6 +9,7 @@
         "example/raw_pp/02CPTAC_UCEC_Phosphoproteome_PNNL_20170922_raw"
     ],
     "simsi": {
+        "run_simsi": true,
         "simsi_folder": "results/SIMSI",
         "tmt_ms_level": "ms2",
         "stringencies": 10,
@@ -25,7 +26,6 @@
         "entity": "",
         "histologic_subtype": "",
         "imputation": true,
-        "run_simsi": true,
         "normalize_to_reference": true,
         "debug": false,
         "run_lfq": false
@@ -47,7 +47,7 @@
         "pp"
     ],
     "portal": {
-        "update": 0,
+        "update": false,
         "cohort": "",
         "url": "",
         "config": ""

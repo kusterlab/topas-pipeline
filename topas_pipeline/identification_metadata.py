@@ -23,7 +23,7 @@ def as_metadata_columns(x: str):
     return x.replace("Reporter intensity corrected", METADATA_COLUMN_PREFIX)
 
 
-def remove_metadata_column_prefix(df: pd.DataFrame):
+def remove_metadata_column_prefix(df: pd.DataFrame) -> pd.DataFrame:
     return df.rename(columns=lambda x: x.replace(f"{METADATA_COLUMN_PREFIX} ", ""))
 
 

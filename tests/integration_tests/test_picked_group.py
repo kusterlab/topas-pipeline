@@ -63,9 +63,9 @@ def test_do_quant():
     df = prep.load_sample_data(
         configs["results_folder"],
         sample_annotation_df,
+        configs["simsi"]["run_simsi"],
         configs["simsi"]["simsi_folder"],
         configs["preprocessing"]["raw_data_location"],
-        configs["preprocessing"]["run_simsi"],
         configs["preprocessing"]["run_lfq"],
         configs["preprocessing"]["debug"],
         "fp",
@@ -106,9 +106,9 @@ def test_remap_gene_names():
     df = prep.load_sample_data(
         configs["results_folder"],
         sample_annotation_df,
+        configs["simsi"]["run_simsi"],
         configs["simsi"]["simsi_folder"],
         configs["preprocessing"]["raw_data_location"],
-        configs["preprocessing"]["run_simsi"],
         configs["preprocessing"]["run_lfq"],
         configs["preprocessing"]["debug"],
         "pp",

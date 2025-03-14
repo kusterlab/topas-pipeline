@@ -15,7 +15,7 @@ def main(configs):
     results_folder = configs["results_folder"]
     update = configs["portal"]["update"]
 
-    if update == 1:
+    if update:
         cohort = configs["portal"]["cohort"]
         url = configs["portal"]["url"]
         portal_config = configs["portal"]["config"]

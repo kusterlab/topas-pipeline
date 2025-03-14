@@ -22,12 +22,13 @@ class TestMain:
             return_value={
                 "raw_file_folders": ["path/to_raw_files"],
                 "preprocessing": {
-                    "run_simsi": True,
                     "raw_data_location": "path/to/data",
                 },
                 "results_folder": "results",
                 "sample_annotation": "sample",
-                "simsi": {},
+                "simsi": {
+                    "run_simsi": True,
+                },
                 "data_types": [],
                 "slack_webhook_url": "dummy_url",
             },
@@ -51,12 +52,13 @@ class TestMain:
             "topas_pipeline.config.load",
             return_value={
                 "preprocessing": {
-                    "run_simsi": False,
                     "raw_data_location": "path/to/data",
                 },
                 "results_folder": "results",
                 "sample_annotation": "sample",
-                "simsi": {},
+                "simsi": {
+                    "run_simsi": False,
+                },
                 "data_types": [],
             },
         )
@@ -123,6 +125,7 @@ class TestRunSimsiDataType:
             search_result_folder="search_results",
             sample_annotation_file="sample_annotation",
             raw_file_folders=["path/to_raw_files"],
+            run_simsi=True,
             simsi_folder="simsi",
             tmt_ms_level="2",
             stringencies=1,

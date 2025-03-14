@@ -374,9 +374,9 @@ def main(argv):
     df = pre.load_sample_data(
         configs["results_folder"],
         sample_annotation_df,
+        configs["simsi"]["run_simsi"],
         configs["simsi"]["simsi_folder"],
         configs["preprocessing"]["raw_data_location"],
-        configs["preprocessing"]["run_simsi"],
         configs["preprocessing"]["run_lfq"],
         configs["preprocessing"]["debug"],
         args.data_type,

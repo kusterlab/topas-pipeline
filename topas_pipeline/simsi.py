@@ -41,7 +41,7 @@ def main(argv):
 
     configs = config.load(args.config)
 
-    if not configs["preprocessing"]["run_simsi"]:
+    if not configs["simsi"]["run_simsi"]:
         logger.info(f"run_simsi flag is set to False, skipping SIMSI")
         return
 
@@ -91,6 +91,7 @@ def run_simsi_data_type(
     search_result_folder: str,
     sample_annotation_file: str,
     raw_file_folders: List[str],
+    run_simsi: bool,
     simsi_folder: str,
     tmt_ms_level: str,
     stringencies: int,
@@ -100,6 +101,9 @@ def run_simsi_data_type(
     slack_webhook_url: str,
     tmt_requantify: bool = True,
 ):
+    if not run_simsi:
+        return
+    
     init_file_logger(results_folder, f"SIMSI_log_{data_type}.txt")
 
     # Start pipeline

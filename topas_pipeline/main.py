@@ -64,6 +64,7 @@ def main(argv):
             configs["results_folder"],
             configs["sample_annotation"],
             configs["metadata_annotation"],
+            configs["simsi"]["run_simsi"],
             configs["simsi"]["simsi_folder"],
             **configs["preprocessing"],
             data_types=configs["data_types"],

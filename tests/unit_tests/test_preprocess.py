@@ -14,6 +14,7 @@ class TestPreprocessRaw:
         results_folder = "/path/to/results"
         sample_annotation_file = "/path/to/sample_annotation.csv"
         metadata_annotation = "/path/to/metadata_annotation.csv"
+        run_simsi = True
         simsi_folder = "/path/to/simsi"
         data_types = ["type1", "type2"]
 
@@ -24,6 +25,7 @@ class TestPreprocessRaw:
             results_folder,
             sample_annotation_file,
             metadata_annotation,
+            run_simsi,
             simsi_folder,
             data_types=data_types,
         )
@@ -63,6 +65,7 @@ class TestPreprocessRawDataType:
 
         preprocess.preprocess_raw_data_type(
             results_folder="results",
+            run_simsi=True,
             simsi_folder="simsi",
             sample_annotation_df=sample_annotation_df,
             raw_data_location="raw_data",
@@ -73,7 +76,6 @@ class TestPreprocessRawDataType:
             entity="entity",
             histologic_subtype="subtype",
             imputation=True,
-            run_simsi=True,
             run_lfq=False,
             normalize_to_reference=False,
             debug=False,
@@ -139,9 +141,9 @@ class TestLoadSampleData:
         df = preprocess.load_sample_data(
             results_folder,
             sample_annotation_df,
+            run_simsi,
             simsi_folder,
             raw_data_location,
-            run_simsi,
             run_lfq,
             debug,
             data_type,
@@ -190,9 +192,9 @@ class TestLoadSampleData:
         df = preprocess.load_sample_data(
             results_folder,
             sample_annotation_df,
+            run_simsi,
             simsi_folder,
             raw_data_location,
-            run_simsi,
             run_lfq,
             debug,
             data_type,
@@ -241,9 +243,9 @@ class TestLoadSampleData:
         df = preprocess.load_sample_data(
             results_folder,
             sample_annotation_df,
+            run_simsi,
             simsi_folder,
             raw_data_location,
-            run_simsi,
             run_lfq,
             debug,
             data_type,
