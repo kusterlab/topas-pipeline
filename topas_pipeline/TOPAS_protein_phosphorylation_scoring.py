@@ -139,5 +139,5 @@ if __name__ == "__main__":
     args = parser.parse_args(sys.argv[1:])
     configs = config.load(args.config)
 
-    preprocessed_protein_df = protein_score_preprocess(configs["results_folder"])
-    protein_phospho_scoring(configs["results_folder"], preprocessed_protein_df)
+    preprocessed_protein_df = protein_score_preprocess(configs.results_folder)
+    protein_phospho_scoring(configs.results_folder, preprocessed_protein_df)

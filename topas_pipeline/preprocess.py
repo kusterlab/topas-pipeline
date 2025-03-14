@@ -6,6 +6,7 @@ import pandas as pd
 from typing import Union, List
 from pathlib import Path
 
+from . import config
 from . import preprocess_tools as prep
 from . import picked_group as picked
 from . import sample_annotation
@@ -18,9 +19,10 @@ from .data_loaders.lfq_loader import LFQLoader
 logger = logging.getLogger(__name__)
 
 
-def preprocess_raw(*args, **kwargs) -> None:
+def preprocess_raw(**kwargs) -> None:
     # Unpack directories and do checks on annotation (sample annot, metadata)
-    results_folder, sample_annotation_file, metadata_annotation, run_simsi, simsi_folder = args
+    sample_annotation_file = kwargs.pop("sample_annotation_file")
+    metadata_annotation = kwargs.pop("metadata_annotation")
     sample_annotation_df = prep.check_annot(
         sample_annotation_file, metadata_annotation, prep.in_metadata
     )  # just for our pipeline
@@ -28,11 +30,8 @@ def preprocess_raw(*args, **kwargs) -> None:
     data_types = kwargs.pop("data_types")
     for data_type in data_types:
         preprocess_raw_data_type(
-            results_folder,
-            run_simsi,
-            simsi_folder,
-            sample_annotation_df,
             **kwargs,
+            sample_annotation_df=sample_annotation_df,
             data_type=data_type,
         )
 
@@ -42,18 +41,8 @@ def preprocess_raw_data_type(
     run_simsi: bool,
     simsi_folder: Union[str, Path],
     sample_annotation_df: pd.DataFrame,
-    raw_data_location: Union[str, Path],
-    picked_fdr: float,
-    fasta_file: str,
-    fdr_num_threads: int,
-    program: str,
-    entity: str,
-    histologic_subtype: str,
-    imputation: bool,
-    run_lfq: bool,
-    debug: bool,
+    preprocessing_config: config.Preprocessing,
     data_type: str,
-    normalize_to_reference: bool,
 ) -> None:
     """
     Calling function for preprocessing of both phospho and full proteome data
@@ -92,18 +81,21 @@ def preprocess_raw_data_type(
         df = pd.read_csv(preprocessed2_file)
     else:
         sample_annotation_df = sample_annotation.filter_samples_by_metadata(
-            sample_annotation_df, program, entity, histologic_subtype
+            sample_annotation_df,
+            preprocessing_config.program,
+            preprocessing_config.entity,
+            preprocessing_config.histologic_subtype,
         )
         df = load_sample_data(
             results_folder,
             sample_annotation_df,
             run_simsi,
             simsi_folder,
-            raw_data_location,
-            run_lfq,
-            debug,
+            preprocessing_config.raw_data_location,
+            preprocessing_config.run_lfq,
+            preprocessing_config.debug,
             data_type,
-            normalize_to_reference=normalize_to_reference,
+            normalize_to_reference=preprocessing_config.normalize_to_reference,
         )
 
         preprocess_function = preprocess_fp
@@ -115,17 +107,20 @@ def preprocess_raw_data_type(
         df = preprocess_function(
             df,
             results_folder,
-            picked_fdr,
-            fasta_file,
-            fdr_num_threads,
-            imputation=imputation,
-            debug=debug,
-            run_lfq=run_lfq,
+            preprocessing_config.picked_fdr,
+            preprocessing_config.fasta_file,
+            preprocessing_config.fdr_num_threads,
+            imputation=preprocessing_config.imputation,
+            debug=preprocessing_config.debug,
+            run_lfq=preprocessing_config.run_lfq,
         )
         df.to_csv(preprocessed2_file, index=False)
 
     sample_annotation_df = sample_annotation.filter_samples_by_metadata(
-        sample_annotation_df, program, entity, histologic_subtype
+        sample_annotation_df,
+        preprocessing_config.program,
+        preprocessing_config.entity,
+        preprocessing_config.histologic_subtype,
     )
     filtered_sample_annotation_file = os.path.join(
         results_folder, "sample_annot_filtered.csv"
@@ -148,7 +143,7 @@ def preprocess_raw_data_type(
         os.path.join(results_folder, f"preprocessed_{data_type}_with_ref.csv"),
         index=False,
     )
-    if debug:
+    if preprocessing_config.debug:
         df.to_csv(
             os.path.join(
                 results_folder,
@@ -333,11 +328,11 @@ if __name__ == "__main__":
     configs = config.load(args.config)
 
     preprocess_raw(
-        configs["results_folder"],
-        configs["sample_annotation"],
-        configs["metadata_annotation"],
-        configs["simsi"]["run_simsi"],
-        configs["simsi"]["simsi_folder"],
-        **configs["preprocessing"],
-        data_types=configs["data_types"],
+        results_folder=configs.results_folder,
+        sample_annotation=configs.sample_annotation,
+        metadata_annotation=configs.metadata_annotation,
+        run_simsi=configs.simsi.run_simsi,
+        simsi_folder=configs.simsi.simsi_folder,
+        preprocessing_config=configs.preprocessing,
+        data_types=configs.data_types,
     )

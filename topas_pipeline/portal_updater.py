@@ -1,6 +1,7 @@
 import json
 import urllib.request
 
+from . import config
 """
 For Automatic updating of the portal with the TOPAS-pipeline generated results 
 
@@ -9,25 +10,19 @@ python portal_updater.py -c configs.json
 """
 
 
-def main(configs):
-    sample_annotation = configs["sample_annotation"]
-    metadata_annotation = configs["metadata_annotation"]
-    results_folder = configs["results_folder"]
-    update = configs["portal"]["update"]
+def main(results_folder: str, sample_annotation: str, metadata_annotation: str, config_portal: config.Portal):
+    if not config_portal.update:
+        return
 
-    if update:
-        cohort = configs["portal"]["cohort"]
-        url = configs["portal"]["url"]
-        portal_config = configs["portal"]["config"]
-        new_portal_paths = {
-            "sample_annotation_path": sample_annotation,
-            "patient_annotation_path": metadata_annotation,
-            "report_directory": results_folder,
-        }
-        # updating the portal config file
-        for path_name, path in new_portal_paths.items():
-            config_updater(portal_config, cohort, path_name, path)
-        endpoint_runner(url, cohort)
+    new_portal_paths = {
+        "sample_annotation_path": sample_annotation,
+        "patient_annotation_path": metadata_annotation,
+        "report_directory": results_folder,
+    }
+    # updating the portal config file
+    for path_name, path in new_portal_paths.items():
+        config_updater(config_portal.config, config_portal.cohort, path_name, path)
+    endpoint_runner(config_portal.url, config_portal.cohort)
 
 
 def config_reader(config_path: str):

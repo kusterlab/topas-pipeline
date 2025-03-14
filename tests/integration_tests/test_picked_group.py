@@ -15,8 +15,8 @@ def test_run_picked_group_fdr():
     """
     configs = config.load(CONFIG_FILE_PATH)
 
-    results_folder = configs["results_folder"]
-    fasta_file = configs["preprocessing"]["fasta_file"]
+    results_folder = configs.results_folder
+    fasta_file = configs.preprocessing.fasta_file
     evidence_file = Path(results_folder) / "evidence.txt"
     picked_output_file = (
         Path(results_folder) / "integration_tests" / "pickedGeneGroups.txt"
@@ -47,8 +47,8 @@ def test_do_quant():
     Takes approximately 150 seconds.
     """
     configs = config.load(CONFIG_FILE_PATH)
-    results_folder = configs["results_folder"]
-    fasta_file = configs["preprocessing"]["fasta_file"]    
+    results_folder = configs.results_folder
+    fasta_file = configs.preprocessing.fasta_file    
 
     picked_output_file_with_quant = (
         Path(results_folder) / "integration_tests" / "pickedGeneGroups_with_quant.txt"
@@ -57,17 +57,17 @@ def test_do_quant():
         picked_output_file_with_quant.unlink()
 
     sample_annotation_df = sample_annotation.load_sample_annotation(
-        configs["sample_annotation"]
+        configs.sample_annotation
     )
 
     df = prep.load_sample_data(
-        configs["results_folder"],
+        configs.results_folder,
         sample_annotation_df,
-        configs["simsi"]["run_simsi"],
-        configs["simsi"]["simsi_folder"],
-        configs["preprocessing"]["raw_data_location"],
-        configs["preprocessing"]["run_lfq"],
-        configs["preprocessing"]["debug"],
+        configs.simsi.run_simsi,
+        configs.simsi.simsi_folder,
+        configs.preprocessing.raw_data_location,
+        configs.preprocessing.run_lfq,
+        configs.preprocessing.debug,
         "fp",
     )
 
@@ -97,20 +97,20 @@ def test_do_quant():
 
 def test_remap_gene_names():
     configs = config.load(CONFIG_FILE_PATH)
-    fasta_file = configs["preprocessing"]["fasta_file"]
+    fasta_file = configs.preprocessing.fasta_file
 
     sample_annotation_df = sample_annotation.load_sample_annotation(
-        configs["sample_annotation"]
+        configs.sample_annotation
     )
 
     df = prep.load_sample_data(
-        configs["results_folder"],
+        configs.results_folder,
         sample_annotation_df,
-        configs["simsi"]["run_simsi"],
-        configs["simsi"]["simsi_folder"],
-        configs["preprocessing"]["raw_data_location"],
-        configs["preprocessing"]["run_lfq"],
-        configs["preprocessing"]["debug"],
+        configs.simsi.run_simsi,
+        configs.simsi.simsi_folder,
+        configs.preprocessing.raw_data_location,
+        configs.preprocessing.run_lfq,
+        configs.preprocessing.debug,
         "pp",
     )
 

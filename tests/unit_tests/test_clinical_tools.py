@@ -1,10 +1,10 @@
 from pathlib import Path
 
-import pytest
 import pandas as pd
 import numpy as np
 
 import topas_pipeline.clinical_tools as ct
+from topas_pipeline import config
 
 
 class TestPhosphoAnnot:
@@ -35,20 +35,16 @@ class TestPhosphoAnnot:
         )
 
         df = pd.DataFrame({"Modified sequence": ["seq1"]})
-        extra_kinase_annot = ""
-        pspFastaFile = Path("pspFastaFile")
-        pspKinaseSubstrateFile = Path("pspKinaseSubstrateFile")
-        pspAnnotationFile = Path("pspAnnotationFile")
-        pspRegulatoryFile = Path("pspRegulatoryFile")
-
-        result_df = ct.phospho_annot(
-            df,
-            extra_kinase_annot,
-            pspFastaFile,
-            pspKinaseSubstrateFile,
-            pspAnnotationFile,
-            pspRegulatoryFile,
+        clinic_proc_config = config.ClinicProc(
+            extra_kinase_annot="",
+            pspFastaFile=Path("pspFastaFile"),
+            pspKinaseSubstrateFile=Path("pspKinaseSubstrateFile"),
+            pspAnnotationFile=Path("pspAnnotationFile"),
+            pspRegulatoryFile=Path("pspRegulatoryFile"),
+            prot_baskets=""
         )
+
+        result_df = ct.phospho_annot(df, clinic_proc_config=clinic_proc_config)
 
         assert not result_df.empty
         assert mock_add_positions.call_count == 2
@@ -222,7 +218,10 @@ class TestReadBasketAnnotationGeneration4:
                     "LEVEL": ["expression", "kinase activity"],
                     "weight": [0.5, 0.8],
                     "gene": ["gene1", "gene2"],
-                    "topas_subscore_level": ["sub1 - expression", "sub2 - kinase activity"],
+                    "topas_subscore_level": [
+                        "sub1 - expression",
+                        "sub2 - kinase activity",
+                    ],
                 }
             ),
         )

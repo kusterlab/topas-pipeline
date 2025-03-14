@@ -54,7 +54,7 @@ MQ_EVIDENCE_COLUMNS_TYPES = {
     "id": "",
 }
 
-
+# TODO: move this to config validation
 def check_annot(
     sample_annotation_file: str, metadata_annotation_file: str, in_metadata: Callable
 ):

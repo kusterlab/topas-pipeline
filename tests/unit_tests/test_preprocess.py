@@ -1,11 +1,10 @@
-import io
 from pathlib import Path
 
 import pytest
-import numpy as np
 import pandas as pd
 
-import topas_pipeline.preprocess as preprocess
+from topas_pipeline import preprocess
+from topas_pipeline import config
 
 
 class TestPreprocessRaw:
@@ -22,11 +21,11 @@ class TestPreprocessRaw:
         mocker.patch("topas_pipeline.preprocess_tools.check_annot")
 
         preprocess.preprocess_raw(
-            results_folder,
-            sample_annotation_file,
-            metadata_annotation,
-            run_simsi,
-            simsi_folder,
+            results_folder=results_folder,
+            sample_annotation_file=sample_annotation_file,
+            metadata_annotation=metadata_annotation,
+            run_simsi=run_simsi,
+            simsi_folder=simsi_folder,
             data_types=data_types,
         )
 
@@ -49,8 +48,12 @@ class TestPreprocessRawDataType:
             "topas_pipeline.preprocess.sample_annotation.filter_samples_by_metadata",
             return_value=sample_annotation_df,
         )
-        mocker.patch("topas_pipeline.preprocess.load_sample_data", return_value=pd.DataFrame())
-        mocker.patch("topas_pipeline.preprocess.preprocess_fp", return_value=pd.DataFrame())
+        mocker.patch(
+            "topas_pipeline.preprocess.load_sample_data", return_value=pd.DataFrame()
+        )
+        mocker.patch(
+            "topas_pipeline.preprocess.preprocess_fp", return_value=pd.DataFrame()
+        )
         mocker.patch(
             "topas_pipeline.preprocess.sample_annotation.get_channel_to_sample_id_dict",
             return_value={},
@@ -60,14 +63,12 @@ class TestPreprocessRawDataType:
             "topas_pipeline.preprocess.prep.rename_columns_with_sample_ids",
             return_value=pd.DataFrame(columns=["Gene names"]),
         )
-        mocker.patch("topas_pipeline.preprocess.get_prefix_renaming_dict", return_value={})
+        mocker.patch(
+            "topas_pipeline.preprocess.get_prefix_renaming_dict", return_value={}
+        )
         mocker.patch("pandas.DataFrame.to_csv")
 
-        preprocess.preprocess_raw_data_type(
-            results_folder="results",
-            run_simsi=True,
-            simsi_folder="simsi",
-            sample_annotation_df=sample_annotation_df,
+        preprocess_config = config.Preprocessing(
             raw_data_location="raw_data",
             picked_fdr=0.01,
             fasta_file="fasta.fasta",
@@ -79,6 +80,13 @@ class TestPreprocessRawDataType:
             run_lfq=False,
             normalize_to_reference=False,
             debug=False,
+        )
+        preprocess.preprocess_raw_data_type(
+            results_folder="results",
+            run_simsi=True,
+            simsi_folder="simsi",
+            sample_annotation_df=sample_annotation_df,
+            preprocessing_config=preprocess_config,
             data_type="fp",
         )
 
@@ -115,18 +123,22 @@ class TestLoadSampleData:
     def test_load_and_normalize_with_tmt(self, mocker):
         # Mock dependencies
         mock_get_evidence_files = mocker.patch(
-            "topas_pipeline.preprocess_tools.get_evidence_files", return_value=["file1", "file2"]
+            "topas_pipeline.preprocess_tools.get_evidence_files",
+            return_value=["file1", "file2"],
         )
         mock_tmt_loader = mocker.patch("topas_pipeline.preprocess.TMTLoader")
         mock_simsi_loader = mocker.patch("topas_pipeline.preprocess.SimsiTMTLoader")
         mock_lfq_loader = mocker.patch("topas_pipeline.preprocess.LFQLoader")
         mock_load_and_normalize = mocker.patch(
-            "topas_pipeline.preprocess_tools.load_and_normalize", return_value=pd.DataFrame()
+            "topas_pipeline.preprocess_tools.load_and_normalize",
+            return_value=pd.DataFrame(),
         )
 
         # Test data
         results_folder = Path("/path/to/results")
-        sample_annotation_df = pd.DataFrame({"sample": ["A", "B"], "is_reference": [False, True]})
+        sample_annotation_df = pd.DataFrame(
+            {"sample": ["A", "B"], "is_reference": [False, True]}
+        )
         simsi_folder = Path("/path/to/simsi")
         raw_data_location = Path("/path/to/raw")
         run_simsi = False
@@ -135,7 +147,9 @@ class TestLoadSampleData:
         data_type = "type1"
         normalize_to_reference = False
 
-        ref_channels = pd.DataFrame({"sample": ["B"], "is_reference": [True]}, index=[1])
+        ref_channels = pd.DataFrame(
+            {"sample": ["B"], "is_reference": [True]}, index=[1]
+        )
 
         # Call the function
         df = preprocess.load_sample_data(
@@ -170,16 +184,20 @@ class TestLoadSampleData:
     def test_load_and_normalize_with_simsi(self, mocker):
         # Mock dependencies
         mock_get_evidence_files = mocker.patch(
-            "topas_pipeline.preprocess_tools.get_evidence_files", return_value=["file1", "file2"]
+            "topas_pipeline.preprocess_tools.get_evidence_files",
+            return_value=["file1", "file2"],
         )
         mock_simsi_loader = mocker.patch("topas_pipeline.preprocess.SimsiTMTLoader")
         mock_load_and_normalize = mocker.patch(
-            "topas_pipeline.preprocess_tools.load_and_normalize", return_value=pd.DataFrame()
+            "topas_pipeline.preprocess_tools.load_and_normalize",
+            return_value=pd.DataFrame(),
         )
 
         # Test data
         results_folder = Path("/path/to/results")
-        sample_annotation_df = pd.DataFrame({"sample": ["A", "B"], "is_reference": [False, True]})
+        sample_annotation_df = pd.DataFrame(
+            {"sample": ["A", "B"], "is_reference": [False, True]}
+        )
         simsi_folder = Path("/path/to/simsi")
         raw_data_location = Path("/path/to/raw")
         run_simsi = True
@@ -221,16 +239,20 @@ class TestLoadSampleData:
     def test_load_and_normalize_with_lfq(self, mocker):
         # Mock dependencies
         mock_get_evidence_files = mocker.patch(
-            "topas_pipeline.preprocess_tools.get_evidence_files", return_value=["file1", "file2"]
+            "topas_pipeline.preprocess_tools.get_evidence_files",
+            return_value=["file1", "file2"],
         )
         mock_lfq_loader = mocker.patch("topas_pipeline.preprocess.LFQLoader")
         mock_load_and_normalize = mocker.patch(
-            "topas_pipeline.preprocess_tools.load_and_normalize", return_value=pd.DataFrame()
+            "topas_pipeline.preprocess_tools.load_and_normalize",
+            return_value=pd.DataFrame(),
         )
 
         # Test data
         results_folder = Path("/path/to/results")
-        sample_annotation_df = pd.DataFrame({"sample": ["A", "B"], "is_reference": [False, True]})
+        sample_annotation_df = pd.DataFrame(
+            {"sample": ["A", "B"], "is_reference": [False, True]}
+        )
         simsi_folder = Path("/path/to/simsi")
         raw_data_location = Path("/path/to/raw")
         run_simsi = False
@@ -287,7 +309,8 @@ class TestPreprocessPp:
             "topas_pipeline.preprocess_tools.filter_data", return_value=pd.DataFrame()
         )
         mock_sum_peptide_intensities = mocker.patch(
-            "topas_pipeline.preprocess_tools.sum_peptide_intensities", return_value=pd.DataFrame()
+            "topas_pipeline.preprocess_tools.sum_peptide_intensities",
+            return_value=pd.DataFrame(),
         )
         mock_log_transform_intensities = mocker.patch(
             "topas_pipeline.preprocess_tools.log_transform_intensities",
@@ -345,7 +368,8 @@ class TestPreprocessPp:
             "topas_pipeline.preprocess_tools.filter_data", return_value=pd.DataFrame()
         )
         mock_sum_peptide_intensities = mocker.patch(
-            "topas_pipeline.preprocess_tools.sum_peptide_intensities", return_value=pd.DataFrame()
+            "topas_pipeline.preprocess_tools.sum_peptide_intensities",
+            return_value=pd.DataFrame(),
         )
         mock_log_transform_intensities = mocker.patch(
             "topas_pipeline.preprocess_tools.log_transform_intensities",

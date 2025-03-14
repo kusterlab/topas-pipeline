@@ -52,4 +52,4 @@ if __name__ == "__main__":
     args = parser.parse_args(sys.argv[1:])
 
     configs = config.load(args.config)
-    psite_scoring(configs["results_folder"], configs["data_types"])
+    psite_scoring(configs.results_folder, configs.data_types)

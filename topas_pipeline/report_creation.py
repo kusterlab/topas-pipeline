@@ -3,22 +3,22 @@ import sys
 import json
 import math
 import logging
-import time
 
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from typing import Tuple, List, Dict, Union
+from typing import Tuple, Dict, List, Union
 from job_pool import JobPool
 
-import topas_pipeline.sample_annotation as sa
-import topas_pipeline.utils as utils
-import topas_pipeline.metrics as metrics
-import topas_pipeline.clinical_process as clinical_process
-import topas_pipeline.clinical_tools as clinical_tools
-import topas_pipeline.basket_scoring as basket_scoring
-import topas_pipeline.TOPAS_kinase_scoring as kinase_scoring
-import topas_pipeline.TOPAS_protein_phosphorylation_scoring as protein_phoshorylation_scoring
+from . import config
+from . import sample_annotation as sa
+from . import utils as utils
+from . import metrics as metrics
+from . import clinical_process as clinical_process
+from . import clinical_tools as clinical_tools
+from . import basket_scoring as basket_scoring
+from . import TOPAS_kinase_scoring as kinase_scoring
+from . import TOPAS_protein_phosphorylation_scoring as protein_phoshorylation_scoring
 
 logger = logging.getLogger(__name__)
 
@@ -29,8 +29,7 @@ TOPAS_SUBSCORE_COLUMNS = clinical_process.TOPAS_SUBSCORE_COLUMNS
 def create_report(
     results_folder: Union[str, Path],
     debug: bool,
-    samples_for_report: str,
-    drug_list_file: Union[str, Path],
+    report_config: config.Report,
     annot_file: Union[str, Path],
     data_types: List[str],
 ) -> None:
@@ -44,13 +43,13 @@ def create_report(
     logger.info("Running report creation module")
 
     # TODO: add a check that batch selected exists in data and optimize this whole functionality.. rarely ever use it because it's too complicated
-    if samples_for_report == "none":
+    if report_config.samples_for_report == "none":
         return
-    if samples_for_report in ["all", "ALL", ""]:
+    if report_config.samples_for_report in ["all", "ALL", ""]:
         samples_list = []
     else:
         try:
-            samples_for_report = str(samples_for_report)
+            samples_for_report = str(report_config.samples_for_report)
         except ValueError:
             print("Input not of type int or string")
         samples_list = samples_for_report
@@ -136,27 +135,6 @@ def create_report(
         topas_annotation_df,
         sample_annotation_df,
     )
-
-
-def get_basket_annot_dicts(results_folder, data_types):
-    # TODO: get rid of this function and take the info directly from annot_<fp|pp>.csv
-    basket_annot_dicts = {}
-    for data_type in data_types + ["fp_with_ref", "pp_with_ref"]:
-        # try to loop through data types and when a fitting dict is found load it
-        if os.path.exists(
-            os.path.join(results_folder, f"topas_annot_dict_{data_type}.json")
-        ):
-            f = open(os.path.join(results_folder, f"topas_annot_dict_{data_type}.json"))
-            f_poi = open(
-                os.path.join(results_folder, f"poi_annot_dict_{data_type}.json")
-            )
-            if "fp" in data_type:
-                data_type = "fp"
-            else:
-                data_type = "pp"
-            basket_annot_dicts[data_type] = json.load(f)
-            basket_annot_dicts["poi"] = json.load(f_poi)
-    return basket_annot_dicts
 
 
 def read_and_compute_scores(results_folder: Union[str, Path]) -> Tuple:
@@ -1107,9 +1085,9 @@ if __name__ == "__main__":
     configs = config.load(args.config)
 
     create_report(
-        configs["results_folder"],
-        configs["preprocessing"]["debug"],
-        **configs["report"],
-        annot_file=configs["clinic_proc"]["prot_baskets"],
-        data_types=configs["data_types"],
+        results_folder=configs.results_folder,
+        debug=configs.preprocessing.debug,
+        report_config=configs.report,
+        annot_file=configs.clinic_proc.prot_baskets,
+        data_types=configs.data_types,
     )

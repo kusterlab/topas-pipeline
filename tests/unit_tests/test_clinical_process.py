@@ -1,10 +1,8 @@
-import json
-
-import pytest
 import pandas as pd
 
 import topas_pipeline.clinical_process as cp
-import topas_pipeline.clinical_tools as clinical_tools
+from topas_pipeline import clinical_tools
+from topas_pipeline import config
 
 
 class TestClinicalProcess:
@@ -31,8 +29,12 @@ class TestClinicalProcessDataType:
         # Mocking dependencies
         mocker.patch("os.path.exists", return_value=False)
         mock_read_csv = mocker.patch("pandas.read_csv", return_value=pd.DataFrame())
-        mocker.patch("topas_pipeline.clinical_tools.phospho_annot", return_value=pd.DataFrame())
-        mocker.patch("topas_pipeline.clinical_tools.add_psp_urls", return_value=pd.DataFrame())
+        mocker.patch(
+            "topas_pipeline.clinical_tools.phospho_annot", return_value=pd.DataFrame()
+        )
+        mocker.patch(
+            "topas_pipeline.clinical_tools.add_psp_urls", return_value=pd.DataFrame()
+        )
         mocker.patch(
             "topas_pipeline.clinical_tools.prot_clinical_annotation",
             return_value=pd.DataFrame(),
@@ -43,25 +45,22 @@ class TestClinicalProcessDataType:
 
         # Test data
         results_folder = "test_results"
-        extra_kinase_annot = False
         debug = False
-        prot_baskets = "test_baskets"
-        pspFastaFile = "test_fasta"
-        pspKinaseSubstrateFile = "test_kinase"
-        pspAnnotationFile = "test_annotation"
-        pspRegulatoryFile = "test_regulatory"
+        clinic_proc_config = config.ClinicProc(
+            prot_baskets="test_baskets",
+            pspFastaFile="test_fasta",
+            pspKinaseSubstrateFile="test_kinase",
+            pspAnnotationFile="test_annotation",
+            pspRegulatoryFile="test_regulatory",
+            extra_kinase_annot="",
+        )
         data_type = "pp"
 
         # Call the function
         cp.clinical_process_data_type(
             results_folder,
             debug,
-            prot_baskets,
-            extra_kinase_annot,
-            pspFastaFile,
-            pspKinaseSubstrateFile,
-            pspAnnotationFile,
-            pspRegulatoryFile,
+            clinic_proc_config,
             data_type,
         )
 
@@ -88,16 +87,17 @@ class TestMergeBasketsWithSubbaskets:
 
 class TestGetUniqueBaskets:
     def test_handles_list_input_correctly(self):
-        baskets = ['apple', 'banana', 'apple', 'orange']
-        expected_output = 'apple;banana;orange'
+        baskets = ["apple", "banana", "apple", "orange"]
+        expected_output = "apple;banana;orange"
         assert cp.get_unique_baskets(baskets) == expected_output
-    
+
     def test_handles_string_input_correctly(self):
-        baskets = 'apple;banana;apple;orange'
-        expected_output = 'apple;banana;orange'
+        baskets = "apple;banana;apple;orange"
+        expected_output = "apple;banana;orange"
         assert cp.get_unique_baskets(baskets) == expected_output
-    
+
         # Handles float input correctly
+
     def test_handles_float_input_correctly(self):
         baskets = 3.5
         expected_output = 3.5
@@ -105,22 +105,28 @@ class TestGetUniqueBaskets:
 
 
 class TestReadAnnotationFiles:
-        # Correctly reads annotation files from the specified results folder
+    # Correctly reads annotation files from the specified results folder
     def test_reads_annotation_files_correctly(self, mocker):
         # Mocking the utils.get_index_cols function
-        mocker.patch('topas_pipeline.utils.get_index_cols', return_value=['index_col'])
+        mocker.patch("topas_pipeline.utils.get_index_cols", return_value=["index_col"])
 
         # Mocking the pd.read_csv function
-        mock_annot = pd.DataFrame({'TOPAS_score': ['basket1'], 'TOPAS_subscore': ['sub_basket1'], 'POI_category': ['Adaptor protein']})
-        mocker.patch('pandas.read_csv', return_value=mock_annot)
+        mock_annot = pd.DataFrame(
+            {
+                "TOPAS_score": ["basket1"],
+                "TOPAS_subscore": ["sub_basket1"],
+                "POI_category": ["Adaptor protein"],
+            }
+        )
+        mocker.patch("pandas.read_csv", return_value=mock_annot)
 
-        results_folder = 'test_folder'
+        results_folder = "test_folder"
         debug = False
-        data_type = 'test_type'
+        data_type = "test_type"
 
         annot, annot_ref = cp.read_annotation_files(results_folder, debug, data_type)
 
         assert annot is not None
         assert annot_ref is None
-        assert 'TOPAS_score' in annot.columns
-        assert 'TOPAS_subscore' in annot.columns
+        assert "TOPAS_score" in annot.columns
+        assert "TOPAS_subscore" in annot.columns

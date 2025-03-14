@@ -15,8 +15,8 @@ def test_phospho_annot():
     """
     configs = config.load(CONFIG_FILE_PATH)
 
-    preprocessed_pp_file = Path(configs["results_folder"]) / "preprocessed_pp.csv"
-    reference_result_file = Path(configs["results_folder"]) / "integration_tests" / "preprocessed_pp_phospho_annot.csv"
+    preprocessed_pp_file = Path(configs.results_folder) / "preprocessed_pp.csv"
+    reference_result_file = Path(configs.results_folder) / "integration_tests" / "preprocessed_pp_phospho_annot.csv"
 
     index_col = "Modified sequence"
     keep_default_na = False
@@ -30,11 +30,7 @@ def test_phospho_annot():
 
     preprocessed_pp = clinical_tools.phospho_annot(
         preprocessed_pp,
-        extra_kinase_annot=configs["clinic_proc"]["extra_kinase_annot"],
-        pspFastaFile=configs["clinic_proc"]["pspFastaFile"],
-        pspKinaseSubstrateFile=configs["clinic_proc"]["pspKinaseSubstrateFile"],
-        pspAnnotationFile=configs["clinic_proc"]["pspAnnotationFile"],
-        pspRegulatoryFile=configs["clinic_proc"]["pspRegulatoryFile"],
+        clinic_proc_config=configs.clinic_proc
     )
 
     # uncomment this to create new reference file

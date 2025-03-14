@@ -866,23 +866,23 @@ if __name__ == "__main__":
     configs = config.load(args.config)
     # Create results folder and save configurations
     os.makedirs(
-        os.path.join(configs["results_folder"], args.basket_results_folder),
+        os.path.join(configs.results_folder, args.basket_results_folder),
         exist_ok=True,
     )
-    utils.init_file_logger(configs["results_folder"], "Basket_scoring_log.txt")
+    utils.init_file_logger(configs.results_folder, "Basket_scoring_log.txt")
 
     compute_TOPAS_scores(
-        configs["results_folder"],
-        configs["preprocessing"]["debug"],
-        data_types=configs["data_types"],
-        baskets_file=configs["clinic_proc"]["prot_baskets"],
-        metadata_file=configs["metadata_annotation"],
+        configs.results_folder,
+        configs.preprocessing.debug,
+        data_types=configs.data_types,
+        baskets_file=configs.clinic_proc.prot_baskets,
+        metadata_file=configs.metadata_annotation,
         basket_results_folder=args.basket_results_folder,
     )
 
     if args.basket_member_zscores:
         extract_basket_member_z_scores_4th_gen(
-            configs["results_folder"],
-            baskets_file=configs["clinic_proc"]["prot_baskets"],
+            configs.results_folder,
+            baskets_file=configs.clinic_proc.prot_baskets,
             basket_results_folder=args.basket_results_folder,
         )

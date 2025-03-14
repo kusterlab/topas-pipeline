@@ -1,4 +1,3 @@
-import sys
 import json
 import logging
 from itertools import compress
@@ -7,20 +6,17 @@ from typing import List, Dict, Tuple, Union
 
 import pandas as pd
 import numpy as np
-
 import psite_annotation as pa
+
 from . import utils
+from . import config
 
 logger = logging.getLogger(__name__)
 
 
 def phospho_annot(
     df: pd.DataFrame,
-    extra_kinase_annot: Union[str, Path],
-    pspFastaFile: Union[str, Path],
-    pspKinaseSubstrateFile: Union[str, Path],
-    pspAnnotationFile: Union[str, Path],
-    pspRegulatoryFile: Union[str, Path],
+    clinic_proc_config: config.ClinicProc,
 ) -> pd.DataFrame:
     """
     Phospho-site annotation of experimental data using in-house developed tool (MT) based mainly on Phosphosite Plus but also in vitro
@@ -37,11 +33,16 @@ def phospho_annot(
     logger.info(f"Phospho data before: {df.shape}")
     df = df.reset_index()
     df = pa.addPeptideAndPsitePositions(
-        df, pspFastaFile, pspInput=True, returnAllPotentialSites=False
+        df,
+        clinic_proc_config.pspFastaFile,
+        pspInput=True,
+        returnAllPotentialSites=False,
     )
-    df = pa.addPSPKinaseSubstrateAnnotations(df, pspKinaseSubstrateFile, gene_name=True)
-    df = pa.addPSPAnnotations(df, pspAnnotationFile)
-    df = pa.addPSPRegulatoryAnnotations(df, pspRegulatoryFile)
+    df = pa.addPSPKinaseSubstrateAnnotations(
+        df, clinic_proc_config.pspKinaseSubstrateFile, gene_name=True
+    )
+    df = pa.addPSPAnnotations(df, clinic_proc_config.pspAnnotationFile)
+    df = pa.addPSPRegulatoryAnnotations(df, clinic_proc_config.pspRegulatoryFile)
     df["PSP_LT_LIT"] = df["PSP_LT_LIT"].apply(lambda x: max(x.split(";")))
     df["PSP_MS_LIT"] = df["PSP_MS_LIT"].apply(lambda x: max(x.split(";")))
     df["PSP_MS_CST"] = df["PSP_MS_CST"].apply(lambda x: max(x.split(";")))
@@ -49,14 +50,14 @@ def phospho_annot(
         columns={"Site positions": "Site positions identified (MQ)"}, inplace=True
     )
     df = pa.addPeptideAndPsitePositions(
-        df, pspFastaFile, pspInput=True, returnAllPotentialSites=True
+        df, clinic_proc_config.pspFastaFile, pspInput=True, returnAllPotentialSites=True
     )
     logger.info(f"Phospho data after: {df.shape}")
     df = df.set_index("Modified sequence", drop=True)
 
     # Add extra kinase annotations
-    if len(str(extra_kinase_annot)) > 0:
-        df = add_extra_kinase_annotations(df, extra_kinase_annot)
+    if len(str(clinic_proc_config.extra_kinase_annot)) > 0:
+        df = add_extra_kinase_annotations(df, clinic_proc_config.extra_kinase_annot)
 
     return df
 
@@ -189,9 +190,9 @@ def map_identifier_list_to_annot_types(
         if identifier in annot_dict:
 
             # should we have two dictionaries or should we split the dictionary output in case there is more than one group?
-            annot_type_in_column = annot_type
+            annot_type_in_column = "basket"
             if "POI" in annot_type:
-                annot_type_in_column = "TOPAS_subscore"
+                annot_type_in_column = "sub_basket"
 
             groups = annot_dict[identifier]["GROUP"].split(";")
             annot_group = annot_dict[identifier][annot_type_in_column].split(";")
@@ -319,15 +320,14 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    with open(args.config, "r") as f:
-        configs = json.load(f)
+    configs = config.load(args.config)
 
     index_col = "Gene names"
     if args.data_type == "pp":
         index_col = "Modified sequence"
 
     df = pd.read_csv(args.input_file, sep="\t", index_col=index_col)
-    annot_file = configs["clinic_proc"]["prot_baskets"]
+    annot_file = configs.clinic_proc.prot_baskets
 
     # Start pipeline
     t0 = time.time()

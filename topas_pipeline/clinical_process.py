@@ -1,6 +1,5 @@
 import os
 import sys
-import json
 import logging
 
 import numpy as np
@@ -8,6 +7,7 @@ import pandas as pd
 from pathlib import Path
 from typing import List, Union
 
+from . import config
 from . import clinical_tools
 from . import utils
 
@@ -39,12 +39,7 @@ def clinical_process(*args, **kwargs) -> None:
 def clinical_process_data_type(
     results_folder: Union[str, Path],
     debug: bool,
-    prot_baskets: Union[str, Path],
-    extra_kinase_annot: Union[str, Path],
-    pspFastaFile: Union[str, Path],
-    pspKinaseSubstrateFile: Union[str, Path],
-    pspAnnotationFile: Union[str, Path],
-    pspRegulatoryFile: Union[str, Path],
+    clinic_proc_config: config.ClinicProc,
     data_type: str,
 ) -> None:
     """
@@ -92,11 +87,7 @@ def clinical_process_data_type(
         logger.info("Annotating phospho sites")
         dfs[data_type] = clinical_tools.phospho_annot(
             dfs[data_type],
-            extra_kinase_annot,
-            pspFastaFile,
-            pspKinaseSubstrateFile,
-            pspAnnotationFile,
-            pspRegulatoryFile,
+            clinic_proc_config,
         )
 
         logger.info("Adding PhosphoSitePlus URLs")
@@ -106,11 +97,7 @@ def clinical_process_data_type(
         if debug:
             dfs[data_type_with_ref] = clinical_tools.phospho_annot(
                 dfs[data_type_with_ref],
-                extra_kinase_annot,
-                pspFastaFile,
-                pspKinaseSubstrateFile,
-                pspAnnotationFile,
-                pspRegulatoryFile,
+                clinic_proc_config,
             )
             dfs[data_type_with_ref] = clinical_tools.add_psp_urls(
                 dfs[data_type_with_ref]
@@ -123,7 +110,10 @@ def clinical_process_data_type(
     for data_type in dfs.keys():
         for annot_type in annot_levels:
             dfs[data_type] = clinical_tools.prot_clinical_annotation(
-                dfs[data_type], prot_baskets, data_type=data_type, annot_type=annot_type
+                dfs[data_type],
+                clinic_proc_config.prot_baskets,
+                data_type=data_type,
+                annot_type=annot_type,
             )
         dfs[data_type].to_csv(os.path.join(results_folder, f"annot_{data_type}.csv"))
 
@@ -203,8 +193,8 @@ if __name__ == "__main__":
     configs = config.load(args.config)
 
     clinical_process(
-        configs["results_folder"],
-        configs["preprocessing"]["debug"],
-        **configs["clinic_proc"],
-        data_types=configs["data_types"],
+        results_folder=configs.results_folder,
+        debug=configs.preprocessing.debug,
+        clinic_proc_config=configs.clinic_proc,
+        data_types=configs.data_types,
     )

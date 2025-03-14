@@ -19,19 +19,31 @@ class TestMain:
         )
         mocker.patch(
             "topas_pipeline.config.load",
-            return_value={
-                "raw_file_folders": ["path/to_raw_files"],
-                "preprocessing": {
-                    "raw_data_location": "path/to/data",
-                },
-                "results_folder": "results",
-                "sample_annotation": "sample",
-                "simsi": {
-                    "run_simsi": True,
-                },
-                "data_types": [],
-                "slack_webhook_url": "dummy_url",
-            },
+            return_value=config.Config(
+                **{
+                    "sample_annotation": "",
+                    "metadata_annotation": "",
+                    "raw_file_folders": ["path/to_raw_files"],
+                    "preprocessing": {
+                        "raw_data_location": "path/to/data",
+                        "fasta_file": "",
+                    },
+                    "clinic_proc": {
+                        "pspFastaFile": "example/PSP_annotations/Phosphosite_seq.fasta",
+                        "pspKinaseSubstrateFile": "example/PSP_annotations/Kinase_Substrate_Dataset",
+                        "pspAnnotationFile": "example/PSP_annotations/Phosphorylation_site_dataset",
+                        "pspRegulatoryFile": "example/PSP_annotations/Regulatory_sites",
+                        "prot_baskets": "example/TOPASscores_POI_AS_250307.xlsx",
+                    },
+                    "results_folder": "results",
+                    "sample_annotation": "sample",
+                    "simsi": {
+                        "run_simsi": True,
+                    },
+                    "data_types": [],
+                    "slack_webhook_url": "dummy_url",
+                }
+            ),
         )
         mocker.patch("os.makedirs")
         mocker.patch("json.dumps")
@@ -50,17 +62,31 @@ class TestMain:
         )
         mocker.patch(
             "topas_pipeline.config.load",
-            return_value={
-                "preprocessing": {
-                    "raw_data_location": "path/to/data",
-                },
-                "results_folder": "results",
-                "sample_annotation": "sample",
-                "simsi": {
-                    "run_simsi": False,
-                },
-                "data_types": [],
-            },
+            return_value=config.Config(
+                **{
+                    "sample_annotation": "",
+                    "metadata_annotation": "",
+                    "raw_file_folders": ["path/to_raw_files"],
+                    "preprocessing": {
+                        "raw_data_location": "path/to/data",
+                        "fasta_file": "",
+                    },
+                    "clinic_proc": {
+                        "pspFastaFile": "example/PSP_annotations/Phosphosite_seq.fasta",
+                        "pspKinaseSubstrateFile": "example/PSP_annotations/Kinase_Substrate_Dataset",
+                        "pspAnnotationFile": "example/PSP_annotations/Phosphorylation_site_dataset",
+                        "pspRegulatoryFile": "example/PSP_annotations/Regulatory_sites",
+                        "prot_baskets": "example/TOPASscores_POI_AS_250307.xlsx",
+                    },
+                    "results_folder": "results",
+                    "sample_annotation": "sample",
+                    "simsi": {
+                        "run_simsi": False,
+                    },
+                    "data_types": [],
+                    "slack_webhook_url": "dummy_url",
+                }
+            ),
         )
         mocker.patch("topas_pipeline.simsi.run_simsi")
 
@@ -91,7 +117,6 @@ class TestRunSimsiDataType:
     def test_run_simsi_data_type_success(self, mocker):
         mocker.patch("time.time", side_effect=[0, 10, 20, 30])
         mocker.patch("topas_pipeline.simsi.init_file_logger")
-        mocker.patch("topas_pipeline.simsi.send_slack_message")
         mocker.patch(
             "topas_pipeline.preprocess_tools.get_summary_files",
             return_value=["summary_file"],
@@ -119,24 +144,22 @@ class TestRunSimsiDataType:
         )
         mocker.patch("topas_pipeline.simsi.run_simsi_single")
         mocker.patch("topas_pipeline.simsi.store_results_for_reuse")
-
-        simsi.run_simsi_data_type(
-            results_folder="results",
-            search_result_folder="search_results",
-            sample_annotation_file="sample_annotation",
-            raw_file_folders=["path/to_raw_files"],
+        simsi_config = config.Simsi(
             run_simsi=True,
             simsi_folder="simsi",
             tmt_ms_level="2",
             stringencies=1,
             maximum_pep=100,
             num_threads=4,
-            slack_webhook_url="dummy_url",
-            data_type="typeA",
         )
 
-        simsi.send_slack_message.assert_called_once_with(
-            "SIMSI typeA finished", "results", "dummy_url"
+        simsi.run_simsi_data_type(
+            results_folder="results",
+            search_result_folder="search_results",
+            sample_annotation_file="sample_annotation",
+            raw_file_folders=["path/to_raw_files"],
+            simsi_config=simsi_config,
+            data_type="typeA",
         )
 
 

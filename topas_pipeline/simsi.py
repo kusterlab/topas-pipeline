@@ -41,7 +41,7 @@ def main(argv):
 
     configs = config.load(args.config)
 
-    if not configs["simsi"]["run_simsi"]:
+    if not configs.simsi.run_simsi:
         logger.info(f"run_simsi flag is set to False, skipping SIMSI")
         return
 
@@ -51,20 +51,19 @@ def main(argv):
         f'Issued command: {os.path.basename(__file__)} {" ".join(map(str, argv))}'
     )
 
-    os.makedirs(configs["results_folder"], exist_ok=True)
+    os.makedirs(configs.results_folder, exist_ok=True)
 
-    jsonString = json.dumps(configs, indent=4)
-    with open(f'{configs["results_folder"]}/configs.json', "w") as jsonFile:
-        jsonFile.write(jsonString)
+    with open(f'{configs.results_folder}/configs.json', "w") as jsonFile:
+        jsonFile.write(configs.asjson())
 
     run_simsi(
-        configs["results_folder"],
-        configs["preprocessing"]["raw_data_location"],
-        configs["sample_annotation"],
-        configs["raw_file_folders"],
-        **configs["simsi"],
-        data_types=configs["data_types"],
-        slack_webhook_url=configs["slack_webhook_url"],
+        results_folder=configs.results_folder,
+        raw_data_location=configs.preprocessing.raw_data_location,
+        sample_annotation=configs.sample_annotation,
+        raw_file_folders=configs.raw_file_folders,
+        simsi_config=configs.simsi,
+        data_types=configs.data_types,
+        slack_webhook_url=configs.slack_webhook_url,
     )
 
 
@@ -91,120 +90,91 @@ def run_simsi_data_type(
     search_result_folder: str,
     sample_annotation_file: str,
     raw_file_folders: List[str],
-    run_simsi: bool,
-    simsi_folder: str,
-    tmt_ms_level: str,
-    stringencies: int,
-    maximum_pep: int,
-    num_threads: int,
+    simsi_config: config.Simsi,
     data_type: str,
-    slack_webhook_url: str,
-    tmt_requantify: bool = True,
 ):
-    if not run_simsi:
+    if not simsi_config.run_simsi:
         return
     
     init_file_logger(results_folder, f"SIMSI_log_{data_type}.txt")
 
-    # Start pipeline
-    t0 = time.time()
-
-    # run simsi (~10 hours)
     logger.info(f"SIMSI started")
 
-    exit_code = 0  # exit code 0: no error
-    try:
-        summary_files = prep.get_summary_files(
-            search_result_folder, data_type, sample_annotation_file
+    summary_files = prep.get_summary_files(
+        search_result_folder, data_type, sample_annotation_file
+    )
+
+    copy_raw_files(raw_file_folders, summary_files, data_type, simsi_config.simsi_folder)
+    meta_input_file = mi.get_meta_input_file_path(results_folder, data_type)
+
+    # manually create meta input files
+    create_meta_input_file(summary_files, data_type, simsi_config.simsi_folder, meta_input_file)
+
+    meta_input_df = pd.read_csv(meta_input_file, sep="\t")
+
+    result_folder_name = Path(results_folder).name
+    simsi_output_folder = get_simsi_output_folder(
+        simsi_config.simsi_folder, data_type, result_folder_name
+    )
+    simsi_cache_folder = get_simsi_cache_folder(simsi_config.simsi_folder, data_type)
+    if matched_summaries_folder := find_matching_summaries_folder(
+        simsi_cache_folder, meta_input_file
+    ):
+        logger.info(
+            f"Found a summaries folder that matches the current list of folders: {matched_summaries_folder}"
         )
+        logger.info("Skipping SIMSI processing.")
+        return
 
-        copy_raw_files(raw_file_folders, summary_files, data_type, simsi_folder)
-        meta_input_file = mi.get_meta_input_file_path(results_folder, data_type)
+    # TODO: clean this up!
+    # now that we know we have to run simsi we can do this (is quite slow though)
+    for folder in meta_input_df["mq_txt_folder"]:
+        matches = re.findall(r"Batch([A-Za-z]*\d+)", folder)
 
-        # manually create meta input files
-        create_meta_input_file(summary_files, data_type, simsi_folder, meta_input_file)
-
-        meta_input_df = pd.read_csv(meta_input_file, sep="\t")
-
-        result_folder_name = Path(results_folder).name
-        simsi_output_folder = get_simsi_output_folder(
-            simsi_folder, data_type, result_folder_name
-        )
-        simsi_cache_folder = get_simsi_cache_folder(simsi_folder, data_type)
-        if matched_summaries_folder := find_matching_summaries_folder(
-            simsi_cache_folder, meta_input_file
-        ):
-            logger.info(
-                f"Found a summaries folder that matches the current list of folders: {matched_summaries_folder}"
-            )
-            logger.info("Skipping SIMSI processing.")
-            return
-
-        # TODO: clean this up!
-        # now that we know we have to run simsi we can do this (is quite slow though)
-        for folder in meta_input_df["mq_txt_folder"]:
-            matches = re.findall(r"Batch([A-Za-z]*\d+)", folder)
-
-            if matches[0].isdigit():
-                if int(matches[0]) < 230:
-                    continue
-            else:
-                if "CL" not in matches[0] and "PDX" not in matches[0]:
-                    continue
-
-            # check if any missingness in Min scan number or Max scan number - if so fix file
-            if not os.path.isfile(folder + "/allPeptides.txt"):
+        if matches[0].isdigit():
+            if int(matches[0]) < 230:
+                continue
+        else:
+            if "CL" not in matches[0] and "PDX" not in matches[0]:
                 continue
 
-            allpep = pd.read_csv(folder + "/allPeptides.txt", sep="\t")
-            if (
-                allpep["Min scan number"].isna().any()
-                or allpep["Max scan number"].isna().any()
-            ):
+        # check if any missingness in Min scan number or Max scan number - if so fix file
+        if not os.path.isfile(folder + "/allPeptides.txt"):
+            continue
 
-                msms = pd.read_csv(folder + "/msms.txt", sep="\t")
-                msms_max_scans = msms.groupby("Raw file")[
-                    "Precursor full scan number"
-                ].max()
+        allpep = pd.read_csv(folder + "/allPeptides.txt", sep="\t")
+        if (
+            allpep["Min scan number"].isna().any()
+            or allpep["Max scan number"].isna().any()
+        ):
 
-                allpep.loc[allpep["Max scan number"].isna(), "Max scan number"] = (
-                    allpep.loc[allpep["Max scan number"].isna(), "Raw file"].map(
-                        msms_max_scans
-                    )
+            msms = pd.read_csv(folder + "/msms.txt", sep="\t")
+            msms_max_scans = msms.groupby("Raw file")[
+                "Precursor full scan number"
+            ].max()
+
+            allpep.loc[allpep["Max scan number"].isna(), "Max scan number"] = (
+                allpep.loc[allpep["Max scan number"].isna(), "Raw file"].map(
+                    msms_max_scans
                 )
-                allpep.loc[allpep["Min scan number"].isna(), "Min scan number"] = 1
-                allpep.to_csv(folder + "/allPeptides.txt", sep="\t", index=False)
+            )
+            allpep.loc[allpep["Min scan number"].isna(), "Min scan number"] = 1
+            allpep.to_csv(folder + "/allPeptides.txt", sep="\t", index=False)
 
-        run_simsi_single(
-            meta_input_file,
-            simsi_output_folder,
-            simsi_cache_folder,
-            tmt_ms_level,
-            stringencies,
-            tmt_requantify,
-            maximum_pep,
-            num_threads,
-        )
+    run_simsi_single(
+        meta_input_file,
+        simsi_output_folder,
+        simsi_cache_folder,
+        simsi_config.tmt_ms_level,
+        simsi_config.stringencies,
+        simsi_config.tmt_requantify,
+        simsi_config.maximum_pep,
+        simsi_config.num_threads,
+    )
 
-        store_results_for_reuse(
-            simsi_output_folder, simsi_cache_folder, meta_input_file, result_folder_name
-        )
-        # empty_raw_files(simsi_folder, meta_input_file)
-        message = f"SIMSI {data_type} finished"
-    except Exception as e:
-        logger.info(str(e))
-        logger.info(traceback.format_exc())
-        message = str(e)
-        exit_code = 1  # exit code 1: error
-
-    send_slack_message(message, results_folder, slack_webhook_url)
-
-    t1 = time.time()
-    total = t1 - t0
-    logger.info(f"SIMSI finished in {total} seconds")
-
-    if exit_code == 1:
-        sys.exit(exit_code)
+    store_results_for_reuse(
+        simsi_output_folder, simsi_cache_folder, meta_input_file, result_folder_name
+    )
 
 
 def get_simsi_output_folder(simsi_folder: str, data_type: str, result_folder_name: str):
@@ -490,7 +460,7 @@ def copy_raw_files(raw_file_folders, summary_files, data_type, simsi_folder):
     """
     simsi_cache_folder = get_simsi_cache_folder(simsi_folder, data_type)
     for summary_file in summary_files:
-        logger.info(f"Copying raw files for {summary_file}")
+        logger.debug(f"Copying raw files for {summary_file}")
         summary_df = pd.read_csv(summary_file, sep="\t")
 
         raw_files = summary_df["Raw file"]

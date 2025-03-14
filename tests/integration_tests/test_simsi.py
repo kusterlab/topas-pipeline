@@ -9,8 +9,8 @@ CONFIG_FILE_PATH = './data/test_config.json'
 
 def test_find_simsi_evidence_file():
     configs = config.load(CONFIG_FILE_PATH)
-    results_folder = configs["results_folder"]
-    simsi_folder = configs["simsi"]["simsi_folder"]
+    results_folder = configs.results_folder
+    simsi_folder = configs.simsi.simsi_folder
     
     data_type = 'FP'
     simsi_evidence_file = simsi.find_simsi_evidence_file(results_folder, simsi_folder, data_type)
@@ -19,9 +19,9 @@ def test_find_simsi_evidence_file():
 
 def test_load_simsi_evidence_file_archived():
     configs = config.load(CONFIG_FILE_PATH)
-    results_folder = configs["results_folder"]
-    simsi_folder = configs["simsi"]["simsi_folder"]
-    raw_data_location = configs["preprocessing"]["raw_data_location"]
+    results_folder = configs.results_folder
+    simsi_folder = configs.simsi.simsi_folder
+    raw_data_location = configs.preprocessing.raw_data_location
 
     data_type = 'FP'
     evidence_files = [f'{raw_data_location}/Batch01_FP_CPTAC_BRCA/combined/txt/evidence.txt', f'{raw_data_location}/Batch02_FP_CPTAC_BRCA/combined/txt/evidence.txt']
@@ -35,8 +35,8 @@ def test_find_matching_summaries_folder():
     Test that meta_input_file_FP.tsv in a regular summaries folder can be found
     """
     configs = config.load(CONFIG_FILE_PATH)
-    results_folder = configs["results_folder"]
-    simsi_folder = configs["simsi"]["simsi_folder"]
+    results_folder = configs.results_folder
+    simsi_folder = configs.simsi.simsi_folder
 
     simsi_output_folder = Path(f'{simsi_folder}/simsi_output/FP')
     meta_input_file = Path(f'{results_folder}/meta_input_file_FP.tsv')
@@ -50,8 +50,8 @@ def test_find_matching_summaries_folder_archived():
     Test that meta_input_file_FP.tsv inside a zip archive can be found
     """
     configs = config.load(CONFIG_FILE_PATH)
-    results_folder = configs["results_folder"]
-    simsi_folder = configs["simsi"]["simsi_folder"]
+    results_folder = configs.results_folder
+    simsi_folder = configs.simsi.simsi_folder
 
     simsi_output_folder = Path(f'{simsi_folder}/simsi_output/FP')
     meta_input_file = Path(f'{results_folder}/meta_input_file_FP.tsv')
@@ -65,8 +65,8 @@ def test_find_matching_summaries_folder_not_found():
     Test that trying to find an FP SIMSI search in the PP SIMSI folder will not return any results
     """
     configs = config.load(CONFIG_FILE_PATH)
-    results_folder = configs["results_folder"]
-    simsi_folder = configs["simsi"]["simsi_folder"]
+    results_folder = configs.results_folder
+    simsi_folder = configs.simsi.simsi_folder
 
     simsi_output_folder = Path(f'{simsi_folder}/simsi_output/PP')
     meta_input_file = Path(f'{results_folder}/meta_input_file_FP.tsv')

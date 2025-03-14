@@ -360,7 +360,7 @@ if __name__ == "__main__":
     configs = config.load(args.config)
 
     compute_metrics(
-        configs["results_folder"],
-        configs["preprocessing"]["debug"],
-        data_types=configs["data_types"],
+        configs.results_folder,
+        configs.preprocessing.debug,
+        data_types=configs.data_types,
     )

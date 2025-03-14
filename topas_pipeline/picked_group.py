@@ -15,13 +15,15 @@ from . import utils
 from . import sample_annotation
 import topas_pipeline.preprocess as pre
 
-import picked_group_fdr.picked_group_fdr as picked
-import picked_group_fdr.quantification as quant
-import picked_group_fdr.digest as digest
-import picked_group_fdr.protein_annotation as protein_annotation
-import picked_group_fdr.helpers as helpers
-import picked_group_fdr.parsers.maxquant as maxquant
-import picked_group_fdr.columns as columns
+from picked_group_fdr import picked_group_fdr as picked
+from picked_group_fdr import peptide_protein_map
+from picked_group_fdr import quantification as quant
+from picked_group_fdr import digest
+from picked_group_fdr import protein_annotation
+from picked_group_fdr import helpers
+from picked_group_fdr.parsers import maxquant
+from picked_group_fdr import columns
+from picked_group_fdr import writers
 from picked_group_fdr.results import ProteinGroupResults
 from picked_group_fdr.protein_groups import ProteinGroups
 from picked_group_fdr.precursor_quant import PrecursorQuant
@@ -196,7 +198,9 @@ def do_quant(
 
     # obtain map from peptides to proteins to remap the peptide sequences
     parseId = protein_annotation.parse_gene_name_func
-    peptideToProteinMaps, _ = quant.get_peptide_to_protein_maps(args, parse_id=parseId)
+    peptideToProteinMaps = peptide_protein_map.get_peptide_to_protein_maps_from_args(
+        args, use_pseudo_genes=False
+    )
     peptideToProteinMap = peptideToProteinMaps[0]
 
     # read in the protein groups from the protein grouping step
@@ -229,7 +233,10 @@ def do_quant(
         c.append(proteinGroupResults, post_err_prob_cutoff=1.0)
 
     logger.info(f"Writing picked group results to file")
-    proteinGroupResults.write(picked_fdr_file_with_quant)
+    proteinGroupResults.write(
+        picked_fdr_file_with_quant,
+        format_extra_columns=writers.base._format_extra_columns,  # this argument can be removed for picked group >v0.7.6
+    )
 
     logger.info(
         f"Protein group results have been written to: {picked_fdr_file_with_quant}"
@@ -237,7 +244,7 @@ def do_quant(
 
 
 def add_peptides_to_protein_groups(
-    df,
+    df: pd.DataFrame,
     peptideToProteinMap,
     proteinGroupResults: ProteinGroupResults,
     proteinGroups: ProteinGroups,
@@ -253,7 +260,8 @@ def add_peptides_to_protein_groups(
     )
     for row in df.itertuples():  # itertuples is ~5x faster than iterrows
         proteins = digest.get_proteins(
-            peptideToProteinMap, helpers.clean_peptide(row.Modified_sequence)
+            peptideToProteinMap,
+            helpers.remove_modifications(row.Modified_sequence[1:-1]),
         )
 
         # removes peptides from proteins not present in the fasta file, this often includes peptides from contaminants
@@ -361,25 +369,22 @@ def main(argv):
 
     configs = config.load(args.config)
 
-    jsonString = json.dumps(configs, indent=4)
-    with open(f'{configs["results_folder"]}/configs.json', "w") as jsonFile:
-        jsonFile.write(jsonString)
-
-    utils.init_file_logger(configs["results_folder"], "Picked_group_fdr_log.txt")
+    utils.init_file_logger(configs.results_folder, "Picked_group_fdr_log.txt")
 
     sample_annotation_df = sample_annotation.load_sample_annotation(
-        configs["sample_annotation"]
+        configs.sample_annotation
     )
 
     df = pre.load_sample_data(
-        configs["results_folder"],
+        configs.results_folder,
         sample_annotation_df,
-        configs["simsi"]["run_simsi"],
-        configs["simsi"]["simsi_folder"],
-        configs["preprocessing"]["raw_data_location"],
-        configs["preprocessing"]["run_lfq"],
-        configs["preprocessing"]["debug"],
+        configs.simsi.run_simsi,
+        configs.simsi.simsi_folder,
+        configs.preprocessing.raw_data_location,
+        configs.preprocessing.run_lfq,
+        configs.preprocessing.debug,
         args.data_type,
+        configs.preprocessing.normalize_to_reference,
     )
 
     evidence_file_base = "evidence"
@@ -395,10 +400,10 @@ def main(argv):
 
     picked_protein_grouping(
         df,
-        configs["results_folder"],
-        configs["preprocessing"]["picked_fdr"],
-        configs["preprocessing"]["fasta_file"],
-        configs["preprocessing"]["fdr_num_threads"],
+        configs.results_folder,
+        configs.preprocessing.picked_fdr,
+        configs.preprocessing.fasta_file,
+        configs.preprocessing.fdr_num_threads,
         evidence_file_base,
         output_file_base,
     )

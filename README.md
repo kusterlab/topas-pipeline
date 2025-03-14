@@ -24,6 +24,10 @@ Input parameters:
 
 | Parameter | Required | Description | Example | Default |
 | --- | --- | --- | --- | --- |
+| results_folder | **yes** | Path to the folder where results will be written. | `"results/example_run"` | |
+| sample_annotation | **yes** | Path to the sample annotation file (CSV). | `"example/annotation.csv"` | |
+| metadata_annotation | **yes** | Path to the metadata annotation file (Excel). | `"example/METADATA_UCEC.xlsx"` | |
+| raw_file_folders | **yes** | List of raw file folders for proteomics and phosphoproteomics data. | `["example/raw_fp", "example/raw_pp"]` | |
 | data_types | | List of data types to process: "fp" for proteome and "pp" for phosphoproteome. | `["fp", "pp"]` | `["fp", "pp"]` |
 | slack_webhook_url | | URL for the Slack webhook. | `""` | `""` |
 | **simsi** |  |  |  |  |
@@ -36,7 +40,7 @@ Input parameters:
 | num_threads | | Number of threads to use for SIMSI-Transfer. | `8` | `8` |
 | **preprocessing** |  |  |  |  |
 | raw_data_location | **yes** | Path to the folder containing MaxQuant search result folders. | `"example/CPTAC_searches"` | N/A |
-| fasta_file | **yes** | Path to the FASTA file for protein sequences. | `"example/uniprot_proteome_up000005640_03112020_cdkn2a_isoforms.fasta"` | N/A |
+| fasta_file | **yes** | Path to the FASTA file for protein sequences. | `"example/uniprot_human.fasta"` | N/A |
 | picked_fdr | | False discovery rate threshold for protein groups. | `0.01` | `0.01` |
 | fdr_num_threads | | Number of threads to use in MaxLFQ computation. | `8` | `8` |
 | imputation | | Perform data imputation within batch on phosphoproteome level. | `true` | `true` |
@@ -44,11 +48,11 @@ Input parameters:
 | run_lfq | | Input is from LFQ experiments. | `false` | `false` |
 | normalize_to_reference | | Normalize channel intensities to the reference channel. | `false` | `false` |
 | **clinic_proc** |  |  |  |  |
-| pspFastaFile | **yes** | Path to the PSP FASTA file. | `"example/PSP_annotations/Phosphosite_seq.fasta"` | N/A |
-| pspKinaseSubstrateFile | **yes** | Path to the PSP kinase-substrate dataset. | `"example/PSP_annotations/Kinase_Substrate_Dataset"` | N/A |
-| pspAnnotationFile | **yes** | Path to the PSP phosphorylation site dataset. | `"example/PSP_annotations/Phosphorylation_site_dataset"` | N/A |
-| pspRegulatoryFile | **yes** | Path to the PSP regulatory sites file. | `"example/PSP_annotations/Regulatory_sites"` | N/A |
-| prot_baskets | **yes** | Path to the annotation file for TOPAS scores and proteins of interest. | `"example/TOPASscores_POI_AS_250307.xlsx"` | N/A |
+| pspFastaFile | **yes** | Path to the PSP FASTA file. | `"PSP_annotations/Phosphosite_seq.fasta"` | N/A |
+| pspKinaseSubstrateFile | **yes** | Path to the PSP kinase-substrate dataset. | `"PSP_annotations/Kinase_Substrate_Dataset"` | N/A |
+| pspAnnotationFile | **yes** | Path to the PSP phosphorylation site dataset. | `"PSP_annotations/Phosphorylation_site_dataset"` | N/A |
+| pspRegulatoryFile | **yes** | Path to the PSP regulatory sites file. | `"PSP_annotations/Regulatory_sites"` | N/A |
+| prot_baskets | **yes** | Path to the annotation file for TOPAS scores and proteins of interest. | `"TOPASscores_POI_AS_250307.xlsx"` | N/A |
 | extra_kinase_annot | | Path to the annotation file with custom kinase-substrate relations. | `""` | `""` |
 | **report** |  |  |  |  |
 | samples_for_report | **yes** | Which samples to include in the report. | `"all"` | `"all"` |
@@ -58,6 +62,40 @@ Input parameters:
 | url | | URL of the TOPAS portal. | `""` | `""` |
 | config | | Configuration file for the TOPAS portal. | `""` | `""` |
 
+
+Here's the updated Markdown table with the "required" column before the "description" column, along with the addition of the "example" and "default" columns based on the provided default values:
+
+| Required | Parameter | Description | Example | Default |
+| --- | --- | --- | --- | --- |
+| yes | simsi_folder | Path to the folder containing SIMSI results. | `"results/SIMSI"` | N/A |
+| no | tmt_ms_level | MS level for TMT analysis (e.g., "ms2"). | `"ms2"` | `"ms2"` |
+| no | stringencies | Stringency value for SIMSI. | `10` | `10` |
+| no | tmt_requantify | Boolean indicating whether to requantify TMT data. | `false` | `false` |
+| no | maximum_pep | Maximum peptide length for analysis. | `1` | `1` |
+| no | num_threads | Number of threads to use for computation. | `8` | `8` |
+| yes | raw_data_location | Path to the raw data location. | `"example/CPTAC_searches"` | N/A |
+| no | picked_fdr | False discovery rate threshold for picked data. | `0.01` | `0.01` |
+| no | fdr_num_threads | Number of threads to use for FDR computation. | `8` | `8` |
+| no | imputation | Boolean indicating whether to perform data imputation. | `true` | `true` |
+| no | run_simsi | Boolean indicating whether to run SIMSI analysis. | `true` | `true` |
+| no | debug | Boolean indicating whether to run in debug mode. | `false` | `false` |
+| no | run_lfq | Boolean indicating whether to run LFQ analysis. | `false` | `false` |
+| no | normalize_to_reference | Boolean indicating whether to normalize to reference. | `false` | `false` |
+| yes | fasta_file | Path to the FASTA file for protein sequences. | `"example/uniprot_proteome_up000005640_03112020_cdkn2a_isoforms.fasta"` | N/A |
+| yes | pspFastaFile | Path to the PSP FASTA file. | `"example/PSP_annotations/Phosphosite_seq.fasta"` | N/A |
+| yes | pspKinaseSubstrateFile | Path to the PSP kinase-substrate dataset. | `"example/PSP_annotations/Kinase_Substrate_Dataset"` | N/A |
+| yes | pspAnnotationFile | Path to the PSP phosphorylation site dataset. | `"example/PSP_annotations/Phosphorylation_site_dataset"` | N/A |
+| yes | pspRegulatoryFile | Path to the PSP regulatory sites file. | `"example/PSP_annotations/Regulatory_sites"` | N/A |
+| yes | prot_baskets | Path to the protein baskets file for TOPAS scores. | `"example/TOPASscores_POI_AS_250307.xlsx"` | N/A |
+| yes | samples_for_report | Specifies which samples to include in the report (e.g., "all"). | `"all"` | `"all"` |
+| yes | data_types | List of data types (e.g., ["fp", "pp"]). | `["fp", "pp"]` | `["fp", "pp"]` |
+| no | update | Value to control updating behavior. | `0` | `0` |
+| no | cohort | Specifies the cohort for the analysis. | `""` | `""` |
+| no | url | URL for the portal. | `""` | `""` |
+| no | config | Configuration file for the portal. | `""` | `""` |
+| no | slack_webhook_url | URL for the Slack webhook. | `""` | `""` |
+
+Let me know if you need any further adjustments or additions!
 
 ### Install webhook for slack (optional)
 

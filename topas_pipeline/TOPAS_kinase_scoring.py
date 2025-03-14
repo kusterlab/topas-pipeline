@@ -240,9 +240,9 @@ if __name__ == "__main__":
     args = parser.parse_args(sys.argv[1:])
     configs = config.load(args.config)
 
-    preprocessed_df = scoring.topas_score_preprocess(configs["results_folder"])
+    preprocessed_df = scoring.topas_score_preprocess(configs.results_folder)
 
     kinase_results_output_folder = os.path.join(
-        configs["results_folder"], args.kinase_results_folder
+        configs.results_folder, args.kinase_results_folder
     )
     kinase_scoring(kinase_results_output_folder, preprocessed_df)

@@ -1,6 +1,5 @@
 import os
 import sys
-import json
 import time
 import argparse
 import traceback
@@ -31,8 +30,8 @@ def main(argv):
     configs = config.load(args.config)
 
     # Create results folder and save configurations
-    os.makedirs(configs["results_folder"], exist_ok=True)
-    init_file_logger(configs["results_folder"], "Pipeline_log.txt")
+    os.makedirs(configs.results_folder, exist_ok=True)
+    init_file_logger(configs.results_folder, "Pipeline_log.txt")
 
     logger.info(f"TOPAS-pipeline version {__version__} {__git_commit_hash__}")
     logger.info(f"{__copyright__}")
@@ -41,42 +40,48 @@ def main(argv):
     )
     logger.info("Pipeline started")
 
-    jsonString = json.dumps(configs, indent=4)
-    with open(os.path.join(configs["results_folder"], "configs.json"), "w") as jsonFile:
-        jsonFile.write(jsonString)
+    with open(os.path.join(configs.results_folder, "configs.json"), "w") as jsonFile:
+        jsonFile.write(configs.asjson())
 
     t0 = time.time()
 
     try:
-        # 0) process MaxQuant results with SIMSI
+        start_time = time.time()
+        # 0) process MaxQuant results with SIMSI (~10 hours)
         simsi.run_simsi(
-            configs["results_folder"],
-            configs["preprocessing"]["raw_data_location"],
-            configs["sample_annotation"],
-            configs["raw_file_folders"],
-            **configs["simsi"],
-            data_types=configs["data_types"],
-            slack_webhook_url=configs["slack_webhook_url"],
+            results_folder=configs.results_folder,
+            search_result_folder=configs.preprocessing.raw_data_location,
+            sample_annotation_file=configs.sample_annotation,
+            raw_file_folders=configs.raw_file_folders,
+            simsi_config=configs.simsi,
+            data_types=configs.data_types,
+        )
+        logger.info(
+            "--- %s seconds --- simsi" % (time.time() - start_time)
         )
 
+        start_time = time.time()
         # 1) preprocess data (~1.5 hours, mostly slow because of MaxLFQ)
         preprocess.preprocess_raw(
-            configs["results_folder"],
-            configs["sample_annotation"],
-            configs["metadata_annotation"],
-            configs["simsi"]["run_simsi"],
-            configs["simsi"]["simsi_folder"],
-            **configs["preprocessing"],
-            data_types=configs["data_types"],
+            results_folder=configs.results_folder,
+            sample_annotation_file=configs.sample_annotation,
+            metadata_annotation=configs.metadata_annotation,
+            run_simsi=configs.simsi.run_simsi,
+            simsi_folder=configs.simsi.simsi_folder,
+            preprocessing_config=configs.preprocessing,
+            data_types=configs.data_types,
+        )
+        logger.info(
+            "--- %s seconds --- preprocessing" % (time.time() - start_time)
         )
 
         start_time = time.time()
         # 2) clinical processing (~3 minutes)
         clinical_process.clinical_process(
-            configs["results_folder"],
-            configs["preprocessing"]["debug"],
-            **configs["clinic_proc"],
-            data_types=configs["data_types"],
+            results_folder=configs.results_folder,
+            debug=configs.preprocessing.debug,
+            clinic_proc_config=configs.clinic_proc,
+            data_types=configs.data_types,
         )
         logger.info(
             "--- %s seconds --- clinical processing" % (time.time() - start_time)
@@ -85,40 +90,40 @@ def main(argv):
         start_time = time.time()
         # 3) compute rank, z-score, fold change and p-value (<1 minute)
         metrics.compute_metrics(
-            configs["results_folder"],
-            configs["preprocessing"]["debug"],
-            data_types=configs["data_types"],
+            results_folder=configs.results_folder,
+            debug=configs.preprocessing.debug,
+            data_types=configs.data_types,
         )
         logger.info("--- %s seconds --- metrics" % (time.time() - start_time))
 
         start_time = time.time()
         # 4) Run WP2 scoring (<1 minute)
         TOPAS_psite_scoring.psite_scoring(
-            configs["results_folder"],
-            configs["clinic_proc"]["extra_kinase_annot"],
-            data_types=configs["data_types"],
+            results_folder=configs.results_folder,
+            extra_kinase_annot=configs.clinic_proc.extra_kinase_annot,
+            data_types=configs.data_types,
         )
         logger.info("--- %s seconds --- wp2 scoring" % (time.time() - start_time))
 
         start_time = time.time()
         # 5) compute basket scores (<1 minute)
         basket_scoring.compute_TOPAS_scores(
-            configs["results_folder"],
-            configs["preprocessing"]["debug"],
-            data_types=configs["data_types"],
-            baskets_file=configs["clinic_proc"]["prot_baskets"],
-            metadata_file=configs["metadata_annotation"],
+            results_folder=configs.results_folder,
+            debug=configs.preprocessing.debug,
+            data_types=configs.data_types,
+            baskets_file=configs.clinic_proc.prot_baskets,
+            metadata_file=configs.metadata_annotation,
         )
         logger.info("--- %s seconds --- basket scoring" % (time.time() - start_time))
 
         start_time = time.time()
         # 6) report creation (~18 minutes)
         report_creation.create_report(
-            configs["results_folder"],
-            configs["preprocessing"]["debug"],
-            **configs["report"],
-            annot_file=configs["clinic_proc"]["prot_baskets"],
-            data_types=configs["data_types"],
+            results_folder=configs.results_folder,
+            debug=configs.preprocessing.debug,
+            report_config=configs.report,
+            annot_file=configs.clinic_proc.prot_baskets,
+            data_types=configs.data_types,
         )
         logger.info("--- %s seconds --- report creation" % (time.time() - start_time))
 
@@ -128,26 +133,25 @@ def main(argv):
         logger.info(message)
         logger.info(traceback.format_exc())
 
-    send_slack_message(message, configs["results_folder"], configs["slack_webhook_url"])
+    send_slack_message(message, configs.results_folder, configs.slack_webhook_url)
 
     t1 = time.time()
     total = t1 - t0
     logger.info(f"Pipeline finished in {total} seconds")
-    logger.info(f'Results have been written to {configs["results_folder"]}')
+    logger.info(f"Results have been written to {configs.results_folder}")
 
-    # Check if configs['portal']['update'] true and if so try to push results to portal
     try:
-        portal_updater.main(configs)
+        portal_updater.main(
+            results_folder=configs.results_folder,
+            sample_annotation=configs.sample_annotation,
+            metadata_annotation=configs.metadata_annotation,
+            config_portal=configs.portal,
+        )
     except Exception as e:
         message = f"{type(e).__name__}: {e}"
         logger.info(message)
         logger.info(traceback.format_exc())
-        send_slack_message(
-            message, configs["results_folder"], configs["slack_webhook_url"]
-        )
-
-    # After preprocess and clinical process: data stats, graphs etc
-    # stats.analyse_results(**configs["results"])
+        send_slack_message(message, configs.results_folder, configs.slack_webhook_url)
 
 
 if __name__ == "__main__":
