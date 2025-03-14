@@ -9,6 +9,7 @@ import logging
 from . import __version__, __copyright__, __git_commit_hash__
 from .utils import init_file_logger, send_slack_message
 from . import config
+from . import simsi
 from . import preprocess
 from . import clinical_process
 from . import report_creation
@@ -44,6 +45,17 @@ def main(argv):
     t0 = time.time()
 
     try:
+        # 0) process MaxQuant results with SIMSI
+        simsi.run_simsi(
+            configs["results_folder"],
+            configs["preprocessing"]["raw_data_location"],
+            configs["sample_annotation"],
+            configs["raw_file_folders"],
+            **configs["simsi"],
+            data_types=configs["data_types"],
+            slack_webhook_url=configs["slack_webhook_url"],
+        )
+        
         # 1) preprocess data (~1.5 hours, mostly slow because of MaxLFQ)
         preprocess.preprocess_raw(
             configs["results_folder"],
@@ -57,7 +69,6 @@ def main(argv):
         # 2) clinical processing (~3 minutes)
         clinical_process.clinical_process(
             configs["results_folder"],
-            configs["extra_kinase_annot"],
             configs["preprocessing"]["debug"],
             **configs["clinic_proc"],
             data_types=configs["data_types"])
@@ -75,7 +86,7 @@ def main(argv):
         # 4) Run WP2 scoring (<1 minute)
         TOPAS_psite_scoring.psite_scoring(
             configs["results_folder"],
-            configs["extra_kinase_annot"],
+            configs["clinic_proc"]["extra_kinase_annot"],
             data_types=configs["data_types"])
         logger.info("--- %s seconds --- wp2 scoring" % (time.time() - start_time))
 

@@ -4,11 +4,11 @@ include $(TOPAS_PIPELINE_DIR)MakefileShared
 save_git_hash:
 	git describe --dirty --always > hash.file
 
+full_pipeline: save_git_hash
+	$(DOCKER_CMD) $(IMAGE) python3 -u -m bin -c $(LOCAL_DIR)/$(CONFIG_FILE) || (echo "2" > $(DATA)/err.out; exit 2)
+
 simsi: rm_err_file save_git_hash
 	$(DOCKER_CMD) $(IMAGE) python3 -u -m bin.simsi -c $(LOCAL_DIR)/$(CONFIG_FILE) || (echo "1" > $(DATA)/err.out; exit 1)
-
-full_pipeline: simsi save_git_hash
-	$(DOCKER_CMD) $(IMAGE) python3 -u -m bin -c $(LOCAL_DIR)/$(CONFIG_FILE) || (echo "2" > $(DATA)/err.out; exit 2)
 
 picked_group_fdr: save_git_hash
 	$(DOCKER_CMD) $(IMAGE) python3 -u -m bin.picked_group -c $(LOCAL_DIR)/$(CONFIG_FILE) || (echo "1" > $(DATA)/err.out; exit 1)
