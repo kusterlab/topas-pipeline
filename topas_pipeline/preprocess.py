@@ -6,14 +6,14 @@ import pandas as pd
 from typing import Union, List
 from pathlib import Path
 
-import topas_pipeline.preprocess_tools as prep
-import topas_pipeline.picked_group as picked
+from . import preprocess_tools as prep
+from . import picked_group as picked
 from . import sample_annotation
 from . import utils
 from . import identification_metadata as id_meta
-from topas_pipeline.data_loaders.tmt_loader import TMTLoader
-from topas_pipeline.data_loaders.simsi_tmt_loader import SimsiTMTLoader
-from topas_pipeline.data_loaders.lfq_loader import LFQLoader
+from .data_loaders.tmt_loader import TMTLoader
+from .data_loaders.simsi_tmt_loader import SimsiTMTLoader
+from .data_loaders.lfq_loader import LFQLoader
 
 logger = logging.getLogger(__name__)
 
@@ -267,7 +267,7 @@ def preprocess_pp(
     # I think solution is to save columns of transfer as separate file and only take to use for reports
     # at least for now
     # test with not running simsi
-    if df.columns.str.startswith("Transferred spectra count").any():
+    if len(df) > 0 and df.columns.str.startswith("Transferred spectra count").any():
         df.loc[:, df.columns.str.startswith("Transferred spectra count")].to_csv(
             os.path.join(results_folder, "Transfer_metadata.csv")
         )

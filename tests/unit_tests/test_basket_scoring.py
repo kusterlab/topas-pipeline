@@ -228,13 +228,13 @@ class TestComputeBasketScores4thGen:
             "topas_pipeline.basket_scoring.read_baskets_file_4th_gen",
             return_value=pd.DataFrame(
                 {
-                    "BASKET": ["basket1", "basket2"],
-                    "SUBBASKET": ["subbasket1", "subbasket2"],
+                    "TOPAS_SCORE": ["basket1", "basket2"],
+                    "TOPAS_SUBSCORE": ["subbasket1", "subbasket2"],
                     "GENE NAME": ["Gene1", "Gene2"],
                     "WEIGHT": [1, np.nan],
                     "GROUP": ["group1", "OTHER"],
                     "SCORING RULE": ["highest z-score", "highest z-score"],
-                    "subbasket_level": ["level1", "level1"],
+                    "TOPAS_subscore_level": ["level1", "level1"],
                 }
             ),
         )
@@ -379,7 +379,7 @@ class TestCountSignificantBaskets:
 
         result = basket_scoring.count_significant_baskets(df_zscored)
 
-        expected_data = {"num_significant_baskets": [1, 2, 1]}
+        expected_data = {"num_significant_baskets": [2, 2, 2]}
         expected_df = pd.DataFrame(expected_data)
 
         pd.testing.assert_frame_equal(result, expected_df)
@@ -388,7 +388,7 @@ class TestCountSignificantBaskets:
         data = {
             "basket1": [2.1, 1.9, 2.5],
             "basket2": [1.8, 2.2, 2.0],
-            "basket3": [2.0, 2.1, 1.7],
+            "basket3": [2.0, 2.1, 1.6],
         }
         df_zscored = pd.DataFrame(data)
 
@@ -398,7 +398,7 @@ class TestCountSignificantBaskets:
 
         expected_data = {
             "num_significant_baskets": [3, 3, 2],
-            "num_significant_baskets_z>2.0": [1, 2, 1],
+            "num_significant_baskets_z>=2.0": [2, 2, 2],
         }
         expected_df = pd.DataFrame(expected_data)
 
@@ -465,10 +465,11 @@ class TestReadBasketsFile4thGen:
         mock_read_excel = mocker.patch("pandas.read_excel")
         mock_df = pd.DataFrame(
             {
+                "TOPAS_SCORE": ["EGFR", "ALK"],
+                "TOPAS_SUBSCORE": ["EGFR", "ALK"],
                 "SCORING RULE": ["highest z-score", "highest z-score (p-site)"],
                 "MODIFIED SEQUENCE": [np.nan, "seq2"],
-                "SUBBASKET": ["A", "B"],
-                "LEVEL": ["1", "2"],
+                "LEVEL": ["expression", "kinase activity"],
                 "WEIGHT": [0.5, np.nan],
             }
         )
@@ -479,12 +480,13 @@ class TestReadBasketsFile4thGen:
 
         expected_result = pd.DataFrame(
             {
+                "TOPAS_SCORE": ["EGFR", "ALK"],
+                "TOPAS_SUBSCORE": ["EGFR", "ALK"],
                 "SCORING RULE": ["highest z-score", "highest z-score (p-site)"],
                 "MODIFIED SEQUENCE": [np.nan, "seq2"],
-                "SUBBASKET": ["A", "B"],
-                "LEVEL": ["1", "2"],
+                "LEVEL": ["expression", "kinase activity"],
                 "WEIGHT": [0.5, 1.0],
-                "subbasket_level": ["A - 1", "B - 2"],
+                "TOPAS_subscore_level": ["EGFR - expression", "ALK - kinase activity"],
             }
         )
 

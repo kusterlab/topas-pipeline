@@ -34,8 +34,8 @@ class TestClinicalProcessDataType:
         mocker.patch("topas_pipeline.clinical_tools.phospho_annot", return_value=pd.DataFrame())
         mocker.patch("topas_pipeline.clinical_tools.add_psp_urls", return_value=pd.DataFrame())
         mocker.patch(
-            "topas_pipeline.clinical_tools.prot_basket_annotation",
-            return_value=(pd.DataFrame(), {}),
+            "topas_pipeline.clinical_tools.prot_clinical_annotation",
+            return_value=pd.DataFrame(),
         )
         mocker.patch("json.dump")
         mocker.patch("pandas.DataFrame.to_csv")
@@ -69,8 +69,7 @@ class TestClinicalProcessDataType:
         mock_read_csv.assert_called()
         clinical_tools.phospho_annot.assert_called()
         clinical_tools.add_psp_urls.assert_called()
-        clinical_tools.prot_basket_annotation.assert_called()
-        json.dump.assert_called()
+        clinical_tools.prot_clinical_annotation.assert_called()
         pd.DataFrame.to_csv.assert_called()
 
 
@@ -78,9 +77,8 @@ class TestMergeBasketsWithSubbaskets:
     # merge baskets and subbaskets correctly when both are non-empty
     def test_merge_non_empty_baskets_and_subbaskets(self):
         import pandas as pd
-        from topas_pipeline.clinical_process import merge_baskets_with_subbaskets
 
-        data = {"basket": "fruit;vegetable", "sub_basket": "apple;carrot"}
+        data = {"TOPAS_score": "fruit;vegetable", "TOPAS_subscore": "apple;carrot"}
         row = pd.Series(data)
 
         result = cp.merge_baskets_with_subbaskets(row)
@@ -113,7 +111,7 @@ class TestReadAnnotationFiles:
         mocker.patch('topas_pipeline.utils.get_index_cols', return_value=['index_col'])
 
         # Mocking the pd.read_csv function
-        mock_annot = pd.DataFrame({'basket': ['basket1'], 'sub_basket': ['sub_basket1']})
+        mock_annot = pd.DataFrame({'TOPAS_score': ['basket1'], 'TOPAS_subscore': ['sub_basket1'], 'POI_category': ['Adaptor protein']})
         mocker.patch('pandas.read_csv', return_value=mock_annot)
 
         results_folder = 'test_folder'
@@ -124,5 +122,5 @@ class TestReadAnnotationFiles:
 
         assert annot is not None
         assert annot_ref is None
-        assert 'sub_basket' in annot.columns
-        assert 'basket' in annot.columns
+        assert 'TOPAS_score' in annot.columns
+        assert 'TOPAS_subscore' in annot.columns

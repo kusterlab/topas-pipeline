@@ -332,7 +332,7 @@ if __name__ == "__main__":
     # Start pipeline
     t0 = time.time()
     for annot_type in ["TOPAS score", "POI"]:
-        df, _ = prot_clinical_annotation(
+        df = prot_clinical_annotation(
             df, annot_file, data_type=args.data_type, basket_type=annot_type
         )
 

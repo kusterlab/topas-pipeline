@@ -21,10 +21,10 @@ class TestComputeMetrics:
             return_value=(
                 pd.DataFrame(
                     {
-                        "basket": ["basket1", "basket2"],
-                        "basket_weights": [0.5, 1.0],
-                        "sub_basket": ["sub_basket1", "sub_basket2"],
-                        "sub_basket_weights": [0.25, 0.8],
+                        "TOPAS_score": ["basket1", "basket2"],
+                        "TOPAS_score_weights": [0.5, 1.0],
+                        "TOPAS_subscore": ["sub_basket1", "sub_basket2"],
+                        "TOPAS_subscore_weights": [0.25, 0.8],
                     }
                 ),
                 pd.DataFrame(),

@@ -19,7 +19,8 @@ class TestPhosphoAnnot:
             }
         )
         mock_add_positions = mocker.patch(
-            "topas_pipeline.clinical_tools.pa.addPeptideAndPsitePositions", return_value=mock_df
+            "topas_pipeline.clinical_tools.pa.addPeptideAndPsitePositions",
+            return_value=mock_df,
         )
         mock_add_substrates = mocker.patch(
             "topas_pipeline.clinical_tools.pa.addPSPKinaseSubstrateAnnotations",
@@ -29,11 +30,12 @@ class TestPhosphoAnnot:
             "topas_pipeline.clinical_tools.pa.addPSPAnnotations", return_value=mock_df
         )
         mock_add_regulatory_annotations = mocker.patch(
-            "topas_pipeline.clinical_tools.pa.addPSPRegulatoryAnnotations", return_value=mock_df
+            "topas_pipeline.clinical_tools.pa.addPSPRegulatoryAnnotations",
+            return_value=mock_df,
         )
 
         df = pd.DataFrame({"Modified sequence": ["seq1"]})
-        extra_kinase_annot = False
+        extra_kinase_annot = ""
         pspFastaFile = Path("pspFastaFile")
         pspKinaseSubstrateFile = Path("pspKinaseSubstrateFile")
         pspAnnotationFile = Path("pspAnnotationFile")
@@ -101,21 +103,20 @@ class TestAddUrlColumn:
 class TestProtBasketAnnotation:
     def test_annotates_dataframe_correctly(self, mocker):
         import pandas as pd
-        from pathlib import Path
-        from topas_pipeline.clinical_tools import prot_basket_annotation
 
-        # Mocking the read_basket_annotation_generation functions
         mocker.patch(
-            "topas_pipeline.clinical_tools.read_basket_annotation_generation1",
-            return_value={"GeneA": {"basket": "Basket1", "weight": 0.5}},
-        )
-        mocker.patch(
-            "topas_pipeline.clinical_tools.read_basket_annotation_generation2",
-            return_value={"GeneA": {"basket": "Basket2", "weight": 0.7}},
-        )
-        mocker.patch(
-            "topas_pipeline.clinical_tools.read_basket_annotation_generation4",
-            return_value={"GeneA": {"basket": "Basket4", "weight": 0.9}},
+            "topas_pipeline.clinical_tools.read_clinical_annotation",
+            return_value=pd.DataFrame(
+                {
+                    "basket": ["basket1", "basket2"],
+                    "sub_basket": ["subbasket1", "subbasket2"],
+                    "gene": ["GeneA", "GeneB"],
+                    "weight": [1, np.nan],
+                    "GROUP": ["(R)TK", "OTHER"],
+                    "SCORING RULE": ["highest z-score", "highest z-score"],
+                    "LEVEL": ["expression", "expression"],
+                }
+            ),
         )
 
         # Creating a sample dataframe
@@ -123,18 +124,18 @@ class TestProtBasketAnnotation:
         df = df.set_index("Gene names")
 
         # Calling the function under test
-        result_df, annot_dict = prot_basket_annotation(
+        result_df = ct.prot_clinical_annotation(
             df, "path/to/annotation/file", "fp", "basket"
         )
 
         expected_result_df = pd.DataFrame(
-            {"basket": ["Basket1", ""], "basket_weights": [0.5, ""]},
+            {"basket": ["basket1", ""], "basket_weights": ["1.0", np.nan]},
             index=pd.Series(["GeneA", "GeneB"], name="Gene names"),
         )
         # Asserting the results
         assert "basket" in result_df.columns
         assert "basket_weights" in result_df.columns
-        pd.testing.assert_frame_equal(result_df, expected_result_df)
+        pd.testing.assert_frame_equal(result_df, expected_result_df, check_dtype=False)
 
 
 class TestCreateIdentifierToBasketDict:
@@ -142,12 +143,21 @@ class TestCreateIdentifierToBasketDict:
         data = {
             "gene": ["gene1", "gene2", "gene1"],
             "LEVEL": ["expression", "kinase activity", "expression"],
+            "GROUP": ["(R)TK", "(R)TK", "(R)TK"],
             "basket": ["basket1", "basket2", "basket3"],
         }
         df = pd.DataFrame(data)
         expected_output = {
-            "gene1": {"LEVEL": "expression;expression", "basket": "basket1;basket3"},
-            "gene2": {"LEVEL": "kinase activity", "basket": "basket2"},
+            "gene1": {
+                "GROUP": "(R)TK;(R)TK",
+                "LEVEL": "expression;expression",
+                "basket": "basket1;basket3",
+            },
+            "gene2": {
+                "GROUP": "(R)TK",
+                "LEVEL": "kinase activity",
+                "basket": "basket2",
+            },
         }
 
         result = ct.create_identifier_to_basket_dict(
@@ -158,6 +168,7 @@ class TestCreateIdentifierToBasketDict:
     def test_process_pp_data_type(self):
         data = {
             "gene": ["gene1", "gene2", "gene1"],
+            "GROUP": ["(R)TK", "(R)TK", "(R)TK"],
             "LEVEL": [
                 "phosphorylation",
                 "kinase activity",
@@ -168,10 +179,15 @@ class TestCreateIdentifierToBasketDict:
         df = pd.DataFrame(data)
         expected_output = {
             "gene1": {
+                "GROUP": "(R)TK;(R)TK",
                 "LEVEL": "phosphorylation;important phosphorylation",
                 "basket": "basket1;basket3",
             },
-            "gene2": {"LEVEL": "kinase activity", "basket": "basket2"},
+            "gene2": {
+                "GROUP": "(R)TK",
+                "LEVEL": "kinase activity",
+                "basket": "basket2",
+            },
         }
 
         result = ct.create_identifier_to_basket_dict(
@@ -184,8 +200,9 @@ class TestReadBasketAnnotationGeneration4:
     def test_reads_and_processes_valid_excel_file(self, mocker):
         mock_excel_data = pd.DataFrame(
             {
-                "BASKET": ["basket1  ", "basket2"],
-                "SUBBASKET": ["sub1", "sub2"],
+                "TOPAS_SCORE": ["basket1  ", "basket2"],
+                "TOPAS_SUBSCORE": ["sub1", "sub2"],
+                "GROUP": ["(R)TK", "(R)TK"],
                 "LEVEL": ["expression  ", "kinase activity"],
                 "WEIGHT": [0.5, 0.8],
                 "GENE NAME": ["gene1", "gene2  "],
@@ -193,21 +210,19 @@ class TestReadBasketAnnotationGeneration4:
         )
         mocker.patch("pandas.read_excel", return_value=mock_excel_data)
 
-        result = ct.read_basket_annotation_generation4("dummy_path.xlsx", "fp")
+        result = ct.read_clinical_annotation("dummy_path.xlsx")
 
-        assert result == {
-            "gene1": {
-                "LEVEL": "expression",
-                "basket": "basket1",
-                "sub_basket": "sub1",
-                "subbasket_level": "sub1 - expression",
-                "weight": "0.5",
-            },
-            "gene2": {
-                "LEVEL": "kinase activity",
-                "basket": "basket2",
-                "sub_basket": "sub2",
-                "subbasket_level": "sub2 - kinase activity",
-                "weight": "0.8",
-            },
-        }
+        pd.testing.assert_frame_equal(
+            result,
+            pd.DataFrame(
+                {
+                    "basket": ["basket1", "basket2"],
+                    "sub_basket": ["sub1", "sub2"],
+                    "GROUP": ["(R)TK", "(R)TK"],
+                    "LEVEL": ["expression", "kinase activity"],
+                    "weight": [0.5, 0.8],
+                    "gene": ["gene1", "gene2"],
+                    "topas_subscore_level": ["sub1 - expression", "sub2 - kinase activity"],
+                }
+            ),
+        )

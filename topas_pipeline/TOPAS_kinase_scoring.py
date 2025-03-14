@@ -22,10 +22,6 @@ def read_kinase_scoring(
     kinase_score_file = os.path.join(
         results_folder, kinase_results_folder, "kinase_scores.tsv"
     )
-    if not os.path.isfile(kinase_score_file):
-        kinase_score_file = os.path.join(
-            results_folder, kinase_results_folder, "kinase_scores_original.tsv"
-        )
 
     try:
         kinase_scores_df = pd.read_csv(
@@ -195,7 +191,7 @@ def kinase_scoring(
     ).sort_values(by="PSP Kinases")
     kinase_scores = kinase_scores.set_index(["PSP Kinases", "No. of total targets"])
     kinase_scores.to_csv(
-        os.path.join(kinase_results_output_folder, "kinase_scores_original.tsv"),
+        os.path.join(kinase_results_output_folder, "kinase_scores.tsv"),
         sep="\t",
     )
 

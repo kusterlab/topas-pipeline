@@ -207,10 +207,6 @@ def load_kinase_scores(results_folder, kinase_results_folder: str = "kinase_resu
     kinase_score_file = os.path.join(
         results_folder, kinase_results_folder, "kinase_scores.tsv"
     )
-    if not os.path.isfile(kinase_score_file):
-        kinase_score_file = os.path.join(
-            results_folder, kinase_results_folder, "kinase_scores_original.tsv"
-        )
 
     kinase_scores_df = pd.read_csv(
         kinase_score_file,
