@@ -21,7 +21,6 @@ import bin.preprocess_tools as prep
 from . import meta_input_file as mi
 from . import config
 from .utils import init_file_logger, send_slack_message
-from .sample_annotation import load_sample_annotation
 
 # hacky way to get the package logger instead of just __main__ when running as python -m bin.simsi ...
 logger = logging.getLogger(__package__ + "." + __file__)
@@ -46,40 +45,17 @@ def main(argv):
         logger.info(f"run_simsi flag is set to False, skipping SIMSI")
         return
 
-    logger.info(
-        f"TOPAS-pipeline-SIMSI version {__version__} {__git_commit_hash__}"
-    )
+    logger.info(f"TOPAS-pipeline-SIMSI version {__version__} {__git_commit_hash__}")
     logger.info(f"{__copyright__}")
     logger.info(
         f'Issued command: {os.path.basename(__file__)} {" ".join(map(str, argv))}'
     )
-
-    # Check if we have already processed results in our results folder and skip if so
-    # data_types = configs["data_types"]
-    # for data_type in data_types:
-    #     flag = False
-    #     if os.path.exists(os.path.join(configs["results_folder"], f'preprocessed_{data_type}2.csv')):
-    #         flag = True
-    #     if not flag:
-    #         break
-    # if flag:
-    #     logger.info(f"Found already processed results in results folder, skipping SIMSI")
-    #     return
 
     os.makedirs(configs["results_folder"], exist_ok=True)
 
     jsonString = json.dumps(configs, indent=4)
     with open(f'{configs["results_folder"]}/configs.json', "w") as jsonFile:
         jsonFile.write(jsonString)
-
-    # Check for sample + metadata annotation errors before starting pipeline
-    # _ = prep.check_annot(configs["sample_annotation"], configs["metadata_annotation"], prep.in_metadata)
-    sample_annot_df = load_sample_annotation(configs["sample_annotation"])
-    sample_annot_df.to_csv(
-        os.path.join(configs["results_folder"], "sample_annotation.csv")
-    )
-
-    # check_config(configs)
 
     run_simsi(
         configs["results_folder"],
@@ -92,24 +68,6 @@ def main(argv):
     )
 
 
-# def check_config(configs):
-#
-#     # check data types
-#     for data_type in configs["data_types"]:
-#         if data_type.upper() not in ['FP', 'PP']:
-#             raise ValueError(f'Data type {data_type} not accepted. Accepted data types are `fp` (full proteome) and `pp` (phospho).')
-#
-#     # check existence of file locations
-#     if not os.path.exists(configs["sample_annotation"]):
-#         raise ValueError(f'Sample annotation file {configs["sample_annotation"]} does not exist in this location.')
-#     metadata_file = configs["metadata_annotation"]
-#     if not os.path.isfile(metadata_file):
-#             metadata_file = metadata_file.replace('Retrospective_MTBs_Evaluation',
-#                                                   'Retrospective_MTBs_Evaluation/Metadata_excel_outdated')
-# if not os.path.isfile(metadata_file):
-#     raise ValueError(f'Metadata: {metadata_file} not found.')
-
-
 def run_simsi(*args, **kwargs) -> None:
     # propagate logs from simsi_transfer package to our current log handlers
     logging.getLogger("simsi_transfer").handlers = logging.getLogger(
@@ -117,7 +75,9 @@ def run_simsi(*args, **kwargs) -> None:
     ).handlers
 
     data_types = kwargs.pop("data_types")
-    processingPool = JobPool(processes=2, timeout=110000)  # 100,000 seconds
+    processingPool = JobPool(
+        processes=2, timeout=108000, write_progress_to_logger=True
+    )  # 108,000 seconds = 30 hours
     for data_type in data_types:
         kwargs_with_data_type = kwargs.copy()
         kwargs_with_data_type["data_type"] = data_type
@@ -240,15 +200,6 @@ def run_simsi_data_type(
 
     if exit_code == 1:
         sys.exit(exit_code)
-
-
-# def empty_raw_files(simsi_folder, meta_input_file):
-#     # subtract one layer and go to raw files
-#     simsi_raw_files_folder = Path(simsi_folder) / Path('raw_files')
-
-#     # find list of what to empty
-
-#     # only empty if they are not already?
 
 
 def get_simsi_output_folder(simsi_folder: str, data_type: str, result_folder_name: str):
