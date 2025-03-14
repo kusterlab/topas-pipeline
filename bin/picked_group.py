@@ -11,7 +11,6 @@ import numpy as np
 import argparse
 
 from . import config
-import bin.preprocess_tools as prep
 from . import utils
 from . import sample_annotation
 import bin.preprocess as pre
@@ -108,7 +107,7 @@ def picked_protein_grouping(
     results_folder: str,
     protein_fdr_cutoff: float,
     fasta_file: str,
-    fdr_num_threads: str,
+    fdr_num_threads: int,
     evidence_file_base: str = "evidence",
     output_file_base: str = "pickedGeneGroups",
 ):
@@ -165,7 +164,7 @@ def picked_protein_grouping(
 
 
 def do_quant(
-    df, picked_fdr_file, fasta_file, picked_fdr_file_with_quant, fdr_num_threads: str
+    df, picked_fdr_file, fasta_file, picked_fdr_file_with_quant, fdr_num_threads: int
 ):
     if os.path.exists(picked_fdr_file_with_quant):
         logger.info(
@@ -222,7 +221,7 @@ def do_quant(
         columns.LFQIntensityColumns(
             minPeptideRatiosLFQ=args.lfq_min_peptide_ratios,
             stabilizeLargeRatiosLFQ=args.lfq_stabilize_large_ratios,
-            numThreads=int(fdr_num_threads),
+            numThreads=fdr_num_threads,
         ),
     ]
 

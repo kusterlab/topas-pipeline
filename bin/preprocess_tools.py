@@ -76,11 +76,10 @@ def check_annot(
 
     """
     sample_annot_df = sample_annotation.load_sample_annotation(sample_annotation_file)
-    print(sample_annot_df)
     sample_annot_df_filtered = sample_annotation.filter_sample_annotation(
         sample_annot_df, remove_qc_failed=True, remove_replicates=True
     )
-    sample_annot_df_filtered = sample_annot_df_filtered.reset_index() # drop=True
+    sample_annot_df_filtered = sample_annot_df_filtered.reset_index()  # drop=True
     metadata_df = sample_metadata.load(metadata_annotation_file)
 
     # Check that there are no duplicates in neither patient annot and metadata
@@ -345,7 +344,9 @@ def load_and_normalize(
     save_debug_df(df, "_after_ms1_centering")
     save_correction_factors(correction_factors, "_ms1_correction_factors")
 
-    ref_channels_df = sample_annotation_df.loc[sample_annotation_df['is_reference'] == True, :]
+    ref_channels_df = sample_annotation_df.loc[
+        sample_annotation_df["is_reference"] == True, :
+    ]
     if normalize_to_reference:
         # Scale MS1 intensities such that reference channel MS1 contribution is constant across batches
         df = data_loader.scale_ms1_to_reference(df, ref_channels_df)
@@ -743,7 +744,7 @@ def get_data_location(
         validity_check = is_valid_pp_file
 
     evidence_files = []
-    for directory, _, files in sorted(os.walk(maxquant_super_folder)):
+    for directory, _, files in sorted(os.walk(maxquant_super_folder, followlinks=True)):
         for filename in files:
             if not filename.endswith(file_type):
                 continue

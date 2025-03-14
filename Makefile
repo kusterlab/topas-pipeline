@@ -1,17 +1,20 @@
-WP3_SAMPLE_PIPELINE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-include $(WP3_SAMPLE_PIPELINE_DIR)MakefileShared
+TOPAS_PIPELINE_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+include $(TOPAS_PIPELINE_DIR)MakefileShared
 
 save_git_hash:
 	git describe --dirty --always > hash.file
 
+full_pipeline: save_git_hash
+	$(DOCKER_CMD) $(IMAGE) python3 -u -m bin -c $(LOCAL_DIR)/$(CONFIG_FILE) || (echo "2" > $(DATA)/err.out; exit 2)
+
 simsi: rm_err_file save_git_hash
 	$(DOCKER_CMD) $(IMAGE) python3 -u -m bin.simsi -c $(LOCAL_DIR)/$(CONFIG_FILE) || (echo "1" > $(DATA)/err.out; exit 1)
 
-full_pipeline: simsi save_git_hash
-	$(DOCKER_CMD) $(IMAGE) python3 -u -m bin -c $(LOCAL_DIR)/$(CONFIG_FILE) || (echo "2" > $(DATA)/err.out; exit 2)
-
-picked_group_fdr: simsi save_git_hash
+picked_group_fdr: save_git_hash
 	$(DOCKER_CMD) $(IMAGE) python3 -u -m bin.picked_group -c $(LOCAL_DIR)/$(CONFIG_FILE) || (echo "1" > $(DATA)/err.out; exit 1)
+
+report_creation: save_git_hash
+	$(DOCKER_CMD) $(IMAGE) python3 -u -m bin.report_creation -c $(LOCAL_DIR)/$(CONFIG_FILE) || (echo "1" > $(DATA)/err.out; exit 1)
 
 # runs sarcoma cohort in docker
 docker_all: pull full_pipeline
@@ -44,7 +47,7 @@ genomics_annotations:
 	python3 -u -m bin.Oncostar_genomics_alterations && python3 -u -m bin.oncoKB_annotations 
 
 
-# runs sarcoma cohort locally
+# runs pipeline locally
 all: DOCKER_CMD=
 all: IMAGE=
 all: LOCAL_DIR=.
@@ -104,12 +107,12 @@ build: dependencies save_git_hash
 
 registry:
 	docker login gitlab.lrz.de:5005
-	docker build -t gitlab.lrz.de:5005/proteomics/topas/wp3_sample_pipeline .
-	docker push gitlab.lrz.de:5005/proteomics/topas/wp3_sample_pipeline
+	docker build -t gitlab.lrz.de:5005/proteomics/topas/topas-pipeline .
+	docker push gitlab.lrz.de:5005/proteomics/topas/topas-pipeline
 
 pull:
 	docker login gitlab.lrz.de:5005
-	docker pull gitlab.lrz.de:5005/proteomics/topas/wp3_sample_pipeline:master
+	docker pull gitlab.lrz.de:5005/proteomics/topas/topas-pipeline:master
 
 jump:
 	$(DOCKER_CMD) \

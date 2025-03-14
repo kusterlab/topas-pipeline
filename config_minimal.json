@@ -1,0 +1,25 @@
+{
+    "results_folder": "results/2025.03.11_example_run",
+    "sample_annotation": "example/cptac_annotation_subset.csv",
+    "metadata_annotation": "example/METADATA_UCEC.xlsx",
+    "raw_file_folders": [
+        "example/raw_fp/01CPTAC_UCEC_Proteome_PNNL_20170922_raw",
+        "example/raw_fp/02CPTAC_UCEC_Proteome_PNNL_20170922_raw",
+        "example/raw_pp/01CPTAC_UCEC_Phosphoproteome_PNNL_20170922_raw",
+        "example/raw_pp/02CPTAC_UCEC_Phosphoproteome_PNNL_20170922_raw"
+    ],
+    "simsi": {
+        "simsi_folder": "results/SIMSI"
+    },
+    "preprocessing": {
+        "raw_data_location": "example/CPTAC_searches",
+        "fasta_file": "example/uniprot_proteome_up000005640_03112020_cdkn2a_isoforms.fasta"
+    },
+    "clinic_proc": {
+        "pspFastaFile": "example/PSP_annotations/Phosphosite_seq.fasta",
+        "pspKinaseSubstrateFile": "example/PSP_annotations/Kinase_Substrate_Dataset",
+        "pspAnnotationFile": "example/PSP_annotations/Phosphorylation_site_dataset",
+        "pspRegulatoryFile": "example/PSP_annotations/Regulatory_sites",
+        "prot_baskets": "example/TOPASscores_POI_AS_250307.xlsx"
+    }
+}

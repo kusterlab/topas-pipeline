@@ -55,9 +55,9 @@ class TestClinicalProcessDataType:
         # Call the function
         cp.clinical_process_data_type(
             results_folder,
-            extra_kinase_annot,
             debug,
             prot_baskets,
+            extra_kinase_annot,
             pspFastaFile,
             pspKinaseSubstrateFile,
             pspAnnotationFile,

@@ -2,7 +2,7 @@ import json
 import urllib.request
 
 """
-For Automatic updating of the portal with the wp3 generated pipeline 
+For Automatic updating of the portal with the TOPAS-pipeline generated results 
 
 USAGE:
 python portal_updater.py -c configs.json
@@ -14,11 +14,11 @@ def main(configs):
     metadata_annotation = configs['metadata_annotation']
     results_folder = configs['results_folder']
     update = configs['portal']['update']
-    cohort = configs['portal']['cohort']
-    url = configs['portal']['url']
-    portal_config = configs['portal']['config']
 
     if update == 1:
+        cohort = configs['portal']['cohort']
+        url = configs['portal']['url']
+        portal_config = configs['portal']['config']
         new_portal_paths = {
             'sample_annotation_path': sample_annotation,
             'patient_annotation_path': metadata_annotation,

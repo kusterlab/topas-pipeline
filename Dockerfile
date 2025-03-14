@@ -2,10 +2,10 @@ FROM python:3.9.13
 
 MAINTAINER Cecilia Jensen "cecilia.jensen@tum.de"
 
-LABEL website=https://gitlab.lrz.de/proteomics/topas/wp3_sample_pipeline
-LABEL description="WP3 sample pipeline"
-LABEL tags="mass spectrometry tmt isobaric labeling"
-LABEL documentation=https://gitlab.lrz.de/proteomics/topas/wp3_sample_pipeline
+LABEL website=https://github.com/kusterlab/topas-pipeline
+LABEL description="TOPAS pipeline"
+LABEL tags="mass spectrometry tmt isobaric labeling precision medicine"
+LABEL documentation=https://github.com/kusterlab/topas-pipeline
 
 # Tell docker that we don't want to be bothered with questions
 ARG DEBIAN_FRONTEND=noninteractive
@@ -34,8 +34,8 @@ ADD pyproject.toml /root/pyproject.toml
 ADD poetry.lock /root/poetry.lock
 RUN poetry install --no-cache
 
-COPY . /root/wp3_sample_pipeline
+COPY . /root/topas-pipeline
 ADD hash.file /root/hash.file
 
-WORKDIR /root/wp3_sample_pipeline
+WORKDIR /root/topas-pipeline
 

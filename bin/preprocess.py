@@ -88,7 +88,7 @@ def preprocess_raw_data_type(results_folder: Union[str, Path],
         # returns dataframe in "wide format", i.e. patients as columns
         df = preprocess_function(df, results_folder, picked_fdr, fasta_file, fdr_num_threads, imputation=imputation,
                                  debug=debug, run_lfq=run_lfq)
-        df.to_csv(os.path.join(results_folder, preprocessed2_file), index=False)
+        df.to_csv(preprocessed2_file, index=False)
 
 
     sample_annotation_df = sample_annotation.filter_samples_by_metadata(sample_annotation_df, program, entity, histologic_subtype)

@@ -3,7 +3,7 @@ import logging.handlers
 import time
 from pathlib import Path
 
-# get version number of WP3 sample pipeline
+# get version number
 __version__ = "0.0.0"
 try:
     from importlib.metadata import version, PackageNotFoundError

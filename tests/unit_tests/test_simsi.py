@@ -100,7 +100,6 @@ class TestRunSimsiDataType:
         mocker.patch(
             "bin.preprocess_tools.get_summary_files", return_value=["summary_file"]
         )
-        mocker.patch("bin.simsi.get_raw_file_folders", return_value=["raw_folder"])
         mocker.patch("bin.simsi.copy_raw_files")
         mocker.patch(
             "bin.meta_input_file.get_meta_input_file_path",
@@ -547,27 +546,6 @@ class TestCopyRawFiles:
             simsi.copy_raw_files(
                 raw_file_folders, summary_files, data_type, simsi_folder
             )
-
-
-class TestGetRawFileFolders:
-    def test_default_data_type(self):
-        expected_folders = [
-            os.path.join("/media", "raw_files", "lumos_1", "raw"),
-            os.path.join("/media", "raw_files", "eclipse_1", "raw"),
-            os.path.join("/media", "raw_files", "lumos_3", "raw"),
-            os.path.join("/media", "raw_files", "eclipse_2", "raw"),
-            os.path.join("/media", "raw_files", "lumos_2", "raw"),
-            os.path.join("/media", "raw_files", "eclipse_3", "raw"),
-        ]
-        assert simsi.get_raw_file_folders("default") == expected_folders
-
-    def test_returns_correct_folders_for_pp_data_type(self):
-        expected_folders = [
-            os.path.join("/media", "raw_files", "lumos_2", "raw"),
-            os.path.join("/media", "raw_files", "eclipse_2", "raw"),
-            os.path.join("/media", "raw_files", "eclipse_3", "raw"),
-        ]
-        assert simsi.get_raw_file_folders("pp") == expected_folders
 
 
 @pytest.fixture
