@@ -5,10 +5,10 @@ import argparse
 from pathlib import Path
 from typing import List, Union
 
-import bin.config as config
-from bin.TOPAS_kinase_scoring import kinase_scoring
-from bin.TOPAS_protein_phosphorylation_scoring import protein_phospho_scoring
-import bin.TOPAS_scoring_functions as scoring
+import topas_pipeline.config as config
+from topas_pipeline.TOPAS_kinase_scoring import kinase_scoring
+from topas_pipeline.TOPAS_protein_phosphorylation_scoring import protein_phospho_scoring
+import topas_pipeline.TOPAS_scoring_functions as scoring
 
 
 # hacky way to get the package logger instead of just __main__ when running as a module

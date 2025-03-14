@@ -289,7 +289,7 @@ def read_clinical_annotation(annot_file: str) -> pd.DataFrame:
 
 
 """
-python3 -m bin.clinical_tools -c config_patients.json -i <input_tsv> -o <output_tsv>
+python3 -m topas_pipeline.clinical_tools -c config_patients.json -i <input_tsv> -o <output_tsv>
 """
 if __name__ == "__main__":
     import argparse

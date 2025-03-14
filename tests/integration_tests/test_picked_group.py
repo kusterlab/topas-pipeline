@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pandas as pd
  
-from bin import picked_group, config, sample_annotation
-from bin import preprocess as prep
+from topas_pipeline import picked_group, config, sample_annotation
+from topas_pipeline import preprocess as prep
 
 CONFIG_FILE_PATH = './data/test_config.json'
 

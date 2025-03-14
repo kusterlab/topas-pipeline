@@ -3,7 +3,7 @@ import os
 import pandas as pd
 import numpy as np
 
-import bin.TOPAS_protein_phosphorylation_scoring as phospho_scoring
+import topas_pipeline.TOPAS_protein_phosphorylation_scoring as phospho_scoring
 
 
 class TestProteinPhosphoScoring:

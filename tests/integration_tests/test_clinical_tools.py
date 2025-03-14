@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 
-from bin import clinical_tools, config
+from topas_pipeline import clinical_tools, config
 
 CONFIG_FILE_PATH = './data/test_config.json'
 

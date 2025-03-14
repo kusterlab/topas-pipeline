@@ -9,8 +9,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-import bin.config as config
-import bin.TOPAS_scoring_functions as scoring
+import topas_pipeline.config as config
+import topas_pipeline.TOPAS_scoring_functions as scoring
 
 # hacky way to get the package logger instead of just __main__ when running as a module
 logger = logging.getLogger(__package__ + "." + Path(__file__).stem)

@@ -17,12 +17,12 @@ import simsi_transfer.main as simsi
 from job_pool import JobPool
 
 from . import __version__, __copyright__, __git_commit_hash__
-import bin.preprocess_tools as prep
+import topas_pipeline.preprocess_tools as prep
 from . import meta_input_file as mi
 from . import config
 from .utils import init_file_logger, send_slack_message
 
-# hacky way to get the package logger instead of just __main__ when running as python -m bin.simsi ...
+# hacky way to get the package logger instead of just __main__ when running as python -m topas_pipeline.simsi ...
 logger = logging.getLogger(__package__ + "." + __file__)
 
 
@@ -539,7 +539,7 @@ def copy_with_subprocess(source, dest):
 
 
 """
-python3 -m bin.simsi -c config_patients.json
+python3 -m topas_pipeline.simsi -c config_patients.json
 """
 if __name__ == "__main__":
     main(sys.argv[1:])

@@ -7,8 +7,8 @@ from typing import Union
 
 import pandas as pd
 
-import bin.config as config
-import bin.TOPAS_scoring_functions as scoring
+import topas_pipeline.config as config
+import topas_pipeline.TOPAS_scoring_functions as scoring
 
 logger = logging.getLogger(__name__)
 

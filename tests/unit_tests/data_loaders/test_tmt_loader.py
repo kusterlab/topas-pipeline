@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-import bin.data_loaders.tmt_loader as tmt_loader
+import topas_pipeline.data_loaders.tmt_loader as tmt_loader
 
 
 def test_scale_ms1_to_reference():

@@ -187,7 +187,7 @@ def read_annotation_files(
 
 
 """
-python3 -m bin.clinical_process -c config_patients.json
+python3 -m topas_pipeline.clinical_process -c config_patients.json
 """
 if __name__ == "__main__":
     import argparse

@@ -44,11 +44,6 @@ ipykernel = "^6.24.0"
 pytest-mock = "^3.14.0"
 squarify = "^0.4.4"
 
-[tool.coverage.run]
-omit = [
-    "bin/TOPAS_pathway_scoring.py",
-]
-
 [build-system]
 requires = ["poetry-core>=1.5.1"]
 build-backend = "poetry.core.masonry.api"

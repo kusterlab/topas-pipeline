@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-import bin.TOPAS_scoring_functions as scoring_functions
+import topas_pipeline.TOPAS_scoring_functions as scoring_functions
 
 
 class TestCalculateModifiedSequenceWeights:

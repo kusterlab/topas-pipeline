@@ -1,6 +1,6 @@
 import pandas as pd
 from unittest.mock import patch
-from bin.picked_group import remap_gene_names
+from topas_pipeline.picked_group import remap_gene_names
 
 
 # @patch("picked_group_fdr.digest.getProteinAnnotations")

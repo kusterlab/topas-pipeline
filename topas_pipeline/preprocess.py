@@ -6,14 +6,14 @@ import pandas as pd
 from typing import Union, List
 from pathlib import Path
 
-import bin.preprocess_tools as prep
-import bin.picked_group as picked
+import topas_pipeline.preprocess_tools as prep
+import topas_pipeline.picked_group as picked
 from . import sample_annotation
 from . import utils
 from . import identification_metadata as id_meta
-from bin.data_loaders.tmt_loader import TMTLoader
-from bin.data_loaders.simsi_tmt_loader import SimsiTMTLoader
-from bin.data_loaders.lfq_loader import LFQLoader
+from topas_pipeline.data_loaders.tmt_loader import TMTLoader
+from topas_pipeline.data_loaders.simsi_tmt_loader import SimsiTMTLoader
+from topas_pipeline.data_loaders.lfq_loader import LFQLoader
 
 logger = logging.getLogger(__name__)
 

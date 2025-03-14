@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import pytest
 
-import bin.utils as utils
+import topas_pipeline.utils as utils
 
 
 def test_get_ref_channels():

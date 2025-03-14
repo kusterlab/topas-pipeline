@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 import logging
 
-import bin.metrics as metrics
+import topas_pipeline.metrics as metrics
 
 # Mock logger to avoid unnecessary logging during tests
 logger = logging.getLogger(__name__)
@@ -15,9 +15,9 @@ logger = logging.getLogger(__name__)
 class TestComputeMetrics:
     def test_compute_metrics_with_existing_files_fp(self, mocker):
         # Mocking dependencies
-        mocker.patch("bin.metrics.check_measures_computed", return_value=False)
+        mocker.patch("topas_pipeline.metrics.check_measures_computed", return_value=False)
         mocker.patch(
-            "bin.metrics.clinical_process.read_annotation_files",
+            "topas_pipeline.metrics.clinical_process.read_annotation_files",
             return_value=(
                 pd.DataFrame(
                     {
@@ -33,7 +33,7 @@ class TestComputeMetrics:
         measure_input = None
         measures_without_ref = None
 
-        mock_save_measures = mocker.patch("bin.metrics.save_measures")
+        mock_save_measures = mocker.patch("topas_pipeline.metrics.save_measures")
 
         results_folder = Path("/path/to/results")
         debug = False
@@ -99,8 +99,8 @@ class TestReadMeasures:
             "pandas.read_csv",
             return_value=pd.DataFrame({"col1": [1, 2], "col2": [3, 4]}),
         )
-        mocker.patch("bin.metrics.get_data_type_long", return_value="long_data_type")
-        mocker.patch("bin.metrics.utils.get_index_cols", return_value="index_col")
+        mocker.patch("topas_pipeline.metrics.get_data_type_long", return_value="long_data_type")
+        mocker.patch("topas_pipeline.metrics.utils.get_index_cols", return_value="index_col")
 
         results_folder = "some/folder"
         data_type = "type"
@@ -117,8 +117,8 @@ class TestReadMeasures:
             "pandas.read_csv",
             return_value=pd.DataFrame({"col1": [1, 2], "col2": [3, 4]}),
         )
-        mocker.patch("bin.metrics.get_data_type_long", return_value="long_data_type")
-        mocker.patch("bin.metrics.utils.get_index_cols", return_value="index_col")
+        mocker.patch("topas_pipeline.metrics.get_data_type_long", return_value="long_data_type")
+        mocker.patch("topas_pipeline.metrics.utils.get_index_cols", return_value="index_col")
 
         results_folder = "some/folder"
         data_type = "type"
@@ -132,7 +132,7 @@ class TestReadMeasures:
 class TestSaveMeasures:
     def test_save_measures_correct_filenames(self, mocker):
         # Mocking the get_data_type_long function
-        mocker.patch("bin.metrics.get_data_type_long", return_value="long_data_type")
+        mocker.patch("topas_pipeline.metrics.get_data_type_long", return_value="long_data_type")
 
         # Mocking the to_csv method of pandas DataFrame
         mock_to_csv = mocker.patch.object(pd.DataFrame, "to_csv")

@@ -5,20 +5,20 @@ import pytest
 import numpy as np
 import pandas as pd
 
-import bin.preprocess_tools as prep
-from bin.sample_annotation import get_unique_batches
-from bin.identification_metadata import mark_num_peptides
-from bin.data_loaders import data_loader, tmt_loader
+import topas_pipeline.preprocess_tools as prep
+from topas_pipeline.sample_annotation import get_unique_batches
+from topas_pipeline.identification_metadata import mark_num_peptides
+from topas_pipeline.data_loaders import data_loader, tmt_loader
 
 
 class TestCheckAnnot:
     # Loads sample annotation file correctly
     def test_loads_sample_annotation_file_correctly(self, mocker):
         mock_sample_annotation = mocker.patch(
-            "bin.sample_annotation.load_sample_annotation"
+            "topas_pipeline.sample_annotation.load_sample_annotation"
         )
         mock_filter_sample_annotation = mocker.patch(
-            "bin.sample_annotation.filter_sample_annotation"
+            "topas_pipeline.sample_annotation.filter_sample_annotation"
         )
         mock_sample_annotation.return_value = mocker.Mock()
         mock_filter_sample_annotation.return_value = pd.DataFrame(
@@ -45,12 +45,12 @@ class TestCheckAnnot:
 
     def test_check_duplicated_sample_names(self, mocker):
         mock_load_sample_annotation = mocker.patch(
-            "bin.sample_annotation.load_sample_annotation"
+            "topas_pipeline.sample_annotation.load_sample_annotation"
         )
         mock_filter_sample_annotation = mocker.patch(
-            "bin.sample_annotation.filter_sample_annotation"
+            "topas_pipeline.sample_annotation.filter_sample_annotation"
         )
-        mock_logger_info = mocker.patch("bin.preprocess_tools.logger.info")
+        mock_logger_info = mocker.patch("topas_pipeline.preprocess_tools.logger.info")
 
         sample_annotation_file = "sample_file.csv"
         metadata_annotation_file = "metadata_file.csv"
@@ -117,10 +117,10 @@ class TestRemoveEmptyRefBatch:
 class TestGetFilesByType:
     # Correctly retrieves file paths based on provided data type and file type
     def test_correct_file_retrieval(self, mocker):
-        mock_sample_annotation = mocker.patch("bin.preprocess_tools.sample_annotation")
-        mock_get_data_location = mocker.patch("bin.preprocess_tools.get_data_location")
+        mock_sample_annotation = mocker.patch("topas_pipeline.preprocess_tools.sample_annotation")
+        mock_get_data_location = mocker.patch("topas_pipeline.preprocess_tools.get_data_location")
         mock_filter_evidence_files = mocker.patch(
-            "bin.preprocess_tools.filter_evidence_files"
+            "topas_pipeline.preprocess_tools.filter_evidence_files"
         )
 
         sample_annotation_df = pd.DataFrame({"batch": ["batch1", "batch2"]})
@@ -925,8 +925,8 @@ class TestGetDataLocation:
                 ("/mocked_dir/subdir", (), ("evidence.txt",)),
             ],
         )
-        mocker.patch("bin.preprocess_tools.is_valid_fp_file", return_value=True)
-        mocker.patch("bin.preprocess_tools.is_valid_pp_file", return_value=True)
+        mocker.patch("topas_pipeline.preprocess_tools.is_valid_fp_file", return_value=True)
+        mocker.patch("topas_pipeline.preprocess_tools.is_valid_pp_file", return_value=True)
 
         result = prep.get_data_location("/mocked_dir", "fp")
         assert result == ["/mocked_dir/evidence.txt", "/mocked_dir/subdir/evidence.txt"]

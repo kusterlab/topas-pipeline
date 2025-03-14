@@ -5,7 +5,7 @@ import pytest
 import numpy as np
 import pandas as pd
 
-import bin.preprocess as preprocess
+import topas_pipeline.preprocess as preprocess
 
 
 class TestPreprocessRaw:
@@ -17,8 +17,8 @@ class TestPreprocessRaw:
         simsi_folder = "/path/to/simsi"
         data_types = ["type1", "type2"]
 
-        mocker.patch("bin.preprocess.preprocess_raw_data_type")
-        mocker.patch("bin.preprocess_tools.check_annot")
+        mocker.patch("topas_pipeline.preprocess.preprocess_raw_data_type")
+        mocker.patch("topas_pipeline.preprocess_tools.check_annot")
 
         preprocess.preprocess_raw(
             results_folder,
@@ -35,7 +35,7 @@ class TestPreprocessRawDataType:
     def test_preprocessing_starts_when_no_preprocessed_file_exists(self, mocker):
         # Mocking os.path.exists to simulate no preprocessed file exists
         mocker.patch("os.path.exists", return_value=False)
-        mock_logger = mocker.patch("bin.preprocess.logger")
+        mock_logger = mocker.patch("topas_pipeline.preprocess.logger")
 
         # Creating a sample DataFrame for sample_annotation_df
         sample_annotation_df = pd.DataFrame(
@@ -44,21 +44,21 @@ class TestPreprocessRawDataType:
 
         # Mocking other functions used within preprocess_raw_data_type
         mocker.patch(
-            "bin.preprocess.sample_annotation.filter_samples_by_metadata",
+            "topas_pipeline.preprocess.sample_annotation.filter_samples_by_metadata",
             return_value=sample_annotation_df,
         )
-        mocker.patch("bin.preprocess.load_sample_data", return_value=pd.DataFrame())
-        mocker.patch("bin.preprocess.preprocess_fp", return_value=pd.DataFrame())
+        mocker.patch("topas_pipeline.preprocess.load_sample_data", return_value=pd.DataFrame())
+        mocker.patch("topas_pipeline.preprocess.preprocess_fp", return_value=pd.DataFrame())
         mocker.patch(
-            "bin.preprocess.sample_annotation.get_channel_to_sample_id_dict",
+            "topas_pipeline.preprocess.sample_annotation.get_channel_to_sample_id_dict",
             return_value={},
         )
-        mocker.patch("bin.preprocess.utils.get_index_cols", return_value=[])
+        mocker.patch("topas_pipeline.preprocess.utils.get_index_cols", return_value=[])
         mocker.patch(
-            "bin.preprocess.prep.rename_columns_with_sample_ids",
+            "topas_pipeline.preprocess.prep.rename_columns_with_sample_ids",
             return_value=pd.DataFrame(columns=["Gene names"]),
         )
-        mocker.patch("bin.preprocess.get_prefix_renaming_dict", return_value={})
+        mocker.patch("topas_pipeline.preprocess.get_prefix_renaming_dict", return_value={})
         mocker.patch("pandas.DataFrame.to_csv")
 
         preprocess.preprocess_raw_data_type(
@@ -113,13 +113,13 @@ class TestLoadSampleData:
     def test_load_and_normalize_with_tmt(self, mocker):
         # Mock dependencies
         mock_get_evidence_files = mocker.patch(
-            "bin.preprocess_tools.get_evidence_files", return_value=["file1", "file2"]
+            "topas_pipeline.preprocess_tools.get_evidence_files", return_value=["file1", "file2"]
         )
-        mock_tmt_loader = mocker.patch("bin.preprocess.TMTLoader")
-        mock_simsi_loader = mocker.patch("bin.preprocess.SimsiTMTLoader")
-        mock_lfq_loader = mocker.patch("bin.preprocess.LFQLoader")
+        mock_tmt_loader = mocker.patch("topas_pipeline.preprocess.TMTLoader")
+        mock_simsi_loader = mocker.patch("topas_pipeline.preprocess.SimsiTMTLoader")
+        mock_lfq_loader = mocker.patch("topas_pipeline.preprocess.LFQLoader")
         mock_load_and_normalize = mocker.patch(
-            "bin.preprocess_tools.load_and_normalize", return_value=pd.DataFrame()
+            "topas_pipeline.preprocess_tools.load_and_normalize", return_value=pd.DataFrame()
         )
 
         # Test data
@@ -168,11 +168,11 @@ class TestLoadSampleData:
     def test_load_and_normalize_with_simsi(self, mocker):
         # Mock dependencies
         mock_get_evidence_files = mocker.patch(
-            "bin.preprocess_tools.get_evidence_files", return_value=["file1", "file2"]
+            "topas_pipeline.preprocess_tools.get_evidence_files", return_value=["file1", "file2"]
         )
-        mock_simsi_loader = mocker.patch("bin.preprocess.SimsiTMTLoader")
+        mock_simsi_loader = mocker.patch("topas_pipeline.preprocess.SimsiTMTLoader")
         mock_load_and_normalize = mocker.patch(
-            "bin.preprocess_tools.load_and_normalize", return_value=pd.DataFrame()
+            "topas_pipeline.preprocess_tools.load_and_normalize", return_value=pd.DataFrame()
         )
 
         # Test data
@@ -219,11 +219,11 @@ class TestLoadSampleData:
     def test_load_and_normalize_with_lfq(self, mocker):
         # Mock dependencies
         mock_get_evidence_files = mocker.patch(
-            "bin.preprocess_tools.get_evidence_files", return_value=["file1", "file2"]
+            "topas_pipeline.preprocess_tools.get_evidence_files", return_value=["file1", "file2"]
         )
-        mock_lfq_loader = mocker.patch("bin.preprocess.LFQLoader")
+        mock_lfq_loader = mocker.patch("topas_pipeline.preprocess.LFQLoader")
         mock_load_and_normalize = mocker.patch(
-            "bin.preprocess_tools.load_and_normalize", return_value=pd.DataFrame()
+            "topas_pipeline.preprocess_tools.load_and_normalize", return_value=pd.DataFrame()
         )
 
         # Test data
@@ -271,28 +271,28 @@ class TestPreprocessPp:
     def test_function_runs_through_without_imputation(self, mocker):
         # Mocking the necessary functions with the correct import paths
         mock_remap_genes = mocker.patch(
-            "bin.picked_group.remap_gene_names",
+            "topas_pipeline.picked_group.remap_gene_names",
             return_value=pd.DataFrame({"gene": ["gene1", "gene2"]}),
         )
         mock_create_metadata_columns = mocker.patch(
-            "bin.identification_metadata.create_metadata_columns",
+            "topas_pipeline.identification_metadata.create_metadata_columns",
             return_value=pd.DataFrame(),
         )
         mock_impute_data = mocker.patch(
-            "bin.preprocess_tools.impute_data", return_value=pd.DataFrame()
+            "topas_pipeline.preprocess_tools.impute_data", return_value=pd.DataFrame()
         )
         mock_filter_data = mocker.patch(
-            "bin.preprocess_tools.filter_data", return_value=pd.DataFrame()
+            "topas_pipeline.preprocess_tools.filter_data", return_value=pd.DataFrame()
         )
         mock_sum_peptide_intensities = mocker.patch(
-            "bin.preprocess_tools.sum_peptide_intensities", return_value=pd.DataFrame()
+            "topas_pipeline.preprocess_tools.sum_peptide_intensities", return_value=pd.DataFrame()
         )
         mock_log_transform_intensities = mocker.patch(
-            "bin.preprocess_tools.log_transform_intensities",
+            "topas_pipeline.preprocess_tools.log_transform_intensities",
             return_value=pd.DataFrame(),
         )
         mock_convert_long_to_wide = mocker.patch(
-            "bin.preprocess_tools.convert_long_to_wide_format",
+            "topas_pipeline.preprocess_tools.convert_long_to_wide_format",
             return_value=pd.DataFrame(),
         )
         mock_to_csv = mocker.patch("pandas.DataFrame.to_csv")
@@ -329,28 +329,28 @@ class TestPreprocessPp:
     def test_function_runs_through_with_imputation(self, mocker):
         # Mocking the necessary functions with the correct import paths
         mock_remap_genes = mocker.patch(
-            "bin.picked_group.remap_gene_names",
+            "topas_pipeline.picked_group.remap_gene_names",
             return_value=pd.DataFrame({"gene": ["gene1", "gene2"]}),
         )
         mock_create_metadata_columns = mocker.patch(
-            "bin.identification_metadata.create_metadata_columns",
+            "topas_pipeline.identification_metadata.create_metadata_columns",
             return_value=pd.DataFrame(),
         )
         mock_impute_data = mocker.patch(
-            "bin.preprocess_tools.impute_data", return_value=pd.DataFrame()
+            "topas_pipeline.preprocess_tools.impute_data", return_value=pd.DataFrame()
         )
         mock_filter_data = mocker.patch(
-            "bin.preprocess_tools.filter_data", return_value=pd.DataFrame()
+            "topas_pipeline.preprocess_tools.filter_data", return_value=pd.DataFrame()
         )
         mock_sum_peptide_intensities = mocker.patch(
-            "bin.preprocess_tools.sum_peptide_intensities", return_value=pd.DataFrame()
+            "topas_pipeline.preprocess_tools.sum_peptide_intensities", return_value=pd.DataFrame()
         )
         mock_log_transform_intensities = mocker.patch(
-            "bin.preprocess_tools.log_transform_intensities",
+            "topas_pipeline.preprocess_tools.log_transform_intensities",
             return_value=pd.DataFrame(),
         )
         mock_convert_long_to_wide = mocker.patch(
-            "bin.preprocess_tools.convert_long_to_wide_format",
+            "topas_pipeline.preprocess_tools.convert_long_to_wide_format",
             return_value=pd.DataFrame(),
         )
         mock_to_csv = mocker.patch("pandas.DataFrame.to_csv")
@@ -389,31 +389,31 @@ class TestPreprocessFp:
     # Preprocesses DataFrame correctly with valid inputs
     def test_preprocess_fp_valid_inputs(self, mocker):
         import pandas as pd
-        from bin.preprocess import preprocess_fp
+        from topas_pipeline.preprocess import preprocess_fp
 
         # Mocking dependencies
         mock_picked_protein_grouping = mocker.patch(
-            "bin.picked_group.picked_protein_grouping",
+            "topas_pipeline.picked_group.picked_protein_grouping",
             return_value=pd.DataFrame({"A": [1, 2], "B": [3, 4]}),
         )
         mock_filter_data = mocker.patch(
-            "bin.preprocess_tools.filter_data",
+            "topas_pipeline.preprocess_tools.filter_data",
             return_value=pd.DataFrame({"A": [1, 2], "B": [3, 4]}),
         )
         mock_create_metadata_columns = mocker.patch(
-            "bin.identification_metadata.create_metadata_columns",
+            "topas_pipeline.identification_metadata.create_metadata_columns",
             return_value=pd.DataFrame({"A": [1, 2], "B": [3, 4]}),
         )
         mock_mark_detected_in_batch = mocker.patch(
-            "bin.identification_metadata.mark_detected_in_batch",
+            "topas_pipeline.identification_metadata.mark_detected_in_batch",
             return_value=pd.DataFrame({"A": [1, 2], "B": [3, 4]}),
         )
         mock_mark_num_peptides = mocker.patch(
-            "bin.identification_metadata.mark_num_peptides",
+            "topas_pipeline.identification_metadata.mark_num_peptides",
             return_value=pd.DataFrame({"A": [1, 2], "B": [3, 4]}),
         )
         mock_log_transform_intensities = mocker.patch(
-            "bin.preprocess_tools.log_transform_intensities",
+            "topas_pipeline.preprocess_tools.log_transform_intensities",
             return_value=pd.DataFrame({"A": [1, 2], "B": [3, 4]}),
         )
 

@@ -3,8 +3,8 @@ import json
 import pytest
 import pandas as pd
 
-import bin.clinical_process as cp
-import bin.clinical_tools as clinical_tools
+import topas_pipeline.clinical_process as cp
+import topas_pipeline.clinical_tools as clinical_tools
 
 
 class TestClinicalProcess:
@@ -17,7 +17,7 @@ class TestClinicalProcess:
         data_types = ["fp", "pp"]
 
         mocker.patch(
-            "bin.clinical_process.clinical_process_data_type",
+            "topas_pipeline.clinical_process.clinical_process_data_type",
             side_effect=mock_clinical_process_data_type,
         )
         cp.clinical_process(data_types=data_types)
@@ -31,10 +31,10 @@ class TestClinicalProcessDataType:
         # Mocking dependencies
         mocker.patch("os.path.exists", return_value=False)
         mock_read_csv = mocker.patch("pandas.read_csv", return_value=pd.DataFrame())
-        mocker.patch("bin.clinical_tools.phospho_annot", return_value=pd.DataFrame())
-        mocker.patch("bin.clinical_tools.add_psp_urls", return_value=pd.DataFrame())
+        mocker.patch("topas_pipeline.clinical_tools.phospho_annot", return_value=pd.DataFrame())
+        mocker.patch("topas_pipeline.clinical_tools.add_psp_urls", return_value=pd.DataFrame())
         mocker.patch(
-            "bin.clinical_tools.prot_basket_annotation",
+            "topas_pipeline.clinical_tools.prot_basket_annotation",
             return_value=(pd.DataFrame(), {}),
         )
         mocker.patch("json.dump")
@@ -78,7 +78,7 @@ class TestMergeBasketsWithSubbaskets:
     # merge baskets and subbaskets correctly when both are non-empty
     def test_merge_non_empty_baskets_and_subbaskets(self):
         import pandas as pd
-        from bin.clinical_process import merge_baskets_with_subbaskets
+        from topas_pipeline.clinical_process import merge_baskets_with_subbaskets
 
         data = {"basket": "fruit;vegetable", "sub_basket": "apple;carrot"}
         row = pd.Series(data)
@@ -110,7 +110,7 @@ class TestReadAnnotationFiles:
         # Correctly reads annotation files from the specified results folder
     def test_reads_annotation_files_correctly(self, mocker):
         # Mocking the utils.get_index_cols function
-        mocker.patch('bin.utils.get_index_cols', return_value=['index_col'])
+        mocker.patch('topas_pipeline.utils.get_index_cols', return_value=['index_col'])
 
         # Mocking the pd.read_csv function
         mock_annot = pd.DataFrame({'basket': ['basket1'], 'sub_basket': ['sub_basket1']})

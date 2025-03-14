@@ -2,8 +2,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from bin.metrics import Metrics
-import bin.report_creation as rc
+from topas_pipeline.metrics import Metrics
+import topas_pipeline.report_creation as rc
 
 class TestMetrics:
 

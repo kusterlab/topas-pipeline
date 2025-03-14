@@ -4,7 +4,7 @@ import pytest
 import pandas as pd
 import numpy as np
 
-import bin.clinical_tools as ct
+import topas_pipeline.clinical_tools as ct
 
 
 class TestPhosphoAnnot:
@@ -19,17 +19,17 @@ class TestPhosphoAnnot:
             }
         )
         mock_add_positions = mocker.patch(
-            "bin.clinical_tools.pa.addPeptideAndPsitePositions", return_value=mock_df
+            "topas_pipeline.clinical_tools.pa.addPeptideAndPsitePositions", return_value=mock_df
         )
         mock_add_substrates = mocker.patch(
-            "bin.clinical_tools.pa.addPSPKinaseSubstrateAnnotations",
+            "topas_pipeline.clinical_tools.pa.addPSPKinaseSubstrateAnnotations",
             return_value=mock_df,
         )
         mock_add_annotation = mocker.patch(
-            "bin.clinical_tools.pa.addPSPAnnotations", return_value=mock_df
+            "topas_pipeline.clinical_tools.pa.addPSPAnnotations", return_value=mock_df
         )
         mock_add_regulatory_annotations = mocker.patch(
-            "bin.clinical_tools.pa.addPSPRegulatoryAnnotations", return_value=mock_df
+            "topas_pipeline.clinical_tools.pa.addPSPRegulatoryAnnotations", return_value=mock_df
         )
 
         df = pd.DataFrame({"Modified sequence": ["seq1"]})
@@ -102,19 +102,19 @@ class TestProtBasketAnnotation:
     def test_annotates_dataframe_correctly(self, mocker):
         import pandas as pd
         from pathlib import Path
-        from bin.clinical_tools import prot_basket_annotation
+        from topas_pipeline.clinical_tools import prot_basket_annotation
 
         # Mocking the read_basket_annotation_generation functions
         mocker.patch(
-            "bin.clinical_tools.read_basket_annotation_generation1",
+            "topas_pipeline.clinical_tools.read_basket_annotation_generation1",
             return_value={"GeneA": {"basket": "Basket1", "weight": 0.5}},
         )
         mocker.patch(
-            "bin.clinical_tools.read_basket_annotation_generation2",
+            "topas_pipeline.clinical_tools.read_basket_annotation_generation2",
             return_value={"GeneA": {"basket": "Basket2", "weight": 0.7}},
         )
         mocker.patch(
-            "bin.clinical_tools.read_basket_annotation_generation4",
+            "topas_pipeline.clinical_tools.read_basket_annotation_generation4",
             return_value={"GeneA": {"basket": "Basket4", "weight": 0.9}},
         )
 

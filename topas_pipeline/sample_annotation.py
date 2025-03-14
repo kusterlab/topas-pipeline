@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Union
 
 import pandas as pd
 
-from bin import utils
+from topas_pipeline import utils
 
 
 logger = logging.getLogger(__name__)

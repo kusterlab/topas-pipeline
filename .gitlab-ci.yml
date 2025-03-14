@@ -92,7 +92,7 @@ build:
     - poetry install
   script:
     - echo $CONTAINER_IMAGE
-    - python3 -m pytest --cov=bin --cov-report term --junitxml=report.xml
+    - python3 -m pytest --cov=topas_pipeline --cov-report term --junitxml=report.xml
     - coverage xml
   tags:
     - docker

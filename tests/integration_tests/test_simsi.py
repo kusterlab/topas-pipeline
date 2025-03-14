@@ -1,8 +1,8 @@
 from pathlib import Path
-import bin.simsi as simsi
-from bin.preprocess_tools import MQ_EVIDENCE_COLUMNS
-from bin.data_loaders.simsi_tmt_loader import SimsiTMTLoader
-from bin import config
+import topas_pipeline.simsi as simsi
+from topas_pipeline.preprocess_tools import MQ_EVIDENCE_COLUMNS
+from topas_pipeline.data_loaders.simsi_tmt_loader import SimsiTMTLoader
+from topas_pipeline import config
 
 CONFIG_FILE_PATH = './data/test_config.json'
 

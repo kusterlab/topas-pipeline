@@ -5,16 +5,16 @@ save_git_hash:
 	git describe --dirty --always > hash.file
 
 full_pipeline: save_git_hash
-	$(DOCKER_CMD) $(IMAGE) python3 -u -m bin -c $(LOCAL_DIR)/$(CONFIG_FILE) || (echo "2" > $(DATA)/err.out; exit 2)
+	$(DOCKER_CMD) $(IMAGE) python3 -u -m topas_pipeline -c $(LOCAL_DIR)/$(CONFIG_FILE) || (echo "2" > $(DATA)/err.out; exit 2)
 
 simsi: rm_err_file save_git_hash
-	$(DOCKER_CMD) $(IMAGE) python3 -u -m bin.simsi -c $(LOCAL_DIR)/$(CONFIG_FILE) || (echo "1" > $(DATA)/err.out; exit 1)
+	$(DOCKER_CMD) $(IMAGE) python3 -u -m topas_pipeline.simsi -c $(LOCAL_DIR)/$(CONFIG_FILE) || (echo "1" > $(DATA)/err.out; exit 1)
 
 picked_group_fdr: save_git_hash
-	$(DOCKER_CMD) $(IMAGE) python3 -u -m bin.picked_group -c $(LOCAL_DIR)/$(CONFIG_FILE) || (echo "1" > $(DATA)/err.out; exit 1)
+	$(DOCKER_CMD) $(IMAGE) python3 -u -m topas_pipeline.picked_group -c $(LOCAL_DIR)/$(CONFIG_FILE) || (echo "1" > $(DATA)/err.out; exit 1)
 
 report_creation: save_git_hash
-	$(DOCKER_CMD) $(IMAGE) python3 -u -m bin.report_creation -c $(LOCAL_DIR)/$(CONFIG_FILE) || (echo "1" > $(DATA)/err.out; exit 1)
+	$(DOCKER_CMD) $(IMAGE) python3 -u -m topas_pipeline.report_creation -c $(LOCAL_DIR)/$(CONFIG_FILE) || (echo "1" > $(DATA)/err.out; exit 1)
 
 # runs sarcoma cohort in docker
 docker_all: pull full_pipeline
@@ -35,17 +35,6 @@ docker_melanoma: full_pipeline
 # runs melanoma cohort in docker
 docker_decryptm: CONFIG_FILE=config_patients_with_decryptm.json
 docker_decryptm: full_pipeline
-
-
-#plot scripts
-heatmap: 
-	python3 -u -m bin.heatmap_generator  -t plot_config.toml 
-
-
-#genomics annotations
-genomics_annotations:
-	python3 -u -m bin.Oncostar_genomics_alterations && python3 -u -m bin.oncoKB_annotations 
-
 
 # runs pipeline locally
 all: DOCKER_CMD=
@@ -96,7 +85,7 @@ mintest_melanoma: LOCAL_DIR=.
 mintest_melanoma: full_pipeline
 
 test:
-	python3 -m pytest --cov=bin --cov-report html --cov-report term tests/unit_tests
+	python3 -m pytest --cov=topas_pipeline --cov-report html --cov-report term tests/unit_tests
 
 
 dependencies:

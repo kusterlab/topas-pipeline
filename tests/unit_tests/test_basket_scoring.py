@@ -5,7 +5,7 @@ import pytest
 import pandas as pd
 import numpy as np
 
-import bin.basket_scoring as basket_scoring
+import topas_pipeline.basket_scoring as basket_scoring
 
 
 class TestReadBasketScores:
@@ -38,7 +38,7 @@ class TestReadSubBasketScores:
     def test_reads_sub_basket_score_files_correctly(self, mocker):
         # Mocking the get_paths_to_sub_basket_files function
         mocker.patch(
-            "bin.basket_scoring.get_paths_to_sub_basket_files",
+            "topas_pipeline.basket_scoring.get_paths_to_sub_basket_files",
             return_value=["file1.tsv", "file2.tsv"],
         )
 
@@ -80,9 +80,9 @@ class TestLoadZScoresFp:
         measure1_df = pd.DataFrame(
             {"zscore_pat_patient1": [1, np.nan], "zscore_pat_patient2": [3, 4]}
         )
-        mocker.patch("bin.metrics.read_measures", return_value={"z-score": measure1_df})
+        mocker.patch("topas_pipeline.metrics.read_measures", return_value={"z-score": measure1_df})
         mocker.patch(
-            "bin.metrics.clinical_process.read_annotation_files",
+            "topas_pipeline.metrics.clinical_process.read_annotation_files",
             return_value=(
                 pd.DataFrame(
                     {
@@ -115,7 +115,7 @@ class TestLoadZScoresPp:
                 "zscore_pat_patient2": [3, 4],
             }
         )
-        mocker.patch("bin.metrics.read_measures", return_value={"z-score": measure1_df})
+        mocker.patch("topas_pipeline.metrics.read_measures", return_value={"z-score": measure1_df})
 
         results_folder = "some/results/folder"
         result = basket_scoring.load_z_scores_pp(results_folder)
@@ -216,7 +216,7 @@ class TestComputeBasketScores4thGen:
     def test_compute_basket_scores_valid_inputs(self, mocker):
         # Mocking dependencies
         mocker.patch(
-            "bin.basket_scoring.sample_metadata.load",
+            "topas_pipeline.basket_scoring.sample_metadata.load",
             return_value=pd.DataFrame(
                 {
                     "Sample name": ["Sample1", "Sample2", "Sample3"],
@@ -225,7 +225,7 @@ class TestComputeBasketScores4thGen:
             ),
         )
         mocker.patch(
-            "bin.basket_scoring.read_baskets_file_4th_gen",
+            "topas_pipeline.basket_scoring.read_baskets_file_4th_gen",
             return_value=pd.DataFrame(
                 {
                     "BASKET": ["basket1", "basket2"],
@@ -239,7 +239,7 @@ class TestComputeBasketScores4thGen:
             ),
         )
         mocker.patch(
-            "bin.basket_scoring.load_z_scores_fp",
+            "topas_pipeline.basket_scoring.load_z_scores_fp",
             return_value=pd.DataFrame(
                 {
                     "pat_Sample1": [0.5, 0.8],
@@ -250,7 +250,7 @@ class TestComputeBasketScores4thGen:
             ),
         )
         mocker.patch(
-            "bin.basket_scoring.load_z_scores_pp",
+            "topas_pipeline.basket_scoring.load_z_scores_pp",
             return_value=pd.DataFrame(
                 {
                     "pat_Sample1": [1.0, 2.0],
@@ -261,7 +261,7 @@ class TestComputeBasketScores4thGen:
             ),
         )
         mocker.patch(
-            "bin.basket_scoring.load_protein_phosphorylation",
+            "topas_pipeline.basket_scoring.load_protein_phosphorylation",
             return_value=pd.DataFrame(
                 {
                     "pat_Sample1": [0.5, 0.8],
@@ -272,7 +272,7 @@ class TestComputeBasketScores4thGen:
             ),
         )
         mocker.patch(
-            "bin.basket_scoring.load_kinase_scores",
+            "topas_pipeline.basket_scoring.load_kinase_scores",
             return_value=pd.DataFrame(
                 {
                     "pat_Sample1": [0.5, 0.8],
@@ -283,14 +283,14 @@ class TestComputeBasketScores4thGen:
             ),
         )
         mocker.patch(
-            "bin.basket_scoring.get_number_ident_annot_per_sample",
+            "topas_pipeline.basket_scoring.get_number_ident_annot_per_sample",
             return_value=pd.DataFrame(
                 {"fp.num_identified": [2, 2], "fp.num_annotated": [2, 2]},
                 index=pd.Series(["pat_Sample1", "pat_Sample2"]),
             ),
         )
-        mock_save_basket_scores = mocker.patch("bin.basket_scoring.save_basket_scores")
-        mocker.patch("bin.basket_scoring.save_rtk_scores_w_metadata")
+        mock_save_basket_scores = mocker.patch("topas_pipeline.basket_scoring.save_basket_scores")
+        mocker.patch("topas_pipeline.basket_scoring.save_rtk_scores_w_metadata")
         mocker.patch("pandas.DataFrame.to_csv")
 
         # Define inputs
@@ -334,7 +334,7 @@ class TestComputeBasketScores4thGen:
 class TestSaveRtkScoresWMetadata:
     def test_correct_subsetting_to_rtk(self, mocker):
         TUPAC_CATEGORIES = {"RTK1": "value1", "RTK2": "value2"}
-        mocker.patch("bin.basket_scoring.TUPAC_CATEGORIES", TUPAC_CATEGORIES)
+        mocker.patch("topas_pipeline.basket_scoring.TUPAC_CATEGORIES", TUPAC_CATEGORIES)
         mock_to_csv = mocker.patch("pandas.DataFrame.to_csv", autospec=True)
 
         # Sample data
@@ -609,7 +609,7 @@ class TestExtractBasketMemberZScores4thGen:
     def test_extracts_z_scores_correctly(self, mocker):
         # Mocking the dependencies
         mocker.patch(
-            "bin.basket_scoring.read_baskets_file_4th_gen",
+            "topas_pipeline.basket_scoring.read_baskets_file_4th_gen",
             return_value=pd.DataFrame(
                 {
                     "BASKET": ["basket1", "basket2"],
@@ -623,7 +623,7 @@ class TestExtractBasketMemberZScores4thGen:
             ),
         )
         mocker.patch(
-            "bin.basket_scoring.load_z_scores_fp",
+            "topas_pipeline.basket_scoring.load_z_scores_fp",
             return_value=pd.DataFrame(
                 {
                     "pat_Sample1": [0.5, 0.8],
@@ -634,7 +634,7 @@ class TestExtractBasketMemberZScores4thGen:
             ),
         )
         mocker.patch(
-            "bin.basket_scoring.load_z_scores_pp",
+            "topas_pipeline.basket_scoring.load_z_scores_pp",
             return_value=pd.DataFrame(
                 {
                     "pat_Sample1": [1.0, 2.0],
@@ -645,7 +645,7 @@ class TestExtractBasketMemberZScores4thGen:
             ),
         )
         mocker.patch(
-            "bin.basket_scoring.load_protein_phosphorylation",
+            "topas_pipeline.basket_scoring.load_protein_phosphorylation",
             return_value=pd.DataFrame(
                 {
                     "pat_Sample1": [0.5, 0.8],
@@ -656,7 +656,7 @@ class TestExtractBasketMemberZScores4thGen:
             ),
         )
         mocker.patch(
-            "bin.basket_scoring.load_kinase_scores",
+            "topas_pipeline.basket_scoring.load_kinase_scores",
             return_value=pd.DataFrame(
                 {
                     "pat_Sample1": [0.5, 0.8],

@@ -7,9 +7,9 @@ import subprocess
 import pandas as pd
 import pytest
 
-import bin.simsi as simsi
-import bin.config as config
-import bin.utils
+import topas_pipeline.simsi as simsi
+import topas_pipeline.config as config
+import topas_pipeline.utils
 
 from job_pool import JobPool
 
@@ -22,7 +22,7 @@ class TestMain:
             return_value=argparse.Namespace(config="path/to/config"),
         )
         mocker.patch(
-            "bin.config.load",
+            "topas_pipeline.config.load",
             return_value={
                 "preprocessing": {
                     "run_simsi": True,
@@ -39,10 +39,10 @@ class TestMain:
         mocker.patch("json.dumps")
         mocker.patch("builtins.open", mocker.mock_open())
         mocker.patch(
-            "bin.simsi.load_sample_annotation",
+            "topas_pipeline.simsi.load_sample_annotation",
             return_value=mocker.Mock(to_csv=mocker.Mock()),
         )
-        mocker.patch("bin.simsi.run_simsi")
+        mocker.patch("topas_pipeline.simsi.run_simsi")
 
         simsi.main(["-c", "path/to/config"])
 
@@ -55,7 +55,7 @@ class TestMain:
             return_value=argparse.Namespace(config="path/to/config"),
         )
         mocker.patch(
-            "bin.config.load",
+            "topas_pipeline.config.load",
             return_value={
                 "preprocessing": {
                     "run_simsi": False,
@@ -67,7 +67,7 @@ class TestMain:
                 "data_types": [],
             },
         )
-        mocker.patch("bin.simsi.run_simsi")
+        mocker.patch("topas_pipeline.simsi.run_simsi")
 
         simsi.main(["-c", "path/to/config"])
         simsi.run_simsi.assert_not_called()
@@ -79,9 +79,9 @@ class TestRunSimsi:
         data_types = ["type1", "type2"]
         kwargs = {"data_types": data_types}
 
-        mocker.patch("bin.simsi.JobPool")
-        mocker.patch("bin.simsi.JobPool.applyAsync")
-        mocker.patch("bin.simsi.JobPool.checkPool")
+        mocker.patch("topas_pipeline.simsi.JobPool")
+        mocker.patch("topas_pipeline.simsi.JobPool.applyAsync")
+        mocker.patch("topas_pipeline.simsi.JobPool.checkPool")
 
         simsi.run_simsi(**kwargs)
 
@@ -95,30 +95,30 @@ class TestRunSimsiDataType:
     # Function executes without exceptions and sends a success message to Slack
     def test_run_simsi_data_type_success(self, mocker):
         mocker.patch("time.time", side_effect=[0, 10, 20, 30])
-        mocker.patch("bin.simsi.init_file_logger")
-        mocker.patch("bin.simsi.send_slack_message")
+        mocker.patch("topas_pipeline.simsi.init_file_logger")
+        mocker.patch("topas_pipeline.simsi.send_slack_message")
         mocker.patch(
-            "bin.preprocess_tools.get_summary_files", return_value=["summary_file"]
+            "topas_pipeline.preprocess_tools.get_summary_files", return_value=["summary_file"]
         )
-        mocker.patch("bin.simsi.copy_raw_files")
+        mocker.patch("topas_pipeline.simsi.copy_raw_files")
         mocker.patch(
-            "bin.meta_input_file.get_meta_input_file_path",
+            "topas_pipeline.meta_input_file.get_meta_input_file_path",
             return_value="meta_input_file",
         )
-        mocker.patch("bin.simsi.create_meta_input_file")
+        mocker.patch("topas_pipeline.simsi.create_meta_input_file")
         mocker.patch(
             "pandas.read_csv",
             return_value=pd.DataFrame({"mq_txt_folder": ["folder_Batch1"]}),
         )
         mocker.patch(
-            "bin.simsi.get_simsi_output_folder", return_value="simsi_output_folder"
+            "topas_pipeline.simsi.get_simsi_output_folder", return_value="simsi_output_folder"
         )
         mocker.patch(
-            "bin.simsi.get_simsi_cache_folder", return_value="simsi_cache_folder"
+            "topas_pipeline.simsi.get_simsi_cache_folder", return_value="simsi_cache_folder"
         )
-        mocker.patch("bin.simsi.find_matching_summaries_folder", return_value=None)
-        mocker.patch("bin.simsi.run_simsi_single")
-        mocker.patch("bin.simsi.store_results_for_reuse")
+        mocker.patch("topas_pipeline.simsi.find_matching_summaries_folder", return_value=None)
+        mocker.patch("topas_pipeline.simsi.run_simsi_single")
+        mocker.patch("topas_pipeline.simsi.store_results_for_reuse")
 
         simsi.run_simsi_data_type(
             results_folder="results",
@@ -179,7 +179,7 @@ class TestFindMatchingSummariesFolder:
         mocker.patch("pathlib.Path.is_file", return_value=True)
         mocker.patch("os.path.getmtime", return_value=1)
 
-        mocker.patch("bin.meta_input_file.meta_input_files_equal", return_value=True)
+        mocker.patch("topas_pipeline.meta_input_file.meta_input_files_equal", return_value=True)
 
         assert (
             simsi.find_matching_summaries_folder(simsi_cache_folder, meta_input_file)
@@ -237,7 +237,7 @@ class TestCopyWithSubprocess:
         dest = "dest.txt"
 
         mocker.patch("os.path.exists", return_value=False)
-        mocker.patch("bin.simsi.logger.info")
+        mocker.patch("topas_pipeline.simsi.logger.info")
         mocker.patch("subprocess.Popen", return_value=mocker.Mock(wait=lambda: 0))
 
         result = simsi.copy_with_subprocess(source, dest)
@@ -289,13 +289,13 @@ class TestFindSimsiEvidenceFile:
         simsi_evidence_file = f"{simsi_summaries_folder}/p10/p10_evidence.txt"
 
         mocker.patch(
-            "bin.meta_input_file.get_meta_input_file_path", return_value=meta_input_file
+            "topas_pipeline.meta_input_file.get_meta_input_file_path", return_value=meta_input_file
         )
         mocker.patch(
-            "bin.simsi.get_simsi_cache_folder", return_value=simsi_cache_folder
+            "topas_pipeline.simsi.get_simsi_cache_folder", return_value=simsi_cache_folder
         )
         mocker.patch(
-            "bin.simsi.find_matching_summaries_folder",
+            "topas_pipeline.simsi.find_matching_summaries_folder",
             return_value=simsi_summaries_folder,
         )
         mocker.patch("os.path.isfile", return_value=True)
@@ -374,7 +374,7 @@ class TestRunSimsiSingle:
         maximum_pep = 1000
         num_threads = 4
 
-        mock_main = mocker.patch("bin.simsi.simsi.main")
+        mock_main = mocker.patch("topas_pipeline.simsi.simsi.main")
 
         simsi.run_simsi_single(
             meta_input_file,
@@ -427,12 +427,12 @@ class TestCreateMetaInputFile:
             ],
         )
         mocker.patch(
-            "bin.simsi.get_simsi_raw_file_folder", side_effect=["folder1", "folder2"]
+            "topas_pipeline.simsi.get_simsi_raw_file_folder", side_effect=["folder1", "folder2"]
         )
         mocker.patch(
-            "bin.simsi.get_correction_factor_files", return_value=["file1", "file2"]
+            "topas_pipeline.simsi.get_correction_factor_files", return_value=["file1", "file2"]
         )
-        mocker.patch("bin.simsi.mi.write_meta_input_file")
+        mocker.patch("topas_pipeline.simsi.mi.write_meta_input_file")
 
         simsi.create_meta_input_file(
             summary_files, data_type, simsi_folder, meta_input_file
@@ -462,12 +462,12 @@ class TestCopyRawFiles:
                 }
             ),
         )
-        mocker.patch("bin.simsi.copy_with_subprocess", return_value=True)
+        mocker.patch("topas_pipeline.simsi.copy_with_subprocess", return_value=True)
         mocker.patch(
-            "bin.simsi.get_simsi_cache_folder", return_value="/mock/cache/folder"
+            "topas_pipeline.simsi.get_simsi_cache_folder", return_value="/mock/cache/folder"
         )
         mocker.patch(
-            "bin.simsi.get_simsi_raw_file_folder", return_value="/mock/simsi/folder"
+            "topas_pipeline.simsi.get_simsi_raw_file_folder", return_value="/mock/simsi/folder"
         )
 
         raw_file_folders = ["/mock/raw/folder1", "/mock/raw/folder2"]
@@ -494,12 +494,12 @@ class TestCopyRawFiles:
                 {"Raw file": ["file1", "file2"], "Experiment": ["exp1", "exp2"]}
             ),
         )
-        mocker.patch("bin.simsi.copy_with_subprocess", return_value=True)
+        mocker.patch("topas_pipeline.simsi.copy_with_subprocess", return_value=True)
         mocker.patch(
-            "bin.simsi.get_simsi_cache_folder", return_value="/mock/cache/folder"
+            "topas_pipeline.simsi.get_simsi_cache_folder", return_value="/mock/cache/folder"
         )
         mocker.patch(
-            "bin.simsi.get_simsi_raw_file_folder", return_value="/mock/simsi/folder"
+            "topas_pipeline.simsi.get_simsi_raw_file_folder", return_value="/mock/simsi/folder"
         )
 
         raw_file_folders = ["/mock/raw/folder1", "/mock/raw/folder2"]
@@ -526,12 +526,12 @@ class TestCopyRawFiles:
                 }
             ),
         )
-        mocker.patch("bin.simsi.copy_with_subprocess", return_value=False)
+        mocker.patch("topas_pipeline.simsi.copy_with_subprocess", return_value=False)
         mocker.patch(
-            "bin.simsi.get_simsi_cache_folder", return_value="/mock/cache/folder"
+            "topas_pipeline.simsi.get_simsi_cache_folder", return_value="/mock/cache/folder"
         )
         mocker.patch(
-            "bin.simsi.get_simsi_raw_file_folder", return_value="/mock/simsi/folder"
+            "topas_pipeline.simsi.get_simsi_raw_file_folder", return_value="/mock/simsi/folder"
         )
 
         raw_file_folders = ["/mock/raw/folder1", "/mock/raw/folder2"]

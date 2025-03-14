@@ -11,14 +11,14 @@ from pathlib import Path
 from typing import Tuple, List, Dict, Union
 from job_pool import JobPool
 
-import bin.sample_annotation as sa
-import bin.utils as utils
-import bin.metrics as metrics
-import bin.clinical_process as clinical_process
-import bin.clinical_tools as clinical_tools
-import bin.basket_scoring as basket_scoring
-import bin.TOPAS_kinase_scoring as kinase_scoring
-import bin.TOPAS_protein_phosphorylation_scoring as protein_phoshorylation_scoring
+import topas_pipeline.sample_annotation as sa
+import topas_pipeline.utils as utils
+import topas_pipeline.metrics as metrics
+import topas_pipeline.clinical_process as clinical_process
+import topas_pipeline.clinical_tools as clinical_tools
+import topas_pipeline.basket_scoring as basket_scoring
+import topas_pipeline.TOPAS_kinase_scoring as kinase_scoring
+import topas_pipeline.TOPAS_protein_phosphorylation_scoring as protein_phoshorylation_scoring
 
 logger = logging.getLogger(__name__)
 
