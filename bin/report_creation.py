@@ -848,7 +848,9 @@ def create_wp2_worksheet(
         data_type = "fp"
         if score_type == "POI_category":
             data_type = "POI"
-        annot_dict = clinical_tools.create_identifier_to_basket_dict(topas_annotation_df, data_type)
+        annot_dict = clinical_tools.create_identifier_to_basket_dict(
+            topas_annotation_df, data_type
+        )
 
         basket_df[score_type] = basket_df.apply(
             clinical_tools.map_identifier_list_to_annot_types,

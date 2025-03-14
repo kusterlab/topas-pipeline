@@ -156,9 +156,9 @@ def picked_protein_grouping(
     )
 
     # only report genes if they have >=50% of the identified peptides for the gene group
-    # (a.k.a. Majority protein). An example where this makes sense is AXIN1, which 
+    # (a.k.a. Majority protein). An example where this makes sense is AXIN1, which
     # is sometimes grouped with MACF1 but only has ~2 peptides, whereas MACF1 has ~3000.
-    df['Gene names'] = df['Majority protein IDs']
+    df["Gene names"] = df["Majority protein IDs"]
 
     return df
 

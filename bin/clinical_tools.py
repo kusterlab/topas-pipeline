@@ -14,12 +14,14 @@ from . import utils
 logger = logging.getLogger(__name__)
 
 
-def phospho_annot(df: pd.DataFrame,
-                  extra_kinase_annot: Union[str, Path],
-                  pspFastaFile: Union[str, Path],
-                  pspKinaseSubstrateFile: Union[str, Path],
-                  pspAnnotationFile: Union[str, Path],
-                  pspRegulatoryFile: Union[str, Path]) -> pd.DataFrame:
+def phospho_annot(
+    df: pd.DataFrame,
+    extra_kinase_annot: Union[str, Path],
+    pspFastaFile: Union[str, Path],
+    pspKinaseSubstrateFile: Union[str, Path],
+    pspAnnotationFile: Union[str, Path],
+    pspRegulatoryFile: Union[str, Path],
+) -> pd.DataFrame:
     """
     Phospho-site annotation of experimental data using in-house developed tool (MT) based mainly on Phosphosite Plus but also in vitro
     experiments from the lab of Ishihama.
@@ -30,40 +32,50 @@ def phospho_annot(df: pd.DataFrame,
     :param pspAnnotationFile: file used for adding annotations from Phosphosite Plus
     :param pspRegulatoryFile: file used for adding regulatory information
     """
-    logger.info('Phosphosite annotation')
+    logger.info("Phosphosite annotation")
 
-    logger.info(f'Phospho data before: {df.shape}')
+    logger.info(f"Phospho data before: {df.shape}")
     df = df.reset_index()
-    df = pa.addPeptideAndPsitePositions(df, pspFastaFile, pspInput=True, returnAllPotentialSites=False)
+    df = pa.addPeptideAndPsitePositions(
+        df, pspFastaFile, pspInput=True, returnAllPotentialSites=False
+    )
     df = pa.addPSPKinaseSubstrateAnnotations(df, pspKinaseSubstrateFile, gene_name=True)
     df = pa.addPSPAnnotations(df, pspAnnotationFile)
     df = pa.addPSPRegulatoryAnnotations(df, pspRegulatoryFile)
-    df['PSP_LT_LIT'] = df['PSP_LT_LIT'].apply(lambda x: max(x.split(';')))
-    df['PSP_MS_LIT'] = df['PSP_MS_LIT'].apply(lambda x: max(x.split(';')))
-    df['PSP_MS_CST'] = df['PSP_MS_CST'].apply(lambda x: max(x.split(';')))
-    df.rename(columns={'Site positions': 'Site positions identified (MQ)'}, inplace=True)
-    df = pa.addPeptideAndPsitePositions(df, pspFastaFile, pspInput=True, returnAllPotentialSites=True)
-    logger.info(f'Phospho data after: {df.shape}')
-    df = df.set_index('Modified sequence', drop=True)
+    df["PSP_LT_LIT"] = df["PSP_LT_LIT"].apply(lambda x: max(x.split(";")))
+    df["PSP_MS_LIT"] = df["PSP_MS_LIT"].apply(lambda x: max(x.split(";")))
+    df["PSP_MS_CST"] = df["PSP_MS_CST"].apply(lambda x: max(x.split(";")))
+    df.rename(
+        columns={"Site positions": "Site positions identified (MQ)"}, inplace=True
+    )
+    df = pa.addPeptideAndPsitePositions(
+        df, pspFastaFile, pspInput=True, returnAllPotentialSites=True
+    )
+    logger.info(f"Phospho data after: {df.shape}")
+    df = df.set_index("Modified sequence", drop=True)
 
     # Add extra kinase annotations
     if len(str(extra_kinase_annot)) > 0:
         df = add_extra_kinase_annotations(df, extra_kinase_annot)
-    
+
     return df
 
 
-def add_extra_kinase_annotations(df: pd.DataFrame, extra_kinase_annot: str) -> pd.DataFrame:
+def add_extra_kinase_annotations(
+    df: pd.DataFrame, extra_kinase_annot: str
+) -> pd.DataFrame:
     """
     Adds extra kinase annotations to the dataframe.
 
     :param df: dataframe with measured peptide intensities
     :param extra_kinase_annot: path to file with extra kinase annotations
     """
-    logger.info('Extra kinase annotation')
+    logger.info("Extra kinase annotation")
 
     extra_kinase_annot_df = pd.read_excel(extra_kinase_annot)
-    df['Kinase_high_conf'] = df.index.to_series().map(extra_kinase_annot_df.set_index('Modified sequence')['PSP Kinase'])
+    df["Kinase_high_conf"] = df.index.to_series().map(
+        extra_kinase_annot_df.set_index("Modified sequence")["PSP Kinase"]
+    )
     return df
 
 
@@ -77,7 +89,9 @@ def add_psp_urls(pp: pd.DataFrame) -> pd.DataFrame:
     :param pp: df to annotate with URL to PhosphoSitePlus
     :return: df with added annotation of URL to PhosphoSitePlus
     """
-    pp[['PSP_URL', 'PSP_URL_extra']] = pp[['Start positions', 'Proteins']].apply(add_url_columns, axis=1, result_type="expand")
+    pp[["PSP_URL", "PSP_URL_extra"]] = pp[["Start positions", "Proteins"]].apply(
+        add_url_columns, axis=1, result_type="expand"
+    )
     return pp
 
 
@@ -85,10 +99,11 @@ def add_url_columns(row) -> Tuple[str, List]:
     start_positions, proteins = row
     # create boolean list for (p-site, protein) pairs found in PSP or not
     # check for any modified peptide with start position different from -1
-    found_psites = [int(value) > 0 for value in start_positions.split(';') if value != '']
+    found_psites = [
+        int(value) > 0 for value in start_positions.split(";") if value != ""
+    ]
     # row[0] is integer index of row and row[1] is column value
-    proteins = list(compress(proteins.split(';'),
-                             found_psites))
+    proteins = list(compress(proteins.split(";"), found_psites))
 
     URLs = list()
     main_url = ""
@@ -99,8 +114,8 @@ def add_url_columns(row) -> Tuple[str, List]:
     url_start = "https://www.phosphosite.org/uniprotAccAction?id="
     for index, protein in enumerate(proteins):
         # don't allow isoforms (recognizable by "-" in their protein IDs) as main protein
-        if '-' not in protein and not main_found:
-            main_url = "=HYPERLINK(\"" + str(url_start) + str(protein) + "\")"
+        if "-" not in protein and not main_found:
+            main_url = '=HYPERLINK("' + str(url_start) + str(protein) + '")'
             main_found = True
         else:
             URLs.append(str(url_start) + str(protein))
@@ -108,10 +123,9 @@ def add_url_columns(row) -> Tuple[str, List]:
     return main_url, URLs
 
 
-def prot_clinical_annotation(df: pd.DataFrame,
-                           annot_file: Union[str, Path],
-                           data_type: str,
-                           annot_type: str) -> Tuple[pd.DataFrame, Dict]:
+def prot_clinical_annotation(
+    df: pd.DataFrame, annot_file: Union[str, Path], data_type: str, annot_type: str
+) -> Tuple[pd.DataFrame, Dict]:
     """
     Adds columns with basket annotations and weights to a dataframe
 
@@ -120,36 +134,45 @@ def prot_clinical_annotation(df: pd.DataFrame,
     :param data_type: either 'pp' for phospho or 'fp' for full proteome
     :param annot_type: either 'TOPAS score', 'TOPAS subscore', 'POI'
     """
-    logger.info(f'Proteomics baskets annotation {data_type} {annot_type}')
+    logger.info(f"Proteomics baskets annotation {data_type} {annot_type}")
 
     # Some dataframes might have empty cells so let's exchange them with nans
-    df = df.replace(r'^\s*$', np.nan, regex=True)
+    df = df.replace(r"^\s*$", np.nan, regex=True)
     topas_annotation_df = read_clinical_annotation(annot_file)
     annot_dict = create_identifier_to_basket_dict(topas_annotation_df, data_type)
 
-    if 'fp' in data_type:
+    if "fp" in data_type:
         gene_df = df.index.to_frame()
-    elif 'pp' in data_type:
-        gene_df = df[['Gene names']].fillna("")
+    elif "pp" in data_type:
+        gene_df = df[["Gene names"]].fillna("")
 
-    if 'POI' in annot_type:
-        df[annot_type] = gene_df.apply(map_identifier_list_to_annot_types, annot_dict=annot_dict,
-                                                                annot_type=annot_type,
-                                                                with_weights=False,
-                                                                axis=1)
+    if "POI" in annot_type:
+        df[annot_type] = gene_df.apply(
+            map_identifier_list_to_annot_types,
+            annot_dict=annot_dict,
+            annot_type=annot_type,
+            with_weights=False,
+            axis=1,
+        )
     else:
-        df[[annot_type, f'{annot_type}_weights']] = gene_df.apply(map_identifier_list_to_annot_types, annot_dict=annot_dict,
-                                                                    annot_type=annot_type,
-                                                                    with_weights=True,
-                                                                    axis=1, result_type="expand")
-            
+        df[[annot_type, f"{annot_type}_weights"]] = gene_df.apply(
+            map_identifier_list_to_annot_types,
+            annot_dict=annot_dict,
+            annot_type=annot_type,
+            with_weights=True,
+            axis=1,
+            result_type="expand",
+        )
+
     return df
 
 
-def map_identifier_list_to_annot_types(identifier_list: pd.Series,
-                                   annot_dict: Dict[str, str],
-                                   annot_type: str,
-                                   with_weights: bool) -> pd.Series:
+def map_identifier_list_to_annot_types(
+    identifier_list: pd.Series,
+    annot_dict: Dict[str, str],
+    annot_type: str,
+    with_weights: bool,
+) -> pd.Series:
     """
     Takes a list of semicolon separated identifiers and returns the annot_levels
     matching the first identifier with annotations and weights
@@ -157,31 +180,30 @@ def map_identifier_list_to_annot_types(identifier_list: pd.Series,
     """
     # TODO: Refactor this function!
     # TODO: throw error if no annot_dict given
-    # TODO: make less hardcoded and optimize 
+    # TODO: make less hardcoded and optimize
 
     annotations = []
-    for identifier in identifier_list.iloc[0].split(';'):
+    for identifier in identifier_list.iloc[0].split(";"):
 
         # TODO: instead of else if statements do small functions?
         if identifier in annot_dict:
 
             # should we have two dictionaries or should we split the dictionary output in case there is more than one group?
             annot_type_in_column = annot_type
-            if 'POI' in annot_type:
-                annot_type_in_column = 'TOPAS_subscore'
+            if "POI" in annot_type:
+                annot_type_in_column = "TOPAS_subscore"
 
-            groups = annot_dict[identifier]['GROUP'].split(';')
-            annot_group = annot_dict[identifier][annot_type_in_column].split(';')
-            annot_weight = annot_dict[identifier]['weight'].split(';')
-
+            groups = annot_dict[identifier]["GROUP"].split(";")
+            annot_group = annot_dict[identifier][annot_type_in_column].split(";")
+            annot_weight = annot_dict[identifier]["weight"].split(";")
 
             for i, group in enumerate(groups):
                 # for POI only attempt dict when group is OTHER
-                if group == 'OTHER' and 'POI' in annot_type:
+                if group == "OTHER" and "POI" in annot_type:
                     annotations.append(annot_group[i])
-                    
+
                 # for TOPAS score annotations only attempt dict when group is not OTHER
-                elif group != 'OTHER' and 'POI' not in annot_type:
+                elif group != "OTHER" and "POI" not in annot_type:
 
                     if with_weights:
                         annotations.append([annot_group[i], annot_weight[i]])
@@ -190,8 +212,8 @@ def map_identifier_list_to_annot_types(identifier_list: pd.Series,
                 else:
                     continue
 
-    if 'POI' in annot_type:
-        return ';'.join(annotations)
+    if "POI" in annot_type:
+        return ";".join(annotations)
     else:
         # TODO: use a function please
         if with_weights:
@@ -203,44 +225,66 @@ def map_identifier_list_to_annot_types(identifier_list: pd.Series,
                 weights = ";".join(weights)
                 annotations = [group_names, weights]
             else:
-                annotations = annotations[0] if annotations else ['']
+                annotations = annotations[0] if annotations else [""]
         else:
             if len(annotations) > 0:
                 annotations = ";".join(annotations)
 
         return pd.Series(annotations, dtype="object")
-      
 
-def create_identifier_to_basket_dict(basket_annotation: pd.DataFrame, data_type: Union[str, None] = 'fp',
-                                     identifier_type: str = 'gene') -> Dict[str, str]:
+
+def create_identifier_to_basket_dict(
+    basket_annotation: pd.DataFrame,
+    data_type: Union[str, None] = "fp",
+    identifier_type: str = "gene",
+) -> Dict[str, str]:
     """
     collect all the baskets per gene in a dictionary of {'gene_name': 'basket1;basket2;...'}
     """
-    if 'fp' in data_type or 'pp' in data_type:
-        if 'fp' in data_type:
-            accepted_type = ['expression', 'kinase activity']
-        elif 'pp' in data_type:
-            accepted_type = ['phosphorylation', 'important phosphorylation', 'kinase activity']
-        basket_annotation = basket_annotation[basket_annotation['GROUP'] != 'OTHER']
-        basket_annotation = basket_annotation[basket_annotation['LEVEL'].isin(accepted_type)]
-    else: # other proteins of interest (POI)
-        basket_annotation = basket_annotation[basket_annotation['GROUP'] == 'OTHER']
-    
-    basket_annotation = basket_annotation.groupby([identifier_type]).agg(lambda x: ";".join(map(str, x)))
-    annot_dict = basket_annotation.to_dict('index')
+    if "fp" in data_type or "pp" in data_type:
+        if "fp" in data_type:
+            accepted_type = ["expression", "kinase activity"]
+        elif "pp" in data_type:
+            accepted_type = [
+                "phosphorylation",
+                "important phosphorylation",
+                "kinase activity",
+            ]
+        basket_annotation = basket_annotation[basket_annotation["GROUP"] != "OTHER"]
+        basket_annotation = basket_annotation[
+            basket_annotation["LEVEL"].isin(accepted_type)
+        ]
+    else:  # other proteins of interest (POI)
+        basket_annotation = basket_annotation[basket_annotation["GROUP"] == "OTHER"]
+
+    basket_annotation = basket_annotation.groupby([identifier_type]).agg(
+        lambda x: ";".join(map(str, x))
+    )
+    annot_dict = basket_annotation.to_dict("index")
     return annot_dict
 
 
 def read_clinical_annotation(annot_file: str) -> pd.DataFrame:
     topas_annotation_df = pd.read_excel(annot_file)
     topas_annotation_df = utils.whitespace_remover(topas_annotation_df)
-    topas_annotation_df['topas_subscore_level'] = topas_annotation_df['TOPAS_SUBSCORE'] + " - " + topas_annotation_df['LEVEL']  # basket_annotation['BASKET'] + " - " +
-    topas_annotation_df['WEIGHT'] = topas_annotation_df['WEIGHT'].fillna(1)  # empty cell in WEIGHT column means weight = 1
+    topas_annotation_df["topas_subscore_level"] = (
+        topas_annotation_df["TOPAS_SUBSCORE"] + " - " + topas_annotation_df["LEVEL"]
+    )  # basket_annotation['BASKET'] + " - " +
+    topas_annotation_df["WEIGHT"] = topas_annotation_df["WEIGHT"].fillna(
+        1
+    )  # empty cell in WEIGHT column means weight = 1
     # topas_annotation_df = topas_annotation_df.rename(
     #     {'TOPAS_SCORE': 'TOPAS_score', 'TOPAS_SUBSCORE': 'TOPAS_subscore', 'WEIGHT': 'weight', 'GENE NAME': 'gene'}, axis=1)
     topas_annotation_df = topas_annotation_df.rename(
-        {'TOPAS_SCORE': 'basket', 'TOPAS_SUBSCORE': 'sub_basket', 'WEIGHT': 'weight', 'GENE NAME': 'gene'}, axis=1)
-    
+        {
+            "TOPAS_SCORE": "basket",
+            "TOPAS_SUBSCORE": "sub_basket",
+            "WEIGHT": "weight",
+            "GENE NAME": "gene",
+        },
+        axis=1,
+    )
+
     return topas_annotation_df
 
 
@@ -254,35 +298,45 @@ if __name__ == "__main__":
 
     # Parse command line arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config", required=True,
-                        help="Absolute path to configuration file.")
-    parser.add_argument("-i", "--input_file", required=True,
-                        help="Absolute path to a tab separated file.")
-    parser.add_argument("-o", "--output_file", required=True,
-                        help="Absolute path to output file.")
-    parser.add_argument("-t", "--data_type", default='fp',
-                        help="Data type, either 'pp' or 'fp' (default: 'fp').")
+    parser.add_argument(
+        "-c", "--config", required=True, help="Absolute path to configuration file."
+    )
+    parser.add_argument(
+        "-i",
+        "--input_file",
+        required=True,
+        help="Absolute path to a tab separated file.",
+    )
+    parser.add_argument(
+        "-o", "--output_file", required=True, help="Absolute path to output file."
+    )
+    parser.add_argument(
+        "-t",
+        "--data_type",
+        default="fp",
+        help="Data type, either 'pp' or 'fp' (default: 'fp').",
+    )
 
     args = parser.parse_args()
 
     with open(args.config, "r") as f:
         configs = json.load(f)
 
-    index_col = 'Gene names'
-    if args.data_type == 'pp':
-        index_col = 'Modified sequence'
+    index_col = "Gene names"
+    if args.data_type == "pp":
+        index_col = "Modified sequence"
 
-    df = pd.read_csv(args.input_file, sep='\t', index_col=index_col)
+    df = pd.read_csv(args.input_file, sep="\t", index_col=index_col)
     annot_file = configs["clinic_proc"]["prot_baskets"]
 
     # Start pipeline
     t0 = time.time()
-    for annot_type in ['TOPAS score', 'POI']:
-        df, _ = prot_clinical_annotation(df, annot_file,
-                                    data_type=args.data_type,
-                                    basket_type=annot_type)
+    for annot_type in ["TOPAS score", "POI"]:
+        df, _ = prot_clinical_annotation(
+            df, annot_file, data_type=args.data_type, basket_type=annot_type
+        )
 
-    df.to_csv(args.output_file, sep='\t')
+    df.to_csv(args.output_file, sep="\t")
 
     t1 = time.time()
     total = t1 - t0

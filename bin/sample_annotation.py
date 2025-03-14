@@ -32,10 +32,12 @@ Optional columns:
 
 def load_sample_annotation(sample_annotation_file: Union[str, Path]) -> pd.DataFrame:
     try:
-        sample_annotation_df = pd.read_csv(sample_annotation_file, dtype={"Batch Name": str})
+        sample_annotation_df = pd.read_csv(
+            sample_annotation_file, dtype={"Batch Name": str}
+        )
         sample_annotation_df["Sample name"] = sample_annotation_df[
-        "Sample name"
-    ].str.strip()
+            "Sample name"
+        ].str.strip()
         sample_annotation_df = sample_annotation_df.set_index("Sample name")
     except PermissionError:
         raise PermissionError(
@@ -45,7 +47,10 @@ def load_sample_annotation(sample_annotation_file: Union[str, Path]) -> pd.DataF
 
 
 def filter_sample_annotation(
-    sample_annotation_df: pd.DataFrame, remove_qc_failed: bool, remove_replicates: bool = False, remove_reference: bool = False
+    sample_annotation_df: pd.DataFrame,
+    remove_qc_failed: bool,
+    remove_replicates: bool = False,
+    remove_reference: bool = False,
 ) -> pd.DataFrame:
     sample_annotation_df = sample_annotation_df.reset_index()
     sample_annotation_df["Sample name"] = sample_annotation_df[
@@ -143,7 +148,7 @@ def get_channel_to_sample_id_dict(
 
     def add_leading_zero(x):
         if x < 10:
-            return f'0{x}'
+            return f"0{x}"
         else:
             return str(x)
 
@@ -157,13 +162,10 @@ def get_channel_to_sample_id_dict(
 
     if filtered_sample_annotation_file:
         sample_annotation_df.to_csv(filtered_sample_annotation_file)
-    
+
     return dict(
         zip(
             sample_annotation_df["channel"].tolist(),
             sample_annotation_df.index.tolist(),
         )
     )
-
-
-

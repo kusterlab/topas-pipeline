@@ -73,13 +73,19 @@ def load(metadata_file: str):
     return metadata_df
 
 
-def filter_metadata_column_as_list(metadata_df: pd.DataFrame, column: str, minimum_patients_per_entity: int) -> list[any]:
+def filter_metadata_column_as_list(
+    metadata_df: pd.DataFrame, column: str, minimum_patients_per_entity: int
+) -> list[any]:
     counts = metadata_df[column].value_counts()
     filtered_counts = counts.where(lambda x: x >= minimum_patients_per_entity)
     filtered_counts = filtered_counts.dropna()
     return filtered_counts.index.to_list()
 
 
-def filter_by_metadata_column(metadata_df: pd.DataFrame, column: str, minimum_patients_per_entity: int) -> pd.DataFrame:
-    filtered_entries = filter_metadata_column_as_list(metadata_df, column, minimum_patients_per_entity)
+def filter_by_metadata_column(
+    metadata_df: pd.DataFrame, column: str, minimum_patients_per_entity: int
+) -> pd.DataFrame:
+    filtered_entries = filter_metadata_column_as_list(
+        metadata_df, column, minimum_patients_per_entity
+    )
     return metadata_df[metadata_df[column].isin(filtered_entries)]

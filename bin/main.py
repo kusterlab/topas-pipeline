@@ -23,23 +23,26 @@ logger = logging.getLogger(__name__)
 
 def main(argv):
     parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config", required=True,
-                        help="Absolute path to configuration file.")
+    parser.add_argument(
+        "-c", "--config", required=True, help="Absolute path to configuration file."
+    )
     args = parser.parse_args(argv)
 
     configs = config.load(args.config)
-    
+
     # Create results folder and save configurations
     os.makedirs(configs["results_folder"], exist_ok=True)
-    init_file_logger(configs["results_folder"], 'Pipeline_log.txt')
-    
-    logger.info(f'TOPAS-pipeline version {__version__} {__git_commit_hash__}')
-    logger.info(f'{__copyright__}')
-    logger.info(f'Issued command: {os.path.basename(__file__)} {" ".join(map(str, argv))}')
-    logger.info('Pipeline started')
-    
+    init_file_logger(configs["results_folder"], "Pipeline_log.txt")
+
+    logger.info(f"TOPAS-pipeline version {__version__} {__git_commit_hash__}")
+    logger.info(f"{__copyright__}")
+    logger.info(
+        f'Issued command: {os.path.basename(__file__)} {" ".join(map(str, argv))}'
+    )
+    logger.info("Pipeline started")
+
     jsonString = json.dumps(configs, indent=4)
-    with open(os.path.join(configs["results_folder"], 'configs.json'), "w") as jsonFile:
+    with open(os.path.join(configs["results_folder"], "configs.json"), "w") as jsonFile:
         jsonFile.write(jsonString)
 
     t0 = time.time()
@@ -55,7 +58,7 @@ def main(argv):
             data_types=configs["data_types"],
             slack_webhook_url=configs["slack_webhook_url"],
         )
-        
+
         # 1) preprocess data (~1.5 hours, mostly slow because of MaxLFQ)
         preprocess.preprocess_raw(
             configs["results_folder"],
@@ -63,7 +66,8 @@ def main(argv):
             configs["metadata_annotation"],
             configs["simsi"]["simsi_folder"],
             **configs["preprocessing"],
-            data_types=configs["data_types"])
+            data_types=configs["data_types"],
+        )
 
         start_time = time.time()
         # 2) clinical processing (~3 minutes)
@@ -71,15 +75,19 @@ def main(argv):
             configs["results_folder"],
             configs["preprocessing"]["debug"],
             **configs["clinic_proc"],
-            data_types=configs["data_types"])
-        logger.info("--- %s seconds --- clinical processing" % (time.time() - start_time))
+            data_types=configs["data_types"],
+        )
+        logger.info(
+            "--- %s seconds --- clinical processing" % (time.time() - start_time)
+        )
 
         start_time = time.time()
         # 3) compute rank, z-score, fold change and p-value (<1 minute)
         metrics.compute_metrics(
             configs["results_folder"],
             configs["preprocessing"]["debug"],
-            data_types=configs["data_types"])
+            data_types=configs["data_types"],
+        )
         logger.info("--- %s seconds --- metrics" % (time.time() - start_time))
 
         start_time = time.time()
@@ -87,7 +95,8 @@ def main(argv):
         TOPAS_psite_scoring.psite_scoring(
             configs["results_folder"],
             configs["clinic_proc"]["extra_kinase_annot"],
-            data_types=configs["data_types"])
+            data_types=configs["data_types"],
+        )
         logger.info("--- %s seconds --- wp2 scoring" % (time.time() - start_time))
 
         start_time = time.time()
@@ -97,7 +106,8 @@ def main(argv):
             configs["preprocessing"]["debug"],
             data_types=configs["data_types"],
             baskets_file=configs["clinic_proc"]["prot_baskets"],
-            metadata_file=configs["metadata_annotation"])
+            metadata_file=configs["metadata_annotation"],
+        )
         logger.info("--- %s seconds --- basket scoring" % (time.time() - start_time))
 
         start_time = time.time()
@@ -107,16 +117,17 @@ def main(argv):
             configs["preprocessing"]["debug"],
             **configs["report"],
             annot_file=configs["clinic_proc"]["prot_baskets"],
-            data_types=configs["data_types"])
+            data_types=configs["data_types"],
+        )
         logger.info("--- %s seconds --- report creation" % (time.time() - start_time))
 
-        message = 'Pipeline finished'
+        message = "Pipeline finished"
     except Exception as e:
         message = f"{type(e).__name__}: {e}"
         logger.info(message)
         logger.info(traceback.format_exc())
 
-    send_slack_message(message, configs['results_folder'], configs['slack_webhook_url'])
+    send_slack_message(message, configs["results_folder"], configs["slack_webhook_url"])
 
     t1 = time.time()
     total = t1 - t0
@@ -130,7 +141,9 @@ def main(argv):
         message = f"{type(e).__name__}: {e}"
         logger.info(message)
         logger.info(traceback.format_exc())
-        send_slack_message(message, configs['results_folder'], configs['slack_webhook_url'])
+        send_slack_message(
+            message, configs["results_folder"], configs["slack_webhook_url"]
+        )
 
     # After preprocess and clinical process: data stats, graphs etc
     # stats.analyse_results(**configs["results"])

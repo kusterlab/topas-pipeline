@@ -47,7 +47,12 @@ def compute_metrics(
 
         # TODO: specify which columns to keep (e.g. with "pat_" prefix), rather than which to drop, also for pp below
         annot = annot.drop(
-            columns=["TOPAS_score", "TOPAS_score_weights", "TOPAS_subscore", "TOPAS_subscore_weights"]
+            columns=[
+                "TOPAS_score",
+                "TOPAS_score_weights",
+                "TOPAS_subscore",
+                "TOPAS_subscore_weights",
+            ]
         )
         annot = annot.drop(
             columns=annot.loc[:, annot.columns.str.startswith("Identification")].columns
@@ -169,9 +174,7 @@ def _loo_median(input_matrix: np.array) -> np.array:
     argsort_indices = np.argsort(input_matrix, axis=1)
     ranks = np.argsort(argsort_indices, axis=1)
 
-    valid_vals = (
-        ranks.shape[1] - np.isnan(input_matrix).sum(axis=1)[:, np.newaxis]
-    )
+    valid_vals = ranks.shape[1] - np.isnan(input_matrix).sum(axis=1)[:, np.newaxis]
 
     # 2. get the LOO median indices
     # lower_median and upper_median indices are the same if the LOO array has an odd number of elements
@@ -184,9 +187,7 @@ def _loo_median(input_matrix: np.array) -> np.array:
             (ranks * 2 + 1) == valid_vals
         )  # if the value is exactly the median, go another element down
     ).astype(int)
-    upper_median = np.ceil(valid_vals / 2 - (ranks >= valid_vals / 2)).astype(
-        int
-    )
+    upper_median = np.ceil(valid_vals / 2 - (ranks >= valid_vals / 2)).astype(int)
 
     sorted_values = input_matrix[
         np.arange(input_matrix.shape[0])[:, np.newaxis], argsort_indices
@@ -226,7 +227,9 @@ def _loo_std(input_matrix: np.array) -> np.array:
 
     loo_sum = regular_sum - input_matrix
     loo_mean = loo_sum / np.clip(n - 1, 1, None)
-    m2n_minus_1 = m2n - (input_matrix - loo_mean) * (input_matrix - regular_sum / np.clip(n, 1, None))
+    m2n_minus_1 = m2n - (input_matrix - loo_mean) * (
+        input_matrix - regular_sum / np.clip(n, 1, None)
+    )
 
     return np.sqrt(
         m2n_minus_1 / np.clip(n - 2, 1, None)

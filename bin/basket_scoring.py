@@ -184,6 +184,7 @@ def load_z_scores_pp(results_folder):
 
     return z_scores_pp_df
 
+
 # TODO: merge with read_protein_scoring function in TOPAS_protein_phosphorylation_scoring.py
 def load_protein_phosphorylation(results_folder):
     protein_phosphorylation_df = pd.read_csv(
@@ -200,12 +201,17 @@ def load_protein_phosphorylation(results_folder):
     ]
     return protein_phosphorylation_df
 
+
 # TODO: merge with read_kinase_scoring function in TOPAS_kinase_scoring.py
 def load_kinase_scores(results_folder, kinase_results_folder: str = "kinase_results"):
-    kinase_score_file = os.path.join(results_folder, kinase_results_folder, "kinase_scores.tsv")
+    kinase_score_file = os.path.join(
+        results_folder, kinase_results_folder, "kinase_scores.tsv"
+    )
     if not os.path.isfile(kinase_score_file):
-        kinase_score_file = os.path.join(results_folder, kinase_results_folder, "kinase_scores_original.tsv")
-    
+        kinase_score_file = os.path.join(
+            results_folder, kinase_results_folder, "kinase_scores_original.tsv"
+        )
+
     kinase_scores_df = pd.read_csv(
         kinase_score_file,
         sep="\t",
@@ -221,7 +227,7 @@ def compute_TOPAS_scores(
     metadata_file: Union[str, Path],
     baskets_file: Union[str, Path],
     data_types: List[str],
-    basket_results_folder: str="",
+    basket_results_folder: str = "",
 ) -> None:
     """
     Computes TOPAS subscores and TOPAS scores
@@ -396,7 +402,7 @@ def map_index_to_df(df1, df2):
 def get_number_ident_annot_per_sample(
     results_folder: Union[str, Path], data_types: List[str]
 ) -> pd.DataFrame:
-    '''
+    """
     Calculate the number of identifications and annotations per sample based on the provided results folder and data types.
 
     Parameters:
@@ -405,7 +411,7 @@ def get_number_ident_annot_per_sample(
 
     Returns:
     pd.DataFrame: DataFrame containing the number of identifications and annotations per sample.
-    '''
+    """
     dfs = dict()
     for data_type in data_types:
         if data_type == "fp":
