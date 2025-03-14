@@ -131,8 +131,9 @@ def run_simsi_data_type(
             simsi_cache_folder, meta_input_file
         ):
             logger.info(
-                f"Found a summaries folder that matches the current list of folders: {matched_summaries_folder}\nSkipping SIMSI processing."
+                f"Found a summaries folder that matches the current list of folders: {matched_summaries_folder}"
             )
+            logger.info("Skipping SIMSI processing.")
             return
 
         # TODO: clean this up!

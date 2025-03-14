@@ -88,7 +88,7 @@ def calculate_modified_sequence_weights(patient_dataframe: pd.DataFrame, summing
 
     weight_dataframe = weight_dataframe.agg(
         **{
-        weight_col: pd.NamedAgg(column=weight_col, aggfunc=sum)
+        weight_col: pd.NamedAgg(column=weight_col, aggfunc="sum")
         for weight_col in patient_dataframe.columns.tolist() if 'weight_' in weight_col
     },
         ** {
@@ -144,7 +144,7 @@ def sum_weighted_z_scores(patient_dataframe, by):
     score_dataframe = score_dataframe.agg(
         **(
             {
-                score: pd.NamedAgg(column=score, aggfunc=sum) for score in
+                score: pd.NamedAgg(column=score, aggfunc="sum") for score in
                 patient_dataframe.columns if 'weighted_' in score
             }
         )
