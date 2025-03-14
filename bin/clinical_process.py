@@ -36,9 +36,9 @@ def clinical_process(*args, **kwargs) -> None:
 
 
 def clinical_process_data_type(results_folder: Union[str, Path],
-                               extra_kinase_annot: Union[str, Path, None, int],
                                debug: bool,
-                               annot_file: Union[str, Path],
+                               prot_baskets: Union[str, Path],
+                               extra_kinase_annot: Union[str, Path],
                                pspFastaFile: Union[str, Path],
                                pspKinaseSubstrateFile: Union[str, Path],
                                pspAnnotationFile: Union[str, Path],
@@ -48,9 +48,9 @@ def clinical_process_data_type(results_folder: Union[str, Path],
     Opens preprocessed data, annotates phospho and clinical baskets
 
     :param results_folder: location of results folder to which preprocessed data can be found and clinically processed data saved
-    :param extra_kinase_annot: path to file with extra kinase annotations (optional)
     :param debug:
     :param prot_baskets: path to file used for annotating to clinical baskets/pathways
+    :param extra_kinase_annot: path to file with extra kinase annotations (optional)
     :param pspFastaFile: file used for adding peptide and psite positions
     :param pspKinaseSubstrateFile: file used for adding kinase substrate annotation
     :param pspAnnotationFile: file used for adding annotations from Phosphosite Plus
@@ -95,7 +95,7 @@ def clinical_process_data_type(results_folder: Union[str, Path],
     
     for data_type in dfs.keys():
         for annot_type in annot_levels:
-            dfs[data_type] = clinical_tools.prot_clinical_annotation(dfs[data_type], annot_file,
+            dfs[data_type] = clinical_tools.prot_clinical_annotation(dfs[data_type], prot_baskets,
                                                                             data_type=data_type,
                                                                             annot_type=annot_type)
         dfs[data_type].to_csv(os.path.join(results_folder, f'annot_{data_type}.csv'))

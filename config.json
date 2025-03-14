@@ -30,13 +30,13 @@
         "debug": false,
         "run_lfq": false
     },
-    "extra_kinase_annot": 0,
     "clinic_proc": {
         "pspFastaFile": "example/PSP_annotations/Phosphosite_seq.fasta",
         "pspKinaseSubstrateFile": "example/PSP_annotations/Kinase_Substrate_Dataset",
         "pspAnnotationFile": "example/PSP_annotations/Phosphorylation_site_dataset",
         "pspRegulatoryFile": "example/PSP_annotations/Regulatory_sites",
-        "prot_baskets": "example/TOPASscores_POI_AS_250307.xlsx"
+        "prot_baskets": "example/TOPASscores_POI_AS_250307.xlsx",
+        "extra_kinase_annot": ""
     },
     "report": {
         "samples_for_report": "all",

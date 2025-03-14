@@ -18,7 +18,9 @@
         "debug": false,
         "run_lfq": false
     },
-    "extra_kinase_annot": 0,
+    "clinic_proc": {
+        "extra_kinase_annot": ""
+    },
     "data_types": [
         "fp",
         "pp"

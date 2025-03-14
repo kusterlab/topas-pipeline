@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 def phospho_annot(df: pd.DataFrame,
-                  extra_kinase_annot: Union[str, Path, None, int],
+                  extra_kinase_annot: Union[str, Path],
                   pspFastaFile: Union[str, Path],
                   pspKinaseSubstrateFile: Union[str, Path],
                   pspAnnotationFile: Union[str, Path],
@@ -47,7 +47,7 @@ def phospho_annot(df: pd.DataFrame,
     df = df.set_index('Modified sequence', drop=True)
 
     # Add extra kinase annotations
-    if isinstance(extra_kinase_annot, str):
+    if len(str(extra_kinase_annot)) > 0:
         df = add_extra_kinase_annotations(df, extra_kinase_annot)
     
     return df

@@ -30,7 +30,7 @@ def test_phospho_annot():
 
     preprocessed_pp = clinical_tools.phospho_annot(
         preprocessed_pp,
-        extra_kinase_annot=configs["extra_kinase_annot"],
+        extra_kinase_annot=configs["clinic_proc"]["extra_kinase_annot"],
         pspFastaFile=configs["clinic_proc"]["pspFastaFile"],
         pspKinaseSubstrateFile=configs["clinic_proc"]["pspKinaseSubstrateFile"],
         pspAnnotationFile=configs["clinic_proc"]["pspAnnotationFile"],
