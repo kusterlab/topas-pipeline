@@ -55,47 +55,13 @@ Input parameters:
 | prot_baskets | **yes** | Path to the annotation file for TOPAS scores and proteins of interest. | `"TOPASscores_POI_AS_250307.xlsx"` | N/A |
 | extra_kinase_annot | | Path to the annotation file with custom kinase-substrate relations. | `""` | `""` |
 | **report** |  |  |  |  |
-| samples_for_report | **yes** | Which samples to include in the report. | `"all"` | `"all"` |
+| samples_for_report | | Which samples to include in the report. | `"all"` | `"all"` |
 | **portal** |  |  |  |  |
 | update | | Automatically update the TOPAS portal once the run has finished | `false` | `false` |
 | cohort | | Specifies the cohort name that should be updated in the TOPAS portal. | `""` | `""` |
 | url | | URL of the TOPAS portal. | `""` | `""` |
 | config | | Configuration file for the TOPAS portal. | `""` | `""` |
 
-
-Here's the updated Markdown table with the "required" column before the "description" column, along with the addition of the "example" and "default" columns based on the provided default values:
-
-| Required | Parameter | Description | Example | Default |
-| --- | --- | --- | --- | --- |
-| yes | simsi_folder | Path to the folder containing SIMSI results. | `"results/SIMSI"` | N/A |
-| no | tmt_ms_level | MS level for TMT analysis (e.g., "ms2"). | `"ms2"` | `"ms2"` |
-| no | stringencies | Stringency value for SIMSI. | `10` | `10` |
-| no | tmt_requantify | Boolean indicating whether to requantify TMT data. | `false` | `false` |
-| no | maximum_pep | Maximum peptide length for analysis. | `1` | `1` |
-| no | num_threads | Number of threads to use for computation. | `8` | `8` |
-| yes | raw_data_location | Path to the raw data location. | `"example/CPTAC_searches"` | N/A |
-| no | picked_fdr | False discovery rate threshold for picked data. | `0.01` | `0.01` |
-| no | fdr_num_threads | Number of threads to use for FDR computation. | `8` | `8` |
-| no | imputation | Boolean indicating whether to perform data imputation. | `true` | `true` |
-| no | run_simsi | Boolean indicating whether to run SIMSI analysis. | `true` | `true` |
-| no | debug | Boolean indicating whether to run in debug mode. | `false` | `false` |
-| no | run_lfq | Boolean indicating whether to run LFQ analysis. | `false` | `false` |
-| no | normalize_to_reference | Boolean indicating whether to normalize to reference. | `false` | `false` |
-| yes | fasta_file | Path to the FASTA file for protein sequences. | `"example/uniprot_proteome_up000005640_03112020_cdkn2a_isoforms.fasta"` | N/A |
-| yes | pspFastaFile | Path to the PSP FASTA file. | `"example/PSP_annotations/Phosphosite_seq.fasta"` | N/A |
-| yes | pspKinaseSubstrateFile | Path to the PSP kinase-substrate dataset. | `"example/PSP_annotations/Kinase_Substrate_Dataset"` | N/A |
-| yes | pspAnnotationFile | Path to the PSP phosphorylation site dataset. | `"example/PSP_annotations/Phosphorylation_site_dataset"` | N/A |
-| yes | pspRegulatoryFile | Path to the PSP regulatory sites file. | `"example/PSP_annotations/Regulatory_sites"` | N/A |
-| yes | prot_baskets | Path to the protein baskets file for TOPAS scores. | `"example/TOPASscores_POI_AS_250307.xlsx"` | N/A |
-| yes | samples_for_report | Specifies which samples to include in the report (e.g., "all"). | `"all"` | `"all"` |
-| yes | data_types | List of data types (e.g., ["fp", "pp"]). | `["fp", "pp"]` | `["fp", "pp"]` |
-| no | update | Value to control updating behavior. | `0` | `0` |
-| no | cohort | Specifies the cohort for the analysis. | `""` | `""` |
-| no | url | URL for the portal. | `""` | `""` |
-| no | config | Configuration file for the portal. | `""` | `""` |
-| no | slack_webhook_url | URL for the Slack webhook. | `""` | `""` |
-
-Let me know if you need any further adjustments or additions!
 
 ### Install webhook for slack (optional)
 
@@ -205,7 +171,7 @@ The pipeline creates a folder with multiple output files:
 
 | Output file | Description | Used on portal |
 | --- | --- | ---  |
-| config.json |  |  |
+| config.json | Copy of the configuration file in JSON format used for this pipeline run as described above. |  |
 | sample_annot.tsv | Saved copy of current version of sample annotation/metadata given as input |   |
 | sample_annot_filtered.tsv | Subset of sample annotation/metadata after filtering out QC failed samples |   |
 | meta_input_file_{data_type}.tsv | Location per batch of search folder input, raw files and TMT correction factor file |   |
@@ -216,17 +182,18 @@ The pipeline creates a folder with multiple output files:
 | evidence.txt | Combined output from SIMSI-Transfer (same format as MQ evidence file) |   |
 | pickedGeneGroups.txt | Output from Picked Protein Group FDR (using gene-level) |   |
 | pickedGeneGroups_with_quant.txt | Groups from Picked Protein Group FDR (using gene-level) containing quant using MaxLFQ algorithm  |   |
-| preprocessed_{data_type}.csv | i want to delete |   |
-| preprocessed_{data_type}_with_ref.csv | i want to make it standard and remove _with_ref |   |
-| annot_{data_type}.csv |  |   |
-| annot_{data_type}_with_ref.csv | same story as above plus remove intensities? |   |
-| topas_annot_dict_{data_type}.json  |  |   |
-| poi_annot_dict.json |  |   |
-| {data_type}_measures_rank.tsv |  |   |
-| {data_type}_measures_fc.tsv |  |   |
-| {data_type}_measures_z.tsv |  |   |
-| {data_type}_measures_p.tsv |  |   |
-| subbasket_scores_{subbasket}.tsv |  |   |
-| basket_scores_4th_gen_zscored.tsv |  |   |
-| Pipeline_log.txt |  |   |
+| preprocessed_{data_type}.csv | Data matrix with patients as columns and normalized abundances of proteins or phosphopeptides as rows |  |
+| preprocessed_{data_type}_with_ref.csv | Same as preprocessed_{data_type}.csv but also containing the QC channels |   |
+| annot_{data_type}.csv | Same as preprocessed_{data_type}.csv but with clinical annotations |   |
+| annot_{data_type}_with_ref.csv | Same as preprocessed_{data_type}_with_ref.csv but with clinical annotations |   |
+| {data_type}_measures_rank.tsv | Data matrix with patients as columns and in-cohort rank of proteins or phosphopeptides as rows |   |
+| {data_type}_measures_fc.tsv | Same as {data_type}_measures_rank.tsv but with fold changes  |   |
+| {data_type}_measures_z.tsv | Same as {data_type}_measures_rank.tsv but with z-scores |   |
+| {data_type}_measures_p.tsv | Same as {data_type}_measures_rank.tsv but with p-values derived from the z-scores |   |
+| basket_scores_4th_gen_zscored.tsv | Data matrix with patients as columns and TOPAS scores as rows |   |
+| subbasket_scores_{topas_rtk}.tsv | Data matrix with patients as columns and TOPAS subscores as rows for each TOPAS RTK |   |
+| kinase_results/kinase_scores.tsv | Data matrix with patients as columns and TOPAS substrate phosphorylation scores as rows |   |
+| protein_results/protein_scores.tsv | Data matrix with patients as columns and TOPAS protein phosphorylation scores as rows |   |
+| Reports/{patient_id}.xlsx | Patient-specific reports |   |
+| Pipeline_log.txt | Log messages printed by the pipeline |   |
 |  |  |   |
