@@ -98,11 +98,11 @@ Requirements:
     ```
     make build
     ```
-3. Adjust the file paths in `config_minimal.json` and run:
+3. Create a config file named config_patients.json in the repository with your configurations (see section on configuration) and run:
     ```
     make docker_all 
     ```
-   You can use a custom config file and adjust the memory and cores (default: 300GB, 8 cores):
+   You can use a custom config file (works only with relative path) and adjust the memory and cores (default: 300GB, 8 cores):
     ```
     CONFIG_FILE=/path/to/config.json MEMORY_LIMIT=300gb CPU_LIMIT=16 make docker_all
     ```
