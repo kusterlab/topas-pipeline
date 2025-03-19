@@ -16,25 +16,12 @@ picked_group_fdr: save_git_hash
 report_creation: save_git_hash
 	$(DOCKER_CMD) $(IMAGE) python3 -u -m topas_pipeline.report_creation -c $(LOCAL_DIR)/$(CONFIG_FILE) || (echo "1" > $(DATA)/err.out; exit 1)
 
-# runs sarcoma cohort in docker
+# runs cohort in docker
 docker_all: pull full_pipeline
-docker_pgf: picked_group_fdr
 
 # runs mintest
 docker_mintest: CONFIG_FILE=config_patients_minimal_test.json
 docker_mintest: full_pipeline
-
-# runs glioma cohort in docker
-docker_glioma: CONFIG_FILE=config_patients_glioma.json
-docker_glioma: full_pipeline
-
-# runs melanoma cohort in docker
-docker_melanoma: CONFIG_FILE=config_melanoma.json
-docker_melanoma: full_pipeline
-
-# runs melanoma cohort in docker
-docker_decryptm: CONFIG_FILE=config_patients_with_decryptm.json
-docker_decryptm: full_pipeline
 
 # runs pipeline locally
 all: DOCKER_CMD=
@@ -42,51 +29,30 @@ all: IMAGE=
 all: LOCAL_DIR=.
 all: full_pipeline
 
-# runs glioma cohort locally
-glioma: CONFIG_FILE=config_patients_glioma.json
-glioma: DOCKER_CMD=
-glioma: IMAGE=
-glioma: LOCAL_DIR=.
-glioma: full_pipeline
-
-# runs melanoma cohort locally
-melanoma: CONFIG_FILE=config_melanoma.json
-melanoma: DOCKER_CMD=
-melanoma: IMAGE=
-melanoma: LOCAL_DIR=.
-melanoma: full_pipeline
-
-# runs minimal test for sarcoma cohort locally
+# runs minimal test locally
 mintest: CONFIG_FILE=config_patients_minimal_test.json
 mintest: DOCKER_CMD=
 mintest: IMAGE=
 mintest: LOCAL_DIR=.
 mintest: full_pipeline
 
-# runs minimal test for models only cohort locally
-models_only: CONFIG_FILE=config_patients_models_only_local.json
-models_only: DOCKER_CMD=
-models_only: IMAGE=
-models_only: LOCAL_DIR=.
-models_only: full_pipeline
-
-# runs minimal test for glioma cohort locally
-mintest_glioma: CONFIG_FILE=config_patients_glioma_minimal_test.json
-mintest_glioma: DOCKER_CMD=
-mintest_glioma: IMAGE=
-mintest_glioma: LOCAL_DIR=.
-mintest_glioma: full_pipeline
-
-# runs minimal test for melanoma cohort locally
-mintest_melanoma: CONFIG_FILE=config_melanoma_minimal_test.json
-mintest_melanoma: DOCKER_CMD=
-mintest_melanoma: IMAGE=
-mintest_melanoma: LOCAL_DIR=.
-mintest_melanoma: full_pipeline
+#######################
+## TESTING/PROFILING ##
+#######################
 
 test:
 	python3 -m pytest --cov=topas_pipeline --cov-report html --cov-report term tests/unit_tests
 
+mprof:
+	mprof run --include-children --backend psutil_pss python3 -u -m topas_pipeline -c $(CONFIG_FILE)
+
+mprof_plot:
+	mprof plot -o mprofile_plot.png --backend agg
+
+
+############
+## DOCKER ##
+############
 
 dependencies:
 	git config --global credential.helper cache
