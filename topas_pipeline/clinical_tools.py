@@ -30,7 +30,6 @@ def phospho_annot(
     """
     logger.info("Phosphosite annotation")
 
-    logger.info(f"Phospho data before: {df.shape}")
     df = df.reset_index()
     df = pa.addPeptideAndPsitePositions(
         df,
@@ -52,7 +51,6 @@ def phospho_annot(
     df = pa.addPeptideAndPsitePositions(
         df, clinic_proc_config.pspFastaFile, pspInput=True, returnAllPotentialSites=True
     )
-    logger.info(f"Phospho data after: {df.shape}")
     df = df.set_index("Modified sequence", drop=True)
 
     # Add extra kinase annotations
@@ -221,7 +219,7 @@ def map_identifier_list_to_annot_types(
             if len(annotations) > 1:
                 group_names, weights = zip(*annotations)
                 # take set of group names and join them with ;
-                group_names = ";".join(set(group_names))
+                group_names = ";".join(sorted(set(group_names)))
                 # take set of weights and join them with ;
                 weights = ";".join(weights)
                 annotations = [group_names, weights]
@@ -243,6 +241,7 @@ def create_identifier_to_basket_dict(
     collect all the baskets per gene in a dictionary of {'gene_name': 'basket1;basket2;...'}
     """
     if "fp" in data_type or "pp" in data_type:
+        # TODO: check that this does not lead to scoring kinase activity in TOPAS expression subscores
         if "fp" in data_type:
             accepted_type = ["expression", "kinase activity"]
         elif "pp" in data_type:
@@ -259,7 +258,7 @@ def create_identifier_to_basket_dict(
         basket_annotation = basket_annotation[basket_annotation["GROUP"] == "OTHER"]
 
     basket_annotation = basket_annotation.groupby([identifier_type]).agg(
-        lambda x: ";".join(map(str, x))
+        lambda x: ";".join(sorted(map(str, x)))
     )
     annot_dict = basket_annotation.to_dict("index")
     return annot_dict
@@ -336,7 +335,7 @@ if __name__ == "__main__":
             df, annot_file, data_type=args.data_type, basket_type=annot_type
         )
 
-    df.to_csv(args.output_file, sep="\t")
+    df.to_csv(args.output_file, sep="\t", float_format="%.6g")
 
     t1 = time.time()
     total = t1 - t0

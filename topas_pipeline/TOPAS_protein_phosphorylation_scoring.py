@@ -65,7 +65,7 @@ def protein_score_preprocess(results_folder):
     patients = scoring.calculate_peptide_occurrence(patients)
     patients["Gene names"] = patients["Gene names"].str.split(";")
     patients = patients.explode("Gene names")
-    patients.to_csv(filepath, sep="\t")
+    patients.to_csv(filepath, sep="\t", float_format="%.4g")
     return patients
 
 
@@ -117,6 +117,7 @@ def protein_phospho_scoring(results_folder, preprocessed_protein_df):
         os.path.join(results_folder, "protein_results", "protein_scores.tsv"),
         sep="\t",
         index=False,
+        float_format="%.4g",
     )
     protein_scores_t = (
         protein_scores.sort_values(by="Gene names")
@@ -129,6 +130,7 @@ def protein_phospho_scoring(results_folder, preprocessed_protein_df):
             results_folder, "protein_results", "protein_scores_transposed.tsv"
         ),
         sep="\t",
+        float_format="%.4g",
     )
 
 

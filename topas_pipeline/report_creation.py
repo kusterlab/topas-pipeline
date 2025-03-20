@@ -77,7 +77,7 @@ def create_report(
     # TODO: it would make a lot of sense to move these calculations to it's own module and have a report writing only module which can be reused on portal
     # Questio is HOW to make it fast and efficient (takes a lot of memory to read all the data now. Do we need to read and close one file at a time?)
 
-    # Calculate in batch basket scores
+    logger.info("Calculate within batch ranks")
     (
         batch_basket_scores,
         batch_subbasket_scores,

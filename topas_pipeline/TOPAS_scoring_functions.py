@@ -332,7 +332,7 @@ def topas_score_preprocess(results_folder, discard_isoforms=True):
         ]
 
     patients = patients.reset_index()
-    patients.to_csv(filepath, sep="\t")
+    patients.to_csv(filepath, sep="\t", float_format="%.4g")
     return patients
 
 

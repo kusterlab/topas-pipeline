@@ -135,6 +135,7 @@ def kinase_scoring(
         ),
         sep="\t",
         index=False,
+        float_format="%.4g",
     )
 
     logger.info("  Calculate modified sequence weights")
@@ -151,6 +152,7 @@ def kinase_scoring(
         os.path.join(kinase_results_output_folder, "scored_peptides.tsv"),
         sep="\t",
         index=False,
+        float_format="%.4g",
     )
 
     # TODO: get rid of this by using kinase names such as ERK_high_conf instead
@@ -168,6 +170,7 @@ def kinase_scoring(
             os.path.join(kinase_results_output_folder, "scored_peptides_high_conf.tsv"),
             sep="\t",
             index=False,
+            float_format="%.4g",
         )
 
     logger.info("  Calculate kinase scores")
@@ -193,6 +196,7 @@ def kinase_scoring(
     kinase_scores.to_csv(
         os.path.join(kinase_results_output_folder, "kinase_scores.tsv"),
         sep="\t",
+        float_format="%.4g",
     )
 
     if extra_kinase_annot_bool:
@@ -219,11 +223,14 @@ def kinase_scoring(
         kinase_scores_high_conf.to_csv(
             os.path.join(kinase_results_output_folder, "kinase_scores_high_conf.tsv"),
             sep="\t",
+            float_format="%.4g",
         )
         # merge original kinase scores with high_conf and save
         kinase_scores = pd.concat([kinase_scores, kinase_scores_high_conf], axis=0)
         kinase_scores.to_csv(
-            os.path.join(kinase_results_output_folder, "kinase_scores.tsv"), sep="\t"
+            os.path.join(kinase_results_output_folder, "kinase_scores.tsv"),
+            sep="\t",
+            float_format="%.4g",
         )
 
 

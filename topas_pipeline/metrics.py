@@ -111,7 +111,7 @@ class Metrics:
     @staticmethod
     def get_rank(df: pd.DataFrame) -> pd.DataFrame:
         """ """
-        logger.info("Calculating ranks")
+        logger.debug("Calculating ranks")
         df_rank = df.copy()
         df_rank = df_rank.rank(
             ascending=False, method="average", na_option="keep", axis=1
@@ -125,7 +125,7 @@ class Metrics:
         """
         Leave-one-out approach (loo)
         """
-        logger.info("Calculating fold changes")
+        logger.debug("Calculating fold changes")
         df_fold_change = np.power(10, df)
         df_fold_change /= _loo_median(df_fold_change.values)
         df_fold_change = df_fold_change.add_prefix("fc_")
@@ -136,7 +136,7 @@ class Metrics:
         """
         Leave-one-out approach (loo)
         """
-        logger.info("Calculating z-scores")
+        logger.debug("Calculating z-scores")
         df_z_score = df.copy()
         df_z_score -= _loo_median(df.values)
         df_z_score /= _loo_std(df.values)
@@ -146,7 +146,7 @@ class Metrics:
     @staticmethod
     def get_pvalues(z_scores: pd.DataFrame) -> pd.DataFrame:
         """ """
-        logger.info("Calculating p-values")
+        logger.debug("Calculating p-values")
         df_p_values = scipy.stats.norm.sf(abs(z_scores)) * 2
         df_p_values = pd.DataFrame(df_p_values)
         df_p_values.columns = z_scores.columns
@@ -343,7 +343,7 @@ def save_measures(
             filename = os.path.join(
                 results_folder, f"{data_type_long}_measures_{m}_ref.tsv"
             )
-        measures[measure].to_csv(filename, sep="\t")
+        measures[measure].to_csv(filename, sep="\t", float_format="%.6g")
 
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@ A public instance of the portal can be found here: https://topas-portal.kusterla
 
 For a pipeline run on ~1,000 samples runtime is ... and requires xxx gb memory
 
-For a pipeline run on xxx samples runtime is ... and requires xxx gb memory
+For a pipeline run on 170 samples (CPTAC UCEC dataset) runtime is 1.2 hours and requires 30 GB memory
 
 ## Configuration
 

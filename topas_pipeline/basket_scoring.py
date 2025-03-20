@@ -317,7 +317,7 @@ def compute_TOPAS_scores(
             basket_results_folder,
             f'subbasket_scores_{basket_name.replace("/", "_").replace(" ", "_")}.tsv',
         )
-        subbasket_scores_df.to_csv(subbasket_output_file, sep="\t", index=False)
+        subbasket_scores_df.to_csv(subbasket_output_file, sep="\t", index=False, float_format="%.4g")
 
         # apply second-level z-scoring per basket (i.e. per column)
         # subbasket_scores_df = subbasket_scores_df.apply(zscore)
@@ -360,9 +360,6 @@ def compute_TOPAS_scores(
 def save_rtk_scores_w_metadata(
     basket_scores: pd.DataFrame, metadata_df: pd.DataFrame, out_file
 ):
-    print(basket_scores)
-    print(metadata_df)
-
     # subset to RTK using TUPAC_CATEGORIES keys and then map metadata
 
     basket_scores = basket_scores.loc[
@@ -374,7 +371,7 @@ def save_rtk_scores_w_metadata(
     # basket_scores = basket_scores.rename(index=lambda x: x.replace("score_", ""))
     basket_scores.index.name = "Sample name"
     basket_scores = basket_scores.fillna(0)
-    basket_scores.to_csv(out_file, sep="\t")
+    basket_scores.to_csv(out_file, sep="\t", float_format="%.4g")
 
 
 def map_index_to_df(df1, df2):
@@ -726,11 +723,11 @@ def calculate_basket_scores_single(
     return scores
 
 
-def save_basket_scores(basket_scores, out_file):
+def save_basket_scores(basket_scores: pd.DataFrame, out_file: str):
     basket_scores = basket_scores.rename(index=lambda x: x.replace("score_", ""))
     basket_scores.index.name = "Sample"
     basket_scores = basket_scores.fillna(0)
-    basket_scores.to_csv(out_file, sep="\t")
+    basket_scores.to_csv(out_file, sep="\t", float_format="%.4g")
 
 
 def save_basket_scores_long_format(basket_scores, out_file):
@@ -754,7 +751,7 @@ def save_basket_scores_long_format(basket_scores, out_file):
     basket_scores_long["variable"] = (
         basket_scores_long["variable"].str.split(".").str.get(-1)
     )
-    basket_scores_long.to_csv(out_file, sep="\t")
+    basket_scores_long.to_csv(out_file, sep="\t", float_format="%.4g")
 
 
 def extract_basket_member_z_scores_4th_gen(
@@ -837,6 +834,7 @@ def extract_basket_member_z_scores_4th_gen(
                 f'basket_member_z_scores_{basket_name.replace("/", "_").replace(" ", "_")}.tsv',
             ),
             sep="\t",
+            float_format="%.4g",
         )
 
 

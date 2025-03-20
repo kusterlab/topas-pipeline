@@ -66,7 +66,7 @@ def prepare_evidence_for_picked(df, evidence_file):
 
     df = df[info_cols + intensity_cols]
 
-    df.fillna({"PEP": "NaN"}).to_csv(evidence_file, sep="\t", index=False)
+    df.fillna({"PEP": "NaN"}).to_csv(evidence_file, sep="\t", index=False, float_format="%.6g")
 
 
 def run_picked_group_fdr(

@@ -56,9 +56,7 @@ def main(argv):
             simsi_config=configs.simsi,
             data_types=configs.data_types,
         )
-        logger.info(
-            "--- %s seconds --- simsi" % (time.time() - start_time)
-        )
+        logger.info("--- %.1f seconds --- simsi" % (time.time() - start_time))
 
         start_time = time.time()
         # 1) preprocess data (~1.5 hours, mostly slow because of MaxLFQ)
@@ -71,9 +69,7 @@ def main(argv):
             preprocessing_config=configs.preprocessing,
             data_types=configs.data_types,
         )
-        logger.info(
-            "--- %s seconds --- preprocessing" % (time.time() - start_time)
-        )
+        logger.info("--- %.1f seconds --- preprocessing" % (time.time() - start_time))
 
         start_time = time.time()
         # 2) clinical processing (~3 minutes)
@@ -84,7 +80,7 @@ def main(argv):
             data_types=configs.data_types,
         )
         logger.info(
-            "--- %s seconds --- clinical processing" % (time.time() - start_time)
+            "--- %.1f seconds --- clinical processing" % (time.time() - start_time)
         )
 
         start_time = time.time()
@@ -94,7 +90,7 @@ def main(argv):
             debug=configs.preprocessing.debug,
             data_types=configs.data_types,
         )
-        logger.info("--- %s seconds --- metrics" % (time.time() - start_time))
+        logger.info("--- %.1f seconds --- metrics" % (time.time() - start_time))
 
         start_time = time.time()
         # 4) Run WP2 scoring (<1 minute)
@@ -103,7 +99,7 @@ def main(argv):
             extra_kinase_annot=configs.clinic_proc.extra_kinase_annot,
             data_types=configs.data_types,
         )
-        logger.info("--- %s seconds --- wp2 scoring" % (time.time() - start_time))
+        logger.info("--- %.1f seconds --- wp2 scoring" % (time.time() - start_time))
 
         start_time = time.time()
         # 5) compute basket scores (<1 minute)
@@ -114,7 +110,7 @@ def main(argv):
             baskets_file=configs.clinic_proc.prot_baskets,
             metadata_file=configs.metadata_annotation,
         )
-        logger.info("--- %s seconds --- basket scoring" % (time.time() - start_time))
+        logger.info("--- %.1f seconds --- basket scoring" % (time.time() - start_time))
 
         start_time = time.time()
         # 6) report creation (~18 minutes)
@@ -125,7 +121,7 @@ def main(argv):
             annot_file=configs.clinic_proc.prot_baskets,
             data_types=configs.data_types,
         )
-        logger.info("--- %s seconds --- report creation" % (time.time() - start_time))
+        logger.info("--- %.1f seconds --- report creation" % (time.time() - start_time))
 
         message = "Pipeline finished"
     except Exception as e:
@@ -137,7 +133,7 @@ def main(argv):
 
     t1 = time.time()
     total = t1 - t0
-    logger.info(f"Pipeline finished in {total} seconds")
+    logger.info(f"Pipeline finished in {total:.1f} seconds")
     logger.info(f"Results have been written to {configs.results_folder}")
 
     try:

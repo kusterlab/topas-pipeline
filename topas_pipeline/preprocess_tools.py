@@ -54,6 +54,7 @@ MQ_EVIDENCE_COLUMNS_TYPES = {
     "id": "",
 }
 
+
 # TODO: move this to config validation
 def check_annot(
     sample_annotation_file: str, metadata_annotation_file: str, in_metadata: Callable
@@ -374,6 +375,7 @@ def get_save_debug_df_function(
         df.to_csv(
             os.path.join(results_folder, f"debug_preprocessed_{data_type}{suffix}.csv"),
             index=False,
+            float_format="%.4g",
         )
 
     return save_debug_df
@@ -386,6 +388,7 @@ def get_save_correction_factors_function(
         df.to_csv(
             os.path.join(results_folder, f"{data_type}{suffix}.csv"),
             index=True,
+            float_format="%.4g",
         )
 
     return save_correction_factors
@@ -512,7 +515,9 @@ def melt_and_pivot_qc_info(
     )
     merged_df = merged_df[final_df.columns.tolist() + ["Sample name"]]
     merged_df.to_csv(
-        os.path.join(results_folder, f"{data_type}_qc_numbers.csv"), index=True
+        os.path.join(results_folder, f"{data_type}_qc_numbers.csv"),
+        index=True,
+        float_format="%.4g",
     )
 
 
@@ -528,6 +533,7 @@ def get_batch_wise_qc_info(
     result_df.to_csv(
         os.path.join(results_folder, f"{data_type}_qc_numbers_batch_wise.csv"),
         index=True,
+        float_format="%.4g",
     )
 
 

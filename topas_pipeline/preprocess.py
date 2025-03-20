@@ -114,7 +114,7 @@ def preprocess_raw_data_type(
             debug=preprocessing_config.debug,
             run_lfq=preprocessing_config.run_lfq,
         )
-        df.to_csv(preprocessed2_file, index=False)
+        df.to_csv(preprocessed2_file, index=False, float_format="%.6g")
 
     sample_annotation_df = sample_annotation.filter_samples_by_metadata(
         sample_annotation_df,
@@ -142,6 +142,7 @@ def preprocess_raw_data_type(
     df.reset_index().to_csv(
         os.path.join(results_folder, f"preprocessed_{data_type}_with_ref.csv"),
         index=False,
+        float_format="%.6g",
     )
     if preprocessing_config.debug:
         df.to_csv(
@@ -150,12 +151,15 @@ def preprocess_raw_data_type(
                 f"debug_preprocessed_{data_type}_before_filter_sample.csv",
             ),
             index=False,
+            float_format="%.4g",
         )
 
     # TODO: use "is_reference" column from sample_annotation_df instead
     df = df.drop(columns=df.loc[:, df.columns.str.contains("ref")].columns)
     df.reset_index().to_csv(
-        os.path.join(results_folder, f"preprocessed_{data_type}.csv"), index=False
+        os.path.join(results_folder, f"preprocessed_{data_type}.csv"),
+        index=False,
+        float_format="%.6g",
     )
 
 
@@ -233,6 +237,7 @@ def preprocess_pp(
         df.to_csv(
             os.path.join(results_folder, "preprocessed_pp_before_imputation.csv"),
             index=False,
+            float_format="%.4g",
         )
         df = prep.impute_data(df)
         if debug:
@@ -241,6 +246,7 @@ def preprocess_pp(
                     results_folder, "debug_preprocessed_pp_after_imputation.csv"
                 ),
                 index=False,
+                float_format="%.4g",
             )
 
     # Filter out contaminants, reverse sequences and non-phospho peptides
@@ -252,6 +258,7 @@ def preprocess_pp(
         df.to_csv(
             os.path.join(results_folder, "debug_preprocessed_pp_after_aggregation.csv"),
             index=False,
+            float_format="%.4g",
         )
 
     # log10 transform intensities and turn missing values into nans

@@ -115,7 +115,7 @@ def clinical_process_data_type(
                 data_type=data_type,
                 annot_type=annot_type,
             )
-        dfs[data_type].to_csv(os.path.join(results_folder, f"annot_{data_type}.csv"))
+        dfs[data_type].to_csv(os.path.join(results_folder, f"annot_{data_type}.csv"), float_format="%.6g")
 
 
 def merge_baskets_with_subbaskets(row: pd.Series) -> str:
