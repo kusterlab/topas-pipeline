@@ -227,6 +227,7 @@ def kinase_scoring(
         )
         # merge original kinase scores with high_conf and save
         kinase_scores = pd.concat([kinase_scores, kinase_scores_high_conf], axis=0)
+        kinase_scores.index = kinase_scores.index.set_names(["PSP Kinases", "No. of total targets"])
         kinase_scores.to_csv(
             os.path.join(kinase_results_output_folder, "kinase_scores.tsv"),
             sep="\t",
