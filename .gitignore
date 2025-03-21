@@ -161,7 +161,7 @@ config*.json
 
 # memory profiling results
 mprofile*.dat
-mprofile_plot.png
+mprofile_plot*.png
 
 # file used to save the current git commit
 hash.file

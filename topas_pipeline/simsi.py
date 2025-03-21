@@ -6,10 +6,7 @@ import argparse
 from pathlib import Path
 import subprocess
 import logging
-import time
-import json
 from typing import List, Union
-import traceback
 import zipfile
 
 import pandas as pd
@@ -20,7 +17,7 @@ from . import __version__, __copyright__, __git_commit_hash__
 import topas_pipeline.preprocess_tools as prep
 from . import meta_input_file as mi
 from . import config
-from .utils import init_file_logger, send_slack_message
+from .utils import init_file_logger
 
 # hacky way to get the package logger instead of just __main__ when running as python -m topas_pipeline.simsi ...
 logger = logging.getLogger(__package__ + "." + __file__)
@@ -94,6 +91,7 @@ def run_simsi_data_type(
     data_type: str,
 ):
     if not simsi_config.run_simsi:
+        logger.info(f"run_simsi flag is set to False, skipping SIMSI for {data_type}")
         return
     
     init_file_logger(results_folder, f"SIMSI_log_{data_type}.txt")
