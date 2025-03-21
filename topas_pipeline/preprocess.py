@@ -63,6 +63,9 @@ def preprocess_raw_data_type(
     :param data_type: full protome (fp) or phospho proteome (pp) for which data is analyzed (for lfq only fp)
     :param normalize_to_reference: boolean for whether or not to normalize intensities relative to the reference channels (e.g. if MS1 chromatography peaks are bad)
     """
+    if not preprocessing_config.run_preprocessing:
+        logger.info(f"run_preprocessing flag is set to False, skipping preprocessing for {data_type}")
+        return
 
     # check if file is there - if so skip this
     if os.path.exists(os.path.join(results_folder, f"preprocessed_{data_type}.csv")):

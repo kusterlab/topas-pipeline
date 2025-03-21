@@ -31,6 +31,7 @@ class Preprocessing:
     normalize_to_reference: bool = False
     debug: bool = False
     run_lfq: bool = False
+    run_preprocessing: bool = True
 
 
 @dataclass
