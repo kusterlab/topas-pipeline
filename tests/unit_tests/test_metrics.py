@@ -163,12 +163,12 @@ class TestSaveMeasures:
             mocker.call(
                 os.path.join(results_folder, "long_data_type_measures_measure1.tsv"),
                 sep="\t",
-                float_format='%.6g',
+                float_format="%.6g",
             ),
             mocker.call(
                 os.path.join(results_folder, "long_data_type_measures_measure2.tsv"),
                 sep="\t",
-                float_format='%.6g',
+                float_format="%.6g",
             ),
         ]
 
@@ -180,6 +180,14 @@ class TestLooMedian:
         input_matrix = np.array([[7.0, 6.0, 5.0, 4.1, 3.0, 2.0, 1.0]])
 
         expected_result = np.array([[3.55, 3.55, 3.55, 4.0, 4.55, 4.55, 4.55]])
+        np.testing.assert_almost_equal(
+            expected_result, metrics._loo_median(input_matrix)
+        )
+
+    def test_loo_median_odd_with_nan(self):
+        input_matrix = np.array([[7.0, 6.0, 5.0, np.nan, 4.1, 3.0, 2.0, 1.0]])
+
+        expected_result = np.array([[3.55, 3.55, 3.55, np.nan, 4.0, 4.55, 4.55, 4.55]])
         np.testing.assert_almost_equal(
             expected_result, metrics._loo_median(input_matrix)
         )
@@ -239,6 +247,14 @@ class TestLooStd:
 
         expected_result = np.array(
             [[2.4083189, 2.0736441, 2.5884358, 2.5884358, 2.4083189, 2.0736441]]
+        )
+        np.testing.assert_almost_equal(expected_result, metrics._loo_std(input_matrix))
+
+    def test_loo_std_even_with_nan(self):
+        input_matrix = np.array([[2.0, 7.0, 5.0, np.nan, 3.0, 6.0, 1.0]])
+
+        expected_result = np.array(
+            [[2.4083189, 2.0736441, 2.5884358, np.nan, 2.5884358, 2.4083189, 2.0736441]]
         )
         np.testing.assert_almost_equal(expected_result, metrics._loo_std(input_matrix))
 
