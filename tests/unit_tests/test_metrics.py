@@ -261,19 +261,19 @@ class TestLooStd:
     def test_loo_std_two_values(self):
         input_matrix = np.array([[2.0, 7.0]])
 
-        expected_result = np.array([[0.0, 0.0]])
+        expected_result = np.array([[np.nan, np.nan]])
         np.testing.assert_almost_equal(expected_result, metrics._loo_std(input_matrix))
 
     def test_loo_std_one_value(self):
         input_matrix = np.array([[2.0]])
 
-        expected_result = np.array([[0.0]])
+        expected_result = np.array([[np.nan]])
         np.testing.assert_almost_equal(expected_result, metrics._loo_std(input_matrix))
 
     def test_loo_std_one_value_and_nan(self):
         input_matrix = np.array([[2.0, np.nan]])
 
-        expected_result = np.array([[0, np.nan]])
+        expected_result = np.array([[np.nan, np.nan]])
         np.testing.assert_almost_equal(expected_result, metrics._loo_std(input_matrix))
 
 

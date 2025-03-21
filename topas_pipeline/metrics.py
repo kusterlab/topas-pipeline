@@ -231,7 +231,7 @@ def _loo_std(input_matrix: np.array) -> np.array:
     )
 
     return np.sqrt(
-        m2n_minus_1 / np.clip(n - 2, 1, None)
+        m2n_minus_1 / np.where(n - 2 >= 1, n - 2, np.nan)
     )  # uses ddof = 1 because that is the pandas default
 
 
