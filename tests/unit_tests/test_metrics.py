@@ -15,7 +15,9 @@ logger = logging.getLogger(__name__)
 class TestComputeMetrics:
     def test_compute_metrics_with_existing_files_fp(self, mocker):
         # Mocking dependencies
-        mocker.patch("topas_pipeline.metrics.check_measures_computed", return_value=False)
+        mocker.patch(
+            "topas_pipeline.metrics.check_measures_computed", return_value=False
+        )
         mocker.patch(
             "topas_pipeline.metrics.clinical_process.read_annotation_files",
             return_value=(
@@ -99,8 +101,12 @@ class TestReadMeasures:
             "pandas.read_csv",
             return_value=pd.DataFrame({"col1": [1, 2], "col2": [3, 4]}),
         )
-        mocker.patch("topas_pipeline.metrics.get_data_type_long", return_value="long_data_type")
-        mocker.patch("topas_pipeline.metrics.utils.get_index_cols", return_value="index_col")
+        mocker.patch(
+            "topas_pipeline.metrics.get_data_type_long", return_value="long_data_type"
+        )
+        mocker.patch(
+            "topas_pipeline.metrics.utils.get_index_cols", return_value="index_col"
+        )
 
         results_folder = "some/folder"
         data_type = "type"
@@ -117,8 +123,12 @@ class TestReadMeasures:
             "pandas.read_csv",
             return_value=pd.DataFrame({"col1": [1, 2], "col2": [3, 4]}),
         )
-        mocker.patch("topas_pipeline.metrics.get_data_type_long", return_value="long_data_type")
-        mocker.patch("topas_pipeline.metrics.utils.get_index_cols", return_value="index_col")
+        mocker.patch(
+            "topas_pipeline.metrics.get_data_type_long", return_value="long_data_type"
+        )
+        mocker.patch(
+            "topas_pipeline.metrics.utils.get_index_cols", return_value="index_col"
+        )
 
         results_folder = "some/folder"
         data_type = "type"
@@ -132,7 +142,9 @@ class TestReadMeasures:
 class TestSaveMeasures:
     def test_save_measures_correct_filenames(self, mocker):
         # Mocking the get_data_type_long function
-        mocker.patch("topas_pipeline.metrics.get_data_type_long", return_value="long_data_type")
+        mocker.patch(
+            "topas_pipeline.metrics.get_data_type_long", return_value="long_data_type"
+        )
 
         # Mocking the to_csv method of pandas DataFrame
         mock_to_csv = mocker.patch.object(pd.DataFrame, "to_csv")
@@ -177,6 +189,74 @@ class TestLooMedian:
         np.testing.assert_almost_equal(
             expected_result, metrics._loo_median(input_matrix)
         )
+
+    def test_loo_median_two_values(self):
+        input_matrix = np.array([[2.0, 7.0]])
+
+        expected_result = np.array([[7.0, 2.0]])
+        np.testing.assert_almost_equal(
+            expected_result, metrics._loo_median(input_matrix)
+        )
+
+    def test_loo_median_one_value(self):
+        input_matrix = np.array([[2.0]])
+
+        with pytest.raises(IndexError):
+            metrics._loo_median(input_matrix)
+
+    def test_loo_median_one_value_and_nan(self):
+        input_matrix = np.array([[2.0, np.nan]])
+
+        expected_result = np.array([[np.nan, np.nan]])
+        np.testing.assert_almost_equal(
+            expected_result, metrics._loo_median(input_matrix)
+        )
+
+
+class TestLooStd:
+    def test_loo_std_odd(self):
+        input_matrix = np.array([[7.0, 6.0, 5.0, 4.1, 3.0, 2.0, 1.0]])
+
+        expected_result = np.array(
+            [
+                [
+                    1.8766104,
+                    2.1637159,
+                    2.3184046,
+                    2.3664319,
+                    2.3155273,
+                    2.1575449,
+                    1.8659225,
+                ]
+            ]
+        )
+        np.testing.assert_almost_equal(expected_result, metrics._loo_std(input_matrix))
+
+    def test_loo_std_even(self):
+        input_matrix = np.array([[2.0, 7.0, 5.0, 3.0, 6.0, 1.0]])
+
+        expected_result = np.array(
+            [[2.4083189, 2.0736441, 2.5884358, 2.5884358, 2.4083189, 2.0736441]]
+        )
+        np.testing.assert_almost_equal(expected_result, metrics._loo_std(input_matrix))
+
+    def test_loo_std_two_values(self):
+        input_matrix = np.array([[2.0, 7.0]])
+
+        expected_result = np.array([[0.0, 0.0]])
+        np.testing.assert_almost_equal(expected_result, metrics._loo_std(input_matrix))
+
+    def test_loo_std_one_value(self):
+        input_matrix = np.array([[2.0]])
+
+        expected_result = np.array([[0.0]])
+        np.testing.assert_almost_equal(expected_result, metrics._loo_std(input_matrix))
+
+    def test_loo_std_one_value_and_nan(self):
+        input_matrix = np.array([[2.0, np.nan]])
+
+        expected_result = np.array([[0, np.nan]])
+        np.testing.assert_almost_equal(expected_result, metrics._loo_std(input_matrix))
 
 
 @pytest.fixture

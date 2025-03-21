@@ -1,7 +1,6 @@
 import os.path
 import os
 import sys
-import json
 import warnings
 import logging
 from pathlib import Path
