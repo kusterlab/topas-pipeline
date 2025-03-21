@@ -176,7 +176,7 @@ class TestCreateIdentifierToBasketDict:
         expected_output = {
             "gene1": {
                 "GROUP": "(R)TK;(R)TK",
-                "LEVEL": "phosphorylation;important phosphorylation",
+                "LEVEL": "important phosphorylation;phosphorylation",
                 "basket": "basket1;basket3",
             },
             "gene2": {

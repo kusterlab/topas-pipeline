@@ -163,10 +163,12 @@ class TestSaveMeasures:
             mocker.call(
                 os.path.join(results_folder, "long_data_type_measures_measure1.tsv"),
                 sep="\t",
+                float_format='%.6g',
             ),
             mocker.call(
                 os.path.join(results_folder, "long_data_type_measures_measure2.tsv"),
                 sep="\t",
+                float_format='%.6g',
             ),
         ]
 
