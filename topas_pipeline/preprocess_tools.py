@@ -106,15 +106,15 @@ def check_annot(
     # TODO : needs to be refactored
 
     # Check for duplicates in batch, tmt_channel
-    elif sample_annot_df_filtered[["Batch Name", "TMT Channel"]].duplicated().any():
+    elif sample_annot_df_filtered[["Cohort", "Batch Name", "TMT Channel"]].duplicated().any():
         duplicated = sample_annot_df_filtered[
-            sample_annot_df_filtered[["Batch Name", "TMT Channel"]].duplicated()
+            sample_annot_df_filtered[["Cohort", "Batch Name", "TMT Channel"]].duplicated()
         ]
         logger.info(
-            f"Duplicated batch and tmt_channel in sample annotation: {duplicated}"
+            f"Duplicated cohort, batch and tmt_channel in sample annotation: {duplicated}"
         )
         raise ValueError(
-            f"Duplicated batch and tmt_channel in sample annotation: {duplicated}"
+            f"Duplicated cohort, batch and tmt_channel in sample annotation: {duplicated}"
         )
 
     # Check if all given samples in patient annot is also in metadata

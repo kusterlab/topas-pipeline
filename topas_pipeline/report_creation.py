@@ -67,6 +67,7 @@ def create_report(
         remove_replicates=False,
         remove_reference=True,
     )
+    sample_annotation_df["Batch Name"] = sample_annotation_df["Cohort"] + "_Batch" + sample_annotation_df["Batch Name"].astype(str)
     sample_annotation_df = sample_annotation_df.sort_values(by="Batch Name")
 
     # Read scoring files and calculate extra annotation metrics

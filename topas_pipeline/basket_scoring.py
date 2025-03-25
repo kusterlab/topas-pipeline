@@ -365,11 +365,12 @@ def save_rtk_scores_w_metadata(
     basket_scores = basket_scores.loc[
         :, basket_scores.columns.isin(TUPAC_CATEGORIES.keys())
     ]
-    basket_scores = map_index_to_df(basket_scores, metadata_df)
-    basket_scores = basket_scores.set_index("Sample name")
+    if "code_oncotree" in metadata_df.columns:
+        basket_scores = map_index_to_df(basket_scores, metadata_df)
+        basket_scores = basket_scores.set_index("Sample name")
 
-    # basket_scores = basket_scores.rename(index=lambda x: x.replace("score_", ""))
-    basket_scores.index.name = "Sample name"
+        # basket_scores = basket_scores.rename(index=lambda x: x.replace("score_", ""))
+        basket_scores.index.name = "Sample name"
     basket_scores = basket_scores.fillna(0)
     basket_scores.to_csv(out_file, sep="\t", float_format="%.4g")
 
