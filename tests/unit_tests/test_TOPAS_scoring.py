@@ -7,8 +7,8 @@ import numpy as np
 from topas_pipeline import TOPAS_scoring
 
 
-class TestReadBasketScores:
-    def test_reads_basket_scores_from_valid_file_path(self, mocker):
+class TestReadTopasScores:
+    def test_reads_topas_scores_from_valid_file_path(self, mocker):
         # Mocking os.path.exists to return True
         mocker.patch("os.path.exists", return_value=True)
         # Mocking pd.read_csv to return a sample DataFrame
@@ -19,11 +19,11 @@ class TestReadBasketScores:
 
         results_folder = "some/folder"
         data_type = "None"
-        main_basket_only = True
+        main_topas_only = True
         z_scored = False
 
-        result = TOPAS_scoring.read_basket_scores(
-            results_folder, data_type, main_basket_only, z_scored
+        result = TOPAS_scoring.read_topas_scores(
+            results_folder, data_type, main_topas_only, z_scored
         )
 
         expected_result = pd.DataFrame(
@@ -33,8 +33,8 @@ class TestReadBasketScores:
         pd.testing.assert_frame_equal(result, expected_result)
 
 
-class TestReadSubBasketScores:
-    def test_reads_sub_basket_score_files_correctly(self, mocker):
+class TestReadTopasSubscores:
+    def test_reads_topas_subscore_files_correctly(self, mocker):
         # Mocking the get_paths_to_sub_basket_files function
         mocker.patch(
             "topas_pipeline.TOPAS_scoring.get_paths_to_sub_basket_files",
@@ -210,9 +210,9 @@ class TestGetNumberIdentAnnotPerSample:
         pd.testing.assert_frame_equal(result, expected_result)
 
 
-class TestComputeBasketScores4thGen:
-    # Computes basket scores correctly given valid input files and paths
-    def test_compute_basket_scores_valid_inputs(self, mocker):
+class TestComputeTopasScores:
+    # Computes TOPAS scores correctly given valid input files and paths
+    def test_compute_topas_scores_valid_inputs(self, mocker):
         # Mocking dependencies
         mocker.patch(
             "topas_pipeline.TOPAS_scoring.sample_metadata.load",
@@ -224,11 +224,11 @@ class TestComputeBasketScores4thGen:
             ),
         )
         mocker.patch(
-            "topas_pipeline.TOPAS_scoring.read_baskets_file_4th_gen",
+            "topas_pipeline.TOPAS_scoring.read_topas_annotation_file",
             return_value=pd.DataFrame(
                 {
-                    "TOPAS_SCORE": ["basket1", "basket2"],
-                    "TOPAS_SUBSCORE": ["subbasket1", "subbasket2"],
+                    "TOPAS_SCORE": ["topas1", "topas2"],
+                    "TOPAS_SUBSCORE": ["subtopas1", "subtopas2"],
                     "GENE NAME": ["Gene1", "Gene2"],
                     "WEIGHT": [1, np.nan],
                     "GROUP": ["group1", "OTHER"],
@@ -288,7 +288,7 @@ class TestComputeBasketScores4thGen:
                 index=pd.Series(["pat_Sample1", "pat_Sample2"]),
             ),
         )
-        mock_save_basket_scores = mocker.patch("topas_pipeline.TOPAS_scoring.save_basket_scores")
+        mock_save_topas_scores = mocker.patch("topas_pipeline.TOPAS_scoring.save_topas_scores")
         mocker.patch("topas_pipeline.TOPAS_scoring.save_rtk_scores_w_metadata")
         mocker.patch("pandas.DataFrame.to_csv")
 
@@ -296,34 +296,36 @@ class TestComputeBasketScores4thGen:
         results_folder = "results"
         debug = False
         metadata_file = "metadata.csv"
-        baskets_file = "baskets.csv"
+        topas_file = "topas_scores.csv"
         data_types = ["type1"]
-        basket_results_folder = "basket_results"
+        topas_results_folder = "topas_results"
 
         # Call the function
         TOPAS_scoring.compute_TOPAS_scores(
             results_folder,
             debug,
             metadata_file,
-            baskets_file,
+            topas_file,
             data_types,
-            basket_results_folder,
+            topas_results_folder,
         )
 
         # first [0]: first call
         # second [0]: first of (args, kwargs) tuple
         # third [0]: first argument
-        result = mock_save_basket_scores.call_args_list[0][0][0]
+        result = mock_save_topas_scores.call_args_list[0][0][0]
 
         expected_result = pd.DataFrame(
-            {"basket1": [0.5, 0.6, 0.7]},
+            {"topas1": [0.5, 0.6, 0.7]},
             index=pd.Series(["pat_Sample1", "pat_Sample2", "pat_Sample3"]),
         )
 
-        result_zscored = mock_save_basket_scores.call_args_list[1][0][0]
+        pd.testing.assert_frame_equal(result, expected_result)
+
+        result_zscored = mock_save_topas_scores.call_args_list[1][0][0]
 
         expected_result_zscored = pd.DataFrame(
-            {"basket1": [-2.121320343559642, 0.0, 2.121320343559642]},
+            {"topas1": [-2.121320343559642, 0.0, 2.121320343559642]},
             index=pd.Series(["pat_Sample1", "pat_Sample2", "pat_Sample3"]),
         )
 
@@ -337,7 +339,7 @@ class TestSaveRtkScoresWMetadata:
         mock_to_csv = mocker.patch("pandas.DataFrame.to_csv", autospec=True)
 
         # Sample data
-        basket_scores_data = {
+        topas_scores_data = {
             "Sample name": ["Sample1", "Sample2"],
             "RTK1": [0.1, 0.4],
             "RTK2": [0.2, 0.5],
@@ -349,14 +351,14 @@ class TestSaveRtkScoresWMetadata:
             "Meta2": ["M2", "M4"],
         }
 
-        basket_scores = pd.DataFrame(basket_scores_data).set_index("Sample name")
+        topas_scores_df = pd.DataFrame(topas_scores_data).set_index("Sample name")
         metadata_df = pd.DataFrame(metadata_data)
 
         # Output file path
         out_file = "output.tsv"
 
         # Call the function
-        TOPAS_scoring.save_rtk_scores_w_metadata(basket_scores, metadata_df, out_file)
+        TOPAS_scoring.save_rtk_scores_w_metadata(topas_scores_df, metadata_df, out_file)
 
         result = mock_to_csv.call_args[0][0]
         expected_result = pd.DataFrame(
@@ -367,16 +369,16 @@ class TestSaveRtkScoresWMetadata:
         pd.testing.assert_frame_equal(result, expected_result)
 
 
-class TestCountSignificantBaskets:
+class TestCountSignificantTopasScores:
     def test_default_threshold(self):
         data = {
-            "basket1": [2.1, 1.9, 2.5],
-            "basket2": [1.8, 2.2, 2.0],
-            "basket3": [2.0, 2.1, 1.7],
+            "topas1": [2.1, 1.9, 2.5],
+            "topas2": [1.8, 2.2, 2.0],
+            "topas3": [2.0, 2.1, 1.7],
         }
         df_zscored = pd.DataFrame(data)
 
-        result = TOPAS_scoring.count_significant_baskets(df_zscored)
+        result = TOPAS_scoring.count_significant_topas_scores(df_zscored)
 
         expected_data = {"num_significant_baskets": [2, 2, 2]}
         expected_df = pd.DataFrame(expected_data)
@@ -385,13 +387,13 @@ class TestCountSignificantBaskets:
 
     def test_multiple_threshold(self):
         data = {
-            "basket1": [2.1, 1.9, 2.5],
-            "basket2": [1.8, 2.2, 2.0],
-            "basket3": [2.0, 2.1, 1.6],
+            "topas1": [2.1, 1.9, 2.5],
+            "topas2": [1.8, 2.2, 2.0],
+            "topas3": [2.0, 2.1, 1.6],
         }
         df_zscored = pd.DataFrame(data)
 
-        result = TOPAS_scoring.count_significant_baskets(
+        result = TOPAS_scoring.count_significant_topas_scores(
             df_zscored, thresholds=[1.7, 2.0]
         )
 
@@ -404,7 +406,7 @@ class TestCountSignificantBaskets:
         pd.testing.assert_frame_equal(result, expected_df)
 
 
-class TestBasketSheetSanityCheck:
+class TestTopasSheetSanityCheck:
     def test_valid_scoring_rules(self):
         data = {
             "SCORING RULE": [
@@ -419,7 +421,7 @@ class TestBasketSheetSanityCheck:
         df = pd.DataFrame(data)
 
         try:
-            TOPAS_scoring.basket_sheet_sanity_check(df)
+            TOPAS_scoring.topas_sheet_sanity_check(df)
         except ValueError:
             pytest.fail("basket_sheet_sanity_check raised ValueError unexpectedly!")
 
@@ -441,7 +443,7 @@ class TestBasketSheetSanityCheck:
             ValueError,
             match=r"Unknown scoring rules: \['my_fancy_new_scoring_method'\]",
         ):
-            TOPAS_scoring.basket_sheet_sanity_check(df)
+            TOPAS_scoring.topas_sheet_sanity_check(df)
 
     def test_psite_only_highest_z_score_rule(self):
         data = {
@@ -454,10 +456,10 @@ class TestBasketSheetSanityCheck:
             ValueError,
             match="Invalid scoring rule for entry with modified sequence:",
         ):
-            TOPAS_scoring.basket_sheet_sanity_check(df)
+            TOPAS_scoring.topas_sheet_sanity_check(df)
 
 
-class TestReadBasketsFile4thGen:
+class TestReadTopasFile:
     # Successfully reads an Excel file into a DataFrame
     def test_reads_excel_file_into_dataframe(self, mocker):
         # Mocking the pd.read_excel function
@@ -475,7 +477,7 @@ class TestReadBasketsFile4thGen:
         mock_read_excel.return_value = mock_df
 
         excel_file = "my_excel_file.xlsx"
-        result = TOPAS_scoring.read_baskets_file_4th_gen(excel_file)
+        result = TOPAS_scoring.read_topas_annotation_file(excel_file)
 
         expected_result = pd.DataFrame(
             {
@@ -496,7 +498,7 @@ class TestGetSummedZscore:
     # Correctly calculates summed z-scores for non-ligand cases
     def test_summed_zscore_non_ligand(self, mocker):
         z_score_data = {"sample1": [1.5, -3.2, 4.5], "sample2": [-2.5, 3.0, -4.1]}
-        subbasket_data = {
+        topas_subscore_data = {
             "GENES": ["Gene4", "Gene1", "Gene2"],
             "WEIGHT": [0.5, 1.0, 2.0],
         }
@@ -506,10 +508,10 @@ class TestGetSummedZscore:
             z_score_data,
             index=pd.Series(["Gene1", "Gene2;Gene3", "Gene4"], name="Gene names"),
         )
-        subbasket_df = pd.DataFrame(subbasket_data)
+        topas_subscore_df = pd.DataFrame(topas_subscore_data)
 
         result = TOPAS_scoring.get_summed_zscore(
-            z_score_df, subbasket_df, "Gene names", "GENES", ligand=False
+            z_score_df, topas_subscore_df, "Gene names", "GENES", ligand=False
         )
         # 1.5*1 - 4.0 + 2.25*0.5 = -0.25
         # -2.5*1 + 4.0 + -2.05*0.5 = -0.55
@@ -518,12 +520,12 @@ class TestGetSummedZscore:
         pd.testing.assert_series_equal(result, expected_result)
 
 
-class TestCalculateBasketScores:
+class TestCalculateTopasScores:
     def test_default_sum_weighted_zscore_method(self, mocker):
         measures = {
             "z-score": pd.DataFrame(
                 {
-                    "basket": ["basket1", "basket1;basket2", ""],
+                    "basket": ["topas1", "topas1;topas2", ""],
                     "basket_weights": ["0.1", "0.2;0.5", "1.0"],
                     "rtk": ["rtk1", "rtk1;rtk2", ""],
                     "rtk_weights": ["0.1", "0.2;0.5", "1.0"],
@@ -532,11 +534,11 @@ class TestCalculateBasketScores:
                 }
             )
         }
-        basket_scores = pd.DataFrame()
+        topas_scores_df = pd.DataFrame()
         data_type = "fp"
 
-        result = TOPAS_scoring.calculate_basket_scores(
-            measures, basket_scores, data_type
+        result = TOPAS_scoring.calculate_topas_scores(
+            measures, topas_scores_df, data_type
         )
 
         expected_result = pd.DataFrame(
@@ -544,8 +546,8 @@ class TestCalculateBasketScores:
                 "FP - Scores.num_identified": [3, 3],
                 "FP - Scores.num_annotated": [3, 3],
                 "FP - Scores.": [0.3, 0.1],
-                "FP - Scores.basket1": [0.05000000000000001, 0.07],
-                "FP - Scores.basket2": [0.1, 0.1],
+                "FP - Scores.topas1": [0.05000000000000001, 0.07],
+                "FP - Scores.topas2": [0.1, 0.1],
                 "FP - RTK Scores.num_identified": [3, 3],
                 "FP - RTK Scores.num_annotated": [3, 3],
                 "FP - RTK Scores.": [0.3, 0.1],
@@ -558,7 +560,7 @@ class TestCalculateBasketScores:
         pd.testing.assert_frame_equal(result, expected_result)
 
 
-class TestSaveBasketScores:
+class TestSaveTopasScores:
     def test_renames_index_by_removing_score_prefix(self, mocker):
         data = {"A": [1, 2], "B": [3, 4]}
         index = ["score_1", "score_2"]
@@ -567,7 +569,7 @@ class TestSaveBasketScores:
         mock_to_csv = mocker.patch("pandas.DataFrame.to_csv", autospec=True)
 
         out_file = "out_file.tsv"
-        TOPAS_scoring.save_basket_scores(df, out_file)
+        TOPAS_scoring.save_topas_scores(df, out_file)
 
         result = mock_to_csv.call_args[0][0]
 
@@ -578,19 +580,19 @@ class TestSaveBasketScores:
         pd.testing.assert_frame_equal(result, expected_result)
 
 
-class TestSaveBasketScoresLongFormat:
+class TestSaveTopasScoresLongFormat:
     def test_converts_wide_to_long_format_correctly(self, mocker):
         data = {
             "Sample": ["S1", "S2"],
             "FP.RTK Scores": [0.1, 0.2],
             "PP.Main Scores": [0.3, 0.4],
         }
-        basket_scores = pd.DataFrame(data)
+        topas_scores_df = pd.DataFrame(data)
         out_file = "out_file.tsv"
 
         mock_to_csv = mocker.patch("pandas.DataFrame.to_csv", autospec=True)
 
-        TOPAS_scoring.save_basket_scores_long_format(basket_scores, out_file)
+        TOPAS_scoring.save_topas_scores_long_format(topas_scores_df, out_file)
 
         result = mock_to_csv.call_args[0][0]
 
@@ -606,15 +608,15 @@ class TestSaveBasketScoresLongFormat:
         pd.testing.assert_frame_equal(result, expected_df)
 
 
-class TestExtractBasketMemberZScores4thGen:
+class TestExtractTopasMemberZScores:
     def test_extracts_z_scores_correctly(self, mocker):
         # Mocking the dependencies
         mocker.patch(
-            "topas_pipeline.TOPAS_scoring.read_baskets_file_4th_gen",
+            "topas_pipeline.TOPAS_scoring.read_topas_annotation_file",
             return_value=pd.DataFrame(
                 {
-                    "BASKET": ["basket1", "basket2"],
-                    "SUBBASKET": ["subbasket1", "subbasket2"],
+                    "BASKET": ["topas1", "topas2"],
+                    "SUBBASKET": ["subtopas1", "subtopas2"],
                     "GENE NAME": ["Gene1", "Gene2"],
                     "WEIGHT": [1, np.nan],
                     "GROUP": ["group1", "OTHER"],
@@ -671,8 +673,8 @@ class TestExtractBasketMemberZScores4thGen:
         mock_to_csv = mocker.patch("pandas.DataFrame.to_csv", autospec=True)
 
         # Call the function
-        TOPAS_scoring.extract_basket_member_z_scores_4th_gen(
-            "results_folder", "baskets_file"
+        TOPAS_scoring.extract_topas_member_z_scores(
+            "results_folder", "topas_file"
         )
 
         result_gene1_level1 = mock_to_csv.call_args_list[0][0][0]

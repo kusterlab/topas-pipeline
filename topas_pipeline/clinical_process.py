@@ -118,7 +118,7 @@ def clinical_process_data_type(
         dfs[data_type].to_csv(os.path.join(results_folder, f"annot_{data_type}.csv"), float_format="%.6g")
 
 
-def merge_baskets_with_subbaskets(row: pd.Series) -> str:
+def merge_topas_score_and_subscore_names(row: pd.Series) -> str:
     subbasket = row[list(TOPAS_SUBSCORE_COLUMNS.keys())[0]]
     if not pd.isnull(row[list(TOPAS_SUBSCORE_COLUMNS.keys())[0]]):
         subbasket_list = row[list(TOPAS_SUBSCORE_COLUMNS.keys())[0]].split(";")
@@ -131,11 +131,11 @@ def merge_baskets_with_subbaskets(row: pd.Series) -> str:
             )
             for i in range(len(subbasket_list))
         ]
-        subbasket = get_unique_baskets(subbasket)
+        subbasket = get_unique_topas_names(subbasket)
     return subbasket
 
 
-def get_unique_baskets(baskets: Union[List, str, float]) -> str:
+def get_unique_topas_names(baskets: Union[List, str, float]) -> str:
     if type(baskets) != list and type(baskets) != float:
         baskets = baskets.split(";")
     if type(baskets) != float:
@@ -163,16 +163,16 @@ def read_annotation_files(
         )
         if post_process_basket_columns:
             for key in TOPAS_SUBSCORE_COLUMNS.keys():
-                annot_ref[key] = annot_ref.apply(merge_baskets_with_subbaskets, axis=1)
+                annot_ref[key] = annot_ref.apply(merge_topas_score_and_subscore_names, axis=1)
             for key in TOPAS_SCORE_COLUMNS.keys():
-                annot_ref[key] = annot_ref[key].apply(get_unique_baskets)
+                annot_ref[key] = annot_ref[key].apply(get_unique_topas_names)
 
     if post_process_basket_columns:
         # Get unique baskets and add main basket name to subbasket level
         for key in TOPAS_SUBSCORE_COLUMNS.keys():
-            annot[key] = annot.apply(merge_baskets_with_subbaskets, axis=1)
+            annot[key] = annot.apply(merge_topas_score_and_subscore_names, axis=1)
         for key in TOPAS_SCORE_COLUMNS.keys():
-            annot[key] = annot[key].apply(get_unique_baskets)
+            annot[key] = annot[key].apply(get_unique_topas_names)
     return annot, annot_ref
 
 

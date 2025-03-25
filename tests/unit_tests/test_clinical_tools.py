@@ -96,7 +96,7 @@ class TestAddUrlColumn:
         ]
 
 
-class TestProtBasketAnnotation:
+class TestTopasAnnotation:
     def test_annotates_dataframe_correctly(self, mocker):
         import pandas as pd
 
@@ -104,8 +104,8 @@ class TestProtBasketAnnotation:
             "topas_pipeline.clinical_tools.read_clinical_annotation",
             return_value=pd.DataFrame(
                 {
-                    "basket": ["basket1", "basket2"],
-                    "sub_basket": ["subbasket1", "subbasket2"],
+                    "basket": ["topas1", "topas2"],
+                    "sub_basket": ["subtopas1", "subtopas2"],
                     "gene": ["GeneA", "GeneB"],
                     "weight": [1, np.nan],
                     "GROUP": ["(R)TK", "OTHER"],
@@ -125,7 +125,7 @@ class TestProtBasketAnnotation:
         )
 
         expected_result_df = pd.DataFrame(
-            {"basket": ["basket1", ""], "basket_weights": ["1.0", np.nan]},
+            {"basket": ["topas1", ""], "basket_weights": ["1.0", np.nan]},
             index=pd.Series(["GeneA", "GeneB"], name="Gene names"),
         )
         # Asserting the results
@@ -140,23 +140,23 @@ class TestCreateIdentifierToBasketDict:
             "gene": ["gene1", "gene2", "gene1"],
             "LEVEL": ["expression", "kinase activity", "expression"],
             "GROUP": ["(R)TK", "(R)TK", "(R)TK"],
-            "basket": ["basket1", "basket2", "basket3"],
+            "basket": ["topas1", "topas2", "topas3"],
         }
         df = pd.DataFrame(data)
         expected_output = {
             "gene1": {
                 "GROUP": "(R)TK;(R)TK",
                 "LEVEL": "expression;expression",
-                "basket": "basket1;basket3",
+                "basket": "topas1;topas3",
             },
             "gene2": {
                 "GROUP": "(R)TK",
                 "LEVEL": "kinase activity",
-                "basket": "basket2",
+                "basket": "topas2",
             },
         }
 
-        result = ct.create_identifier_to_basket_dict(
+        result = ct.create_identifier_to_topas_dict(
             df, data_type="fp", identifier_type="gene"
         )
         assert result == expected_output
@@ -170,33 +170,33 @@ class TestCreateIdentifierToBasketDict:
                 "kinase activity",
                 "important phosphorylation",
             ],
-            "basket": ["basket1", "basket2", "basket3"],
+            "basket": ["topas1", "topas2", "topas3"],
         }
         df = pd.DataFrame(data)
         expected_output = {
             "gene1": {
                 "GROUP": "(R)TK;(R)TK",
                 "LEVEL": "important phosphorylation;phosphorylation",
-                "basket": "basket1;basket3",
+                "basket": "topas1;topas3",
             },
             "gene2": {
                 "GROUP": "(R)TK",
                 "LEVEL": "kinase activity",
-                "basket": "basket2",
+                "basket": "topas2",
             },
         }
 
-        result = ct.create_identifier_to_basket_dict(
+        result = ct.create_identifier_to_topas_dict(
             df, data_type="pp", identifier_type="gene"
         )
         assert result == expected_output
 
 
-class TestReadBasketAnnotationGeneration4:
+class TestReadTopasAnnotation:
     def test_reads_and_processes_valid_excel_file(self, mocker):
         mock_excel_data = pd.DataFrame(
             {
-                "TOPAS_SCORE": ["basket1  ", "basket2"],
+                "TOPAS_SCORE": ["topas1  ", "topas2"],
                 "TOPAS_SUBSCORE": ["sub1", "sub2"],
                 "GROUP": ["(R)TK", "(R)TK"],
                 "LEVEL": ["expression  ", "kinase activity"],
@@ -212,7 +212,7 @@ class TestReadBasketAnnotationGeneration4:
             result,
             pd.DataFrame(
                 {
-                    "basket": ["basket1", "basket2"],
+                    "basket": ["topas1", "topas2"],
                     "sub_basket": ["sub1", "sub2"],
                     "GROUP": ["(R)TK", "(R)TK"],
                     "LEVEL": ["expression", "kinase activity"],

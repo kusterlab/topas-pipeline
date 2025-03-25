@@ -47,7 +47,7 @@ class TestClinicalProcessDataType:
         results_folder = "test_results"
         debug = False
         clinic_proc_config = config.ClinicProc(
-            prot_baskets="test_baskets",
+            prot_baskets="test_topas_annotation_file",
             pspFastaFile="test_fasta",
             pspKinaseSubstrateFile="test_kinase",
             pspAnnotationFile="test_annotation",
@@ -72,36 +72,35 @@ class TestClinicalProcessDataType:
         pd.DataFrame.to_csv.assert_called()
 
 
-class TestMergeBasketsWithSubbaskets:
-    # merge baskets and subbaskets correctly when both are non-empty
-    def test_merge_non_empty_baskets_and_subbaskets(self):
+class TestMergeTopasScoreWithTopasSubscore:
+    # merge TOPAS score and subscore names correctly when both are non-empty
+    def test_merge_topas_score_and_subscore_names(self):
         import pandas as pd
 
         data = {"TOPAS_score": "fruit;vegetable", "TOPAS_subscore": "apple;carrot"}
         row = pd.Series(data)
 
-        result = cp.merge_baskets_with_subbaskets(row)
+        result = cp.merge_topas_score_and_subscore_names(row)
 
         assert result == "fruit - apple;vegetable - carrot"
 
 
-class TestGetUniqueBaskets:
+class TestGetUniqueTopasNames:
     def test_handles_list_input_correctly(self):
-        baskets = ["apple", "banana", "apple", "orange"]
+        topas_score_names = ["apple", "banana", "apple", "orange"]
         expected_output = "apple;banana;orange"
-        assert cp.get_unique_baskets(baskets) == expected_output
+        assert cp.get_unique_topas_names(topas_score_names) == expected_output
 
     def test_handles_string_input_correctly(self):
-        baskets = "apple;banana;apple;orange"
+        topas_score_names = "apple;banana;apple;orange"
         expected_output = "apple;banana;orange"
-        assert cp.get_unique_baskets(baskets) == expected_output
+        assert cp.get_unique_topas_names(topas_score_names) == expected_output
 
-        # Handles float input correctly
-
+    # Handles float input correctly
     def test_handles_float_input_correctly(self):
-        baskets = 3.5
+        topas_score = 3.5
         expected_output = 3.5
-        assert cp.get_unique_baskets(baskets) == expected_output
+        assert cp.get_unique_topas_names(topas_score) == expected_output
 
 
 class TestReadAnnotationFiles:
@@ -113,8 +112,8 @@ class TestReadAnnotationFiles:
         # Mocking the pd.read_csv function
         mock_annot = pd.DataFrame(
             {
-                "TOPAS_score": ["basket1"],
-                "TOPAS_subscore": ["sub_basket1"],
+                "TOPAS_score": ["topas1"],
+                "TOPAS_subscore": ["subtopas1"],
                 "POI_category": ["Adaptor protein"],
             }
         )

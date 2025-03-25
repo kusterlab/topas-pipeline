@@ -145,7 +145,7 @@ def read_and_compute_scores(results_folder: Union[str, Path]) -> Tuple:
         dict(),
         dict(),
     )
-    basket_scores["scores"] = TOPAS_scoring.read_basket_scores(
+    basket_scores["scores"] = TOPAS_scoring.read_topas_scores(
         results_folder
     ).transpose()
     basket_scores["scores"] = basket_scores["scores"].loc[
@@ -826,7 +826,7 @@ def create_wp2_worksheet(
         data_type = "fp"
         if score_type == "POI_category":
             data_type = "POI"
-        annot_dict = clinical_tools.create_identifier_to_basket_dict(
+        annot_dict = clinical_tools.create_identifier_to_topas_dict(
             topas_annotation_df, data_type
         )
 
@@ -847,7 +847,7 @@ def create_wp2_worksheet(
     for basket_type in TOPAS_SCORE_COLUMNS.keys():
         # remove duplicated basket annotation
         measures[basket_type] = measures[basket_type].apply(
-            clinical_process.get_unique_baskets
+            clinical_process.get_unique_topas_names
         )
 
     # rename the metric columns and baskets

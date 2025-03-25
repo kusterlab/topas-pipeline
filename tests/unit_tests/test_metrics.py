@@ -23,17 +23,15 @@ class TestComputeMetrics:
             return_value=(
                 pd.DataFrame(
                     {
-                        "TOPAS_score": ["basket1", "basket2"],
+                        "TOPAS_score": ["topas1", "topas2"],
                         "TOPAS_score_weights": [0.5, 1.0],
-                        "TOPAS_subscore": ["sub_basket1", "sub_basket2"],
+                        "TOPAS_subscore": ["subtopas1", "subtopas2"],
                         "TOPAS_subscore_weights": [0.25, 0.8],
                     }
                 ),
                 pd.DataFrame(),
             ),
         )
-        measure_input = None
-        measures_without_ref = None
 
         mock_save_measures = mocker.patch("topas_pipeline.metrics.save_measures")
 

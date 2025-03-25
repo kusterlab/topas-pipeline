@@ -138,7 +138,7 @@ def prot_clinical_annotation(
     # Some dataframes might have empty cells so let's exchange them with nans
     df = df.replace(r"^\s*$", np.nan, regex=True)
     topas_annotation_df = read_clinical_annotation(annot_file)
-    annot_dict = create_identifier_to_basket_dict(topas_annotation_df, data_type)
+    annot_dict = create_identifier_to_topas_dict(topas_annotation_df, data_type)
 
     if "fp" in data_type:
         gene_df = df.index.to_frame()
@@ -232,7 +232,7 @@ def map_identifier_list_to_annot_types(
         return pd.Series(annotations, dtype="object")
 
 
-def create_identifier_to_basket_dict(
+def create_identifier_to_topas_dict(
     basket_annotation: pd.DataFrame,
     data_type: Union[str, None] = "fp",
     identifier_type: str = "gene",
