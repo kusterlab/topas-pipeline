@@ -868,7 +868,7 @@ if __name__ == "__main__":
         os.path.join(configs.results_folder, args.basket_results_folder),
         exist_ok=True,
     )
-    utils.init_file_logger(configs.results_folder, "Basket_scoring_log.txt")
+    utils.init_file_logger(configs.results_folder, "TOPAS_scoring_log.txt")
 
     compute_TOPAS_scores(
         configs.results_folder,

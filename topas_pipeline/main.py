@@ -14,7 +14,7 @@ from . import clinical_process
 from . import report_creation
 from . import metrics
 from . import TOPAS_psite_scoring
-from . import basket_scoring
+from . import TOPAS_scoring
 from . import portal_updater
 
 logger = logging.getLogger(__name__)
@@ -103,7 +103,7 @@ def main(argv):
 
         start_time = time.time()
         # 5) compute basket scores (<1 minute)
-        basket_scoring.compute_TOPAS_scores(
+        TOPAS_scoring.compute_TOPAS_scores(
             results_folder=configs.results_folder,
             debug=configs.preprocessing.debug,
             data_types=configs.data_types,

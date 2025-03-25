@@ -1,6 +1,5 @@
 import os.path
 import sys
-import json
 import math
 import logging
 
@@ -16,7 +15,7 @@ from . import utils as utils
 from . import metrics as metrics
 from . import clinical_process as clinical_process
 from . import clinical_tools as clinical_tools
-from . import basket_scoring as basket_scoring
+from . import TOPAS_scoring
 from . import TOPAS_kinase_scoring as kinase_scoring
 from . import TOPAS_protein_phosphorylation_scoring as protein_phoshorylation_scoring
 
@@ -146,14 +145,14 @@ def read_and_compute_scores(results_folder: Union[str, Path]) -> Tuple:
         dict(),
         dict(),
     )
-    basket_scores["scores"] = basket_scoring.read_basket_scores(
+    basket_scores["scores"] = TOPAS_scoring.read_basket_scores(
         results_folder
     ).transpose()
     basket_scores["scores"] = basket_scores["scores"].loc[
         :, ~basket_scores["scores"].columns.str.startswith("target")
     ]
 
-    subbasket_scores["scores"] = basket_scoring.read_sub_basket_scores(results_folder)
+    subbasket_scores["scores"] = TOPAS_scoring.read_sub_basket_scores(results_folder)
     subbasket_scores["scores"] = subbasket_scores["scores"].loc[
         :, ~subbasket_scores["scores"].columns.str.startswith("target")
     ]

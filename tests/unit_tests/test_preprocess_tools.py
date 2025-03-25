@@ -22,7 +22,7 @@ class TestCheckAnnot:
         )
         mock_sample_annotation.return_value = mocker.Mock()
         mock_filter_sample_annotation.return_value = pd.DataFrame(
-            columns=["Sample name", "Batch Name", "TMT Channel"]
+            columns=["Sample name", "Cohort", "Batch Name", "TMT Channel"]
         )
         mocker.patch(
             "pandas.read_excel",
@@ -72,7 +72,7 @@ class TestCheckAnnot:
 
         with pytest.raises(
             ValueError,
-            match="Duplicated sample\(s\) in sample annotation:",
+            match=r"Duplicated sample\(s\) in sample annotation:",
         ):
             prep.check_annot(
                 sample_annotation_file, metadata_annotation_file, in_metadata
@@ -104,7 +104,11 @@ class TestRemoveEmptyRefBatch:
             "Other column Batch5": [7, 8, 9],
         }
         df_with_ref = pd.DataFrame(data)
-        sample_annotation_data = {"Batch Name": [3, 210], "QC": ["passed", "failed"]}
+        sample_annotation_data = {
+            "Batch Name": [3, 210],
+            "Cohort": ["Cohort1", "Cohort 1"],
+            "QC": ["passed", "failed"],
+        }
         sample_annotation_df = pd.DataFrame(sample_annotation_data)
 
         result_df = prep.remove_ref_empty_batch(df_with_ref, sample_annotation_df)
