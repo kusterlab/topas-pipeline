@@ -53,7 +53,6 @@ def create_report(
             print("Input not of type int or string")
         samples_list = samples_for_report
 
-    # Read basket scoring dictionary from json
     topas_annotation_df = clinical_tools.read_clinical_annotation(annot_file)
 
     # Load sample annotation file
@@ -70,7 +69,7 @@ def create_report(
     sample_annotation_df = sample_annotation_df.sort_values(by="Batch Name")
 
     # Read scoring files and calculate extra annotation metrics
-    basket_scores, subbasket_scores, kinase_scores, protein_scores = (
+    topas_scores, topas_subscores, kinase_scores, protein_scores = (
         read_and_compute_scores(results_folder)
     )
 
@@ -79,17 +78,17 @@ def create_report(
 
     logger.info("Calculate within batch ranks")
     (
-        batch_basket_scores,
-        batch_subbasket_scores,
+        batch_topas_scores,
+        batch_topas_subscores,
         batch_kinase_scores,
         batch_protein_scores,
         batch_phospho_scores,
     ) = (dict(), dict(), dict(), dict(), dict())
-    batch_basket_scores["measures"] = compute_in_batch_rank(
-        basket_scores["scores"], sample_annotation_df
+    batch_topas_scores["measures"] = compute_in_batch_rank(
+        topas_scores["scores"], sample_annotation_df
     )
-    batch_subbasket_scores["measures"] = compute_in_batch_rank(
-        subbasket_scores["scores"], sample_annotation_df
+    batch_topas_subscores["measures"] = compute_in_batch_rank(
+        topas_subscores["scores"], sample_annotation_df
     )
     batch_kinase_scores["measures"] = compute_in_batch_rank(
         kinase_scores["scores"], sample_annotation_df
@@ -122,10 +121,10 @@ def create_report(
     write_patient_reports(
         results_folder,
         measure_dfs,
-        basket_scores,
-        batch_basket_scores,
-        subbasket_scores,
-        batch_subbasket_scores,
+        topas_scores,
+        batch_topas_scores,
+        topas_subscores,
+        batch_topas_subscores,
         kinase_scores,
         batch_kinase_scores,
         protein_scores,
@@ -139,22 +138,22 @@ def create_report(
 
 def read_and_compute_scores(results_folder: Union[str, Path]) -> Tuple:
     # TODO: optimize reading and filtering of score files
-    basket_scores, subbasket_scores, kinase_scores, protein_scores = (
+    topas_scores, topas_subscores, kinase_scores, protein_scores = (
         dict(),
         dict(),
         dict(),
         dict(),
     )
-    basket_scores["scores"] = TOPAS_scoring.read_topas_scores(
+    topas_scores["scores"] = TOPAS_scoring.read_topas_scores(
         results_folder
     ).transpose()
-    basket_scores["scores"] = basket_scores["scores"].loc[
-        :, ~basket_scores["scores"].columns.str.startswith("target")
+    topas_scores["scores"] = topas_scores["scores"].loc[
+        :, ~topas_scores["scores"].columns.str.startswith("target")
     ]
 
-    subbasket_scores["scores"] = TOPAS_scoring.read_sub_basket_scores(results_folder)
-    subbasket_scores["scores"] = subbasket_scores["scores"].loc[
-        :, ~subbasket_scores["scores"].columns.str.startswith("target")
+    topas_subscores["scores"] = TOPAS_scoring.read_topas_subscores(results_folder)
+    topas_subscores["scores"] = topas_subscores["scores"].loc[
+        :, ~topas_subscores["scores"].columns.str.startswith("target")
     ]
 
     kinase_scores["scores"] = kinase_scoring.read_kinase_scoring(results_folder)
@@ -171,15 +170,15 @@ def read_and_compute_scores(results_folder: Union[str, Path]) -> Tuple:
         :, ~protein_scores["scores"].columns.str.startswith("target")
     ]
 
-    all_scores = [basket_scores, subbasket_scores, kinase_scores, protein_scores]
+    all_scores = [topas_scores, topas_subscores, kinase_scores, protein_scores]
     for score_dict in all_scores:
         if "No. of total targets" in score_dict["scores"].columns:
             score_dict["scores"] = score_dict["scores"].drop(
                 columns="No. of total targets"
             )
     all_scores_copy = [
-        basket_scores["scores"].copy(),
-        subbasket_scores["scores"].copy(),
+        topas_scores["scores"].copy(),
+        topas_subscores["scores"].copy(),
         kinase_scores["scores"].copy(),
         protein_scores["scores"].copy(),
     ]
@@ -189,15 +188,15 @@ def read_and_compute_scores(results_folder: Union[str, Path]) -> Tuple:
         score_dict["significance"] = all_scores_copy[i].apply(
             assign_significance_score, axis=1
         )
-    return basket_scores, subbasket_scores, kinase_scores, protein_scores
+    return topas_scores, topas_subscores, kinase_scores, protein_scores
 
 
 def compute_in_batch_rank(
-    basket_scores: pd.DataFrame, sample_annotation_df: pd.DataFrame
+    topas_scores_df: pd.DataFrame, sample_annotation_df: pd.DataFrame
 ) -> Dict:
-    basket_scores_copy = basket_scores.copy()  # copy necessary to not alter original df
-    if "zscore" in basket_scores_copy.columns[1]:
-        basket_scores_copy.columns = basket_scores_copy.columns.str.replace(
+    topas_scores_df_copy = topas_scores_df.copy()  # copy necessary to not alter original df
+    if "zscore" in topas_scores_df_copy.columns[1]:
+        topas_scores_df_copy.columns = topas_scores_df_copy.columns.str.replace(
             "zscore_", ""
         )
     # Create a mapping of patient columns to batch names directly
@@ -209,14 +208,14 @@ def compute_in_batch_rank(
     )
 
     # Map each sample to its respective batch
-    samples_as_baskets = [
-        sample_batch_dict[sample] for sample in basket_scores_copy.columns
+    batch_names_by_sample = [
+        sample_batch_dict[sample] for sample in topas_scores_df_copy.columns
     ]
 
     rank_values = {}
-    for batch in set(samples_as_baskets):
-        batch_mask = np.array(samples_as_baskets) == batch
-        batch_scores = basket_scores_copy.loc[:, batch_mask]
+    for batch in set(batch_names_by_sample):
+        batch_mask = np.array(batch_names_by_sample) == batch
+        batch_scores = topas_scores_df_copy.loc[:, batch_mask]
         ranks = metrics.Metrics.get_rank(batch_scores)
 
         # Get occurrences and store results for current batch in dict
@@ -230,12 +229,12 @@ def compute_in_batch_rank(
 
 # TODO: find out what this was about. An attempt at optimizing?
 def new_compute_in_batch_scores(
-    basket_scores: pd.DataFrame, sample_annotation_df: pd.DataFrame
+    topas_scores_df: pd.DataFrame, sample_annotation_df: pd.DataFrame
 ) -> Dict:
     common_samples = [
         x
         for x in sample_annotation_df["Sample name"].tolist()
-        if x in basket_scores.columns.tolist()
+        if x in topas_scores_df.columns.tolist()
     ]
     common_sample_annotation_df = sample_annotation_df[
         sample_annotation_df["Sample name"].isin(common_samples)
@@ -250,7 +249,7 @@ def new_compute_in_batch_scores(
         batch_mask = common_sample_annotation_df["Sample name"][
             common_sample_annotation_df["Batch Name"] == batch
         ].tolist()
-        all_measures[batch] = metrics.compute_measures(basket_scores.loc[:, batch_mask])
+        all_measures[batch] = metrics.compute_measures(topas_scores_df.loc[:, batch_mask])
     return all_measures
 
 
@@ -280,10 +279,10 @@ def get_samples_for_report(sample_annotation_df: pd.DataFrame, samples_for_repor
 def write_patient_reports(
     results_folder: Union[str, Path],
     measure_dfs,
-    basket_scores,
-    batch_basket_scores,
-    subbasket_scores,
-    batch_subbasket_scores,
+    topas_scores,
+    batch_topas_scores,
+    topas_subscores,
+    batch_topas_subscores,
     kinase_scores,
     batch_kinase_scores,
     protein_scores,
@@ -322,10 +321,10 @@ def write_patient_reports(
         patient_data = add_scores_to_patient_data(
             patient_data,
             patient,
-            basket_scores,
-            batch_basket_scores,
-            subbasket_scores,
-            batch_subbasket_scores,
+            topas_scores,
+            batch_topas_scores,
+            topas_subscores,
+            batch_topas_subscores,
             kinase_scores,
             batch_kinase_scores,
             protein_scores,
@@ -437,7 +436,7 @@ def create_patient_report(
 
     # # Create a Pandas Excel writer using XlsxWriter as the engine
     with pd.ExcelWriter(report_file, engine="xlsxwriter") as writer:
-        # Create basket worksheets
+        # Create TOPAS score worksheets
         for score_type in ["TOPAS scores", "TOPAS subscores"]:
             create_score_worksheet(
                 score_type, patient_data, writer, score_type, annotation_columns_topas
@@ -480,10 +479,10 @@ def create_patient_report(
 # TODO: finish implementation of this function instead
 # def new_add_scores_to_patient_data(patient_data: Dict[str, Dict[str, pd.DataFrame]],
 #                                 patient: str,
-#                                 basket_scores: Dict[str, Dict[str, pd.DataFrame]],
-#                                 batch_basket_scores: Dict[str, pd.DataFrame],
-#                                 subbasket_scores: Dict[str, Dict[str, pd.DataFrame]],
-#                                 batch_subbasket_scores: Dict[str, pd.DataFrame],
+#                                 topas_scores: Dict[str, Dict[str, pd.DataFrame]],
+#                                 batch_topas_scores: Dict[str, pd.DataFrame],
+#                                 topas_subscores: Dict[str, Dict[str, pd.DataFrame]],
+#                                 batch_topas_subscores: Dict[str, pd.DataFrame],
 #                                 kinase_scores: Dict[str, Dict[str, pd.DataFrame]],
 #                                 batch_kinase_scores: Dict[str, pd.DataFrame],
 #                                 protein_scores: Dict[str, Dict[str, pd.DataFrame]],
@@ -493,10 +492,10 @@ def create_patient_report(
 
 #     # Create a dictionary mapping each scoring type to its respective data
 #     scoring_data = {
-#         'TOPAS scores': (basket_scores, basket_scores['measures'].values(), None),
-#         'Batch_TOPAS': (batch_basket_scores, batch_basket_scores['measures'][batch].values(), 'ranks'),
-#         'TOPAS subscores': (subbasket_scores, subbasket_scores['measures'].values(), None),
-#         'Batch_TOPAS_sub': (batch_subbasket_scores, batch_subbasket_scores['measures'][batch].values(), 'ranks'),
+#         'TOPAS scores': (topas_scores, topas_scores['measures'].values(), None),
+#         'Batch_TOPAS': (batch_topas_scores, batch_topas_scores['measures'][batch].values(), 'ranks'),
+#         'TOPAS subscores': (topas_subscores, topas_subscores['measures'].values(), None),
+#         'Batch_TOPAS_sub': (batch_topas_subscores, batch_topas_subscores['measures'][batch].values(), 'ranks'),
 #         'Kinase': (kinase_scores, kinase_scores['measures'].values(), 'targets'),
 #         'Batch_Kinase': (batch_kinase_scores, batch_kinase_scores['measures'][batch].values(), 'ranks'),
 #         'Protein': (protein_scores, protein_scores['measures'].values(), 'targets'),
@@ -711,7 +710,7 @@ def create_fp_worksheet(
     """
     Describe
     :param sheet_name:
-    :param fp: patients intensities plus metadata and baskets annot
+    :param fp: patients intensities plus metadata and TOPAS annotations
     :param df: measures fc, rank, z-score etc
     :param writer:
     :param fp_annotation_columns:
@@ -817,11 +816,11 @@ def create_wp2_worksheet(
     index_values = "Gene names"
     for score_type in TOPAS_SCORE_COLUMNS.keys():
         # for i, score_type in enumerate(['POI']):
-        # use dictionary to assign basket annotation - NB! has to be dataframe
+        # use dictionary to assign TOPAS annotation - NB! has to be dataframe
         if sheet_name == "Substrate phosphorylation score":
             index_values = "PSP Kinases"
 
-        basket_df = measures.index.get_level_values(index_values).to_frame()
+        topas_df = measures.index.get_level_values(index_values).to_frame()
 
         data_type = "fp"
         if score_type == "POI_category":
@@ -830,7 +829,7 @@ def create_wp2_worksheet(
             topas_annotation_df, data_type
         )
 
-        basket_df[score_type] = basket_df.apply(
+        topas_df[score_type] = topas_df.apply(
             clinical_tools.map_identifier_list_to_annot_types,
             annot_dict=annot_dict,
             annot_type=score_type,
@@ -838,22 +837,21 @@ def create_wp2_worksheet(
             axis=1,
         )
 
-        basket_df.index = measures.index
+        topas_df.index = measures.index
         if sheet_name == "Substrate phosphorylation score":
-            basket_df = basket_df.drop(["PSP Kinases"], axis=1)
+            topas_df = topas_df.drop(["PSP Kinases"], axis=1)
         else:
-            basket_df = basket_df.drop("Gene names", axis=1)
-        measures = pd.merge(left=measures, right=basket_df, on=index_values)
-    for basket_type in TOPAS_SCORE_COLUMNS.keys():
-        # remove duplicated basket annotation
-        measures[basket_type] = measures[basket_type].apply(
+            topas_df = topas_df.drop("Gene names", axis=1)
+        measures = pd.merge(left=measures, right=topas_df, on=index_values)
+    for topas_score in TOPAS_SCORE_COLUMNS.keys():
+        # remove duplicated TOPAS annotations
+        measures[topas_score] = measures[topas_score].apply(
             clinical_process.get_unique_topas_names
         )
 
-    # rename the metric columns and baskets
+    # rename the metric columns and TOPAS score
     measures = measures.rename(extra_annotation_columns, axis="columns")
 
-    # measures = measures.rename({'basket': 'Basket', 'sub_basket': 'Subbasket'}, axis='columns')
     batch_measures = batch_measures.rename(
         extra_annotation_columns, axis="columns"
     ).add_prefix("Batch ")
@@ -936,7 +934,7 @@ def create_score_worksheet(
     sheet_name: str,
     dfs: Dict[str, pd.DataFrame],
     writer: pd.ExcelWriter,
-    basket_column: str,
+    topas_column: str,
     extra_annotation_columns: Dict[str, str],
 ) -> None:
     valid_columns = list(
@@ -960,7 +958,7 @@ def create_score_worksheet(
     ).add_prefix(
         "Batch "
     )  # .drop('Batch_Z-score', axis=1)
-    # Prepare score df by splitting basket name into basket, subbasket and level of score
+    # Prepare score df by splitting TOPAS name into TOPAS score, TOPAS subscore and level of score
     if sheet_name == "TOPAS subscores":
         dfs[sheet_name] = pd.DataFrame(
             {
@@ -1005,7 +1003,7 @@ def create_score_worksheet(
     # Add cell formats
     format_no_dec = workbook.add_format({"num_format": "#,##0"})
     format_two_dec = workbook.add_format({"num_format": "#,##0.00"})
-    if basket_column == "TOPAS scores":
+    if topas_column == "TOPAS scores":
         worksheet.set_column("A:A", 20)  # topas kinase
         worksheet.set_column("B:B", 15, format_two_dec)  # topas score
         worksheet.set_column("C:C", 12, format_no_dec)  # rank
@@ -1018,7 +1016,7 @@ def create_score_worksheet(
             "I:M", 22, format_no_dec
         )  # no. sign scores in topas subscores
     else:
-        worksheet.set_column("A:B", 20)  # basket + subbasket
+        worksheet.set_column("A:B", 20)  # TOPAS score + subscore
         worksheet.set_column("C:C", 25)  # level
         worksheet.set_column("D:D", 15, format_two_dec)  # topas subscore
         worksheet.set_column("E:E", 12, format_no_dec)  # rank

@@ -302,7 +302,7 @@ def compute_measures(df: pd.DataFrame) -> Dict[str, pd.DataFrame]:
     """
     measures = get_metrics(df)  # ~1 minute
 
-    # add clinical baskets to z-scores dataframe
+    # add TOPAS score annotations to z-scores dataframe
     if "rtk" in df.columns:
         measures["z-score"] = measures["z-score"].join(
             df.loc[

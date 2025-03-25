@@ -126,14 +126,14 @@ def prot_clinical_annotation(
     df: pd.DataFrame, annot_file: Union[str, Path], data_type: str, annot_type: str
 ) -> Tuple[pd.DataFrame, Dict]:
     """
-    Adds columns with basket annotations and weights to a dataframe
+    Adds columns with topas annotations and weights to a dataframe
 
     :param df: dataframe with a 'Gene names' column to be annotated
     :param annot_file: path to file with annotations
     :param data_type: either 'pp' for phospho or 'fp' for full proteome
     :param annot_type: either 'TOPAS score', 'TOPAS subscore', 'POI'
     """
-    logger.info(f"Proteomics baskets annotation {data_type} {annot_type}")
+    logger.info(f"Proteomics TOPAS annotation {data_type} {annot_type}")
 
     # Some dataframes might have empty cells so let's exchange them with nans
     df = df.replace(r"^\s*$", np.nan, regex=True)
@@ -233,12 +233,12 @@ def map_identifier_list_to_annot_types(
 
 
 def create_identifier_to_topas_dict(
-    basket_annotation: pd.DataFrame,
+    topas_annotation_df: pd.DataFrame,
     data_type: Union[str, None] = "fp",
     identifier_type: str = "gene",
 ) -> Dict[str, str]:
     """
-    collect all the baskets per gene in a dictionary of {'gene_name': 'basket1;basket2;...'}
+    collect all the topas names per gene in a dictionary of {'gene_name': 'topas1;topas2;...'}
     """
     if "fp" in data_type or "pp" in data_type:
         # TODO: check that this does not lead to scoring kinase activity in TOPAS expression subscores
@@ -250,17 +250,17 @@ def create_identifier_to_topas_dict(
                 "important phosphorylation",
                 "kinase activity",
             ]
-        basket_annotation = basket_annotation[basket_annotation["GROUP"] != "OTHER"]
-        basket_annotation = basket_annotation[
-            basket_annotation["LEVEL"].isin(accepted_type)
+        topas_annotation_df = topas_annotation_df[topas_annotation_df["GROUP"] != "OTHER"]
+        topas_annotation_df = topas_annotation_df[
+            topas_annotation_df["LEVEL"].isin(accepted_type)
         ]
     else:  # other proteins of interest (POI)
-        basket_annotation = basket_annotation[basket_annotation["GROUP"] == "OTHER"]
+        topas_annotation_df = topas_annotation_df[topas_annotation_df["GROUP"] == "OTHER"]
 
-    basket_annotation = basket_annotation.groupby([identifier_type]).agg(
+    topas_annotation_df = topas_annotation_df.groupby([identifier_type]).agg(
         lambda x: ";".join(sorted(map(str, x)))
     )
-    annot_dict = basket_annotation.to_dict("index")
+    annot_dict = topas_annotation_df.to_dict("index")
     return annot_dict
 
 
@@ -269,7 +269,7 @@ def read_clinical_annotation(annot_file: str) -> pd.DataFrame:
     topas_annotation_df = utils.whitespace_remover(topas_annotation_df)
     topas_annotation_df["topas_subscore_level"] = (
         topas_annotation_df["TOPAS_SUBSCORE"] + " - " + topas_annotation_df["LEVEL"]
-    )  # basket_annotation['BASKET'] + " - " +
+    )
     topas_annotation_df["WEIGHT"] = topas_annotation_df["WEIGHT"].fillna(
         1
     )  # empty cell in WEIGHT column means weight = 1
@@ -339,4 +339,4 @@ if __name__ == "__main__":
 
     t1 = time.time()
     total = t1 - t0
-    logger.info(f"Basket annotation finished in {total} seconds")
+    logger.info(f"TOPAS annotation finished in {total} seconds")

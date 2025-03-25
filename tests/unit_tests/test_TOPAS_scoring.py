@@ -60,7 +60,7 @@ class TestReadTopasSubscores:
         mocker.patch("pandas.read_csv", return_value=sample_df)
 
         results_folder = "dummy_folder"
-        result = TOPAS_scoring.read_sub_basket_scores(results_folder)
+        result = TOPAS_scoring.read_topas_subscores(results_folder)
 
         # Expected dataframe after processing
         expected_df = pd.DataFrame(

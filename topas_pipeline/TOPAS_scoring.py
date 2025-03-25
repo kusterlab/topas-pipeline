@@ -110,7 +110,7 @@ def read_topas_scores(
     raise FileNotFoundError("No baskets score file found")
 
 
-def read_sub_basket_scores(results_folder: Union[str, Path]) -> List:
+def read_topas_subscores(results_folder: Union[str, Path]) -> List:
     """
     Read basket score results for report creation
     Requires one of [basket_scores_4th_gen.tsv|basket_scores.tsv]
@@ -221,7 +221,7 @@ def compute_TOPAS_scores(
     results_folder: Union[str, Path],
     debug: bool,
     metadata_file: Union[str, Path],
-    baskets_file: Union[str, Path],
+    topas_annotation_file: Union[str, Path],
     data_types: List[str],
     basket_results_folder: str = "",
 ) -> None:
@@ -241,7 +241,7 @@ def compute_TOPAS_scores(
 
     # TODO: find a way to read in only necessary columns - patients, topas annot+TOPAS sub annot --> not metadata
     metadata_df = sample_metadata.load(metadata_file)
-    all_baskets_df = read_topas_annotation_file(baskets_file)
+    all_baskets_df = read_topas_annotation_file(topas_annotation_file)
     all_baskets_df = all_baskets_df[all_baskets_df["GROUP"] != "OTHER"]
     z_scores_fp_df = load_z_scores_fp(results_folder)
     z_scores_pp_df = load_z_scores_pp(results_folder)
@@ -874,7 +874,7 @@ if __name__ == "__main__":
         configs.results_folder,
         configs.preprocessing.debug,
         data_types=configs.data_types,
-        baskets_file=configs.clinic_proc.prot_baskets,
+        topas_annotation_file=configs.clinic_proc.prot_baskets,
         metadata_file=configs.metadata_annotation,
         basket_results_folder=args.basket_results_folder,
     )

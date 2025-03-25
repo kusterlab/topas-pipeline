@@ -102,15 +102,15 @@ def main(argv):
         logger.info("--- %.1f seconds --- wp2 scoring" % (time.time() - start_time))
 
         start_time = time.time()
-        # 5) compute basket scores (<1 minute)
+        # 5) compute TOPAS scores (<1 minute)
         TOPAS_scoring.compute_TOPAS_scores(
             results_folder=configs.results_folder,
             debug=configs.preprocessing.debug,
             data_types=configs.data_types,
-            baskets_file=configs.clinic_proc.prot_baskets,
+            topas_annotation_file=configs.clinic_proc.prot_baskets,
             metadata_file=configs.metadata_annotation,
         )
-        logger.info("--- %.1f seconds --- basket scoring" % (time.time() - start_time))
+        logger.info("--- %.1f seconds --- TOPAS scoring" % (time.time() - start_time))
 
         start_time = time.time()
         # 6) report creation (~18 minutes)
