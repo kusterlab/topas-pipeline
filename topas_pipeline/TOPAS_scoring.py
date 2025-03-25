@@ -20,7 +20,7 @@ from . import sample_metadata
 logger = logging.getLogger(__package__ + "." + __file__)
 
 
-TUPAC_CATEGORIES = {
+TOPAS_CATEGORIES = {
     # the rules for the 5th generation
     "ALK": "RTK",
     "AXL": "RTK",
@@ -50,8 +50,8 @@ TUPAC_CATEGORIES = {
 }
 
 
-def get_tupac_rtks():
-    return [tupac for tupac, category in TUPAC_CATEGORIES.items() if category == "RTK"]
+def get_topas_rtks():
+    return [topas_name for topas_name, category in TOPAS_CATEGORIES.items() if category == "RTK"]
 
 
 def read_topas_scores(
@@ -293,7 +293,7 @@ def compute_TOPAS_scores(
 
         topas_subscores_df = pd.DataFrame.from_dict(topas_subscores)
 
-        # Use a mask. We only want to sum up positive subbasket scores to the total TUPAC score!
+        # Use a mask. We only want to sum up positive subbasket scores to the total TOPAS score!
         topas_subscores_df[f"{topas_name}_total_basket_score"] = (
             topas_subscores_df.sum(axis=1)
         )
@@ -360,10 +360,10 @@ def compute_TOPAS_scores(
 def save_rtk_scores_w_metadata(
     topas_scores_df: pd.DataFrame, metadata_df: pd.DataFrame, out_file: str
 ) -> None:
-    # subset to RTK using TUPAC_CATEGORIES keys and then map metadata
+    # subset to RTK using TOPAS_CATEGORIES keys and then map metadata
 
     topas_scores_df = topas_scores_df.loc[
-        :, topas_scores_df.columns.isin(TUPAC_CATEGORIES.keys())
+        :, topas_scores_df.columns.isin(TOPAS_CATEGORIES.keys())
     ]
     if "code_oncotree" in metadata_df.columns:
         topas_scores_df = map_index_to_df(topas_scores_df, metadata_df)

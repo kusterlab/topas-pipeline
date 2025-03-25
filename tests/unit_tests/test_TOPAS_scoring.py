@@ -334,8 +334,8 @@ class TestComputeTopasScores:
 
 class TestSaveRtkScoresWMetadata:
     def test_correct_subsetting_to_rtk(self, mocker):
-        TUPAC_CATEGORIES = {"RTK1": "value1", "RTK2": "value2"}
-        mocker.patch("topas_pipeline.TOPAS_scoring.TUPAC_CATEGORIES", TUPAC_CATEGORIES)
+        TOPAS_CATEGORIES = {"RTK1": "value1", "RTK2": "value2"}
+        mocker.patch("topas_pipeline.TOPAS_scoring.TOPAS_CATEGORIES", TOPAS_CATEGORIES)
         mock_to_csv = mocker.patch("pandas.DataFrame.to_csv", autospec=True)
 
         # Sample data
