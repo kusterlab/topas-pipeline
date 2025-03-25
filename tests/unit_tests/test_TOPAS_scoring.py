@@ -37,7 +37,7 @@ class TestReadTopasSubscores:
     def test_reads_topas_subscore_files_correctly(self, mocker):
         # Mocking the get_paths_to_sub_basket_files function
         mocker.patch(
-            "topas_pipeline.TOPAS_scoring.get_paths_to_sub_basket_files",
+            "topas_pipeline.TOPAS_scoring.get_paths_to_topas_subscore_files",
             return_value=["file1.tsv", "file2.tsv"],
         )
 

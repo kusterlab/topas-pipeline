@@ -57,79 +57,79 @@ def get_tupac_rtks():
 def read_topas_scores(
     results_folder: Union[str, Path],
     data_type: str = "None",
-    main_basket_only: bool = True,
+    main_topas_only: bool = True,
     z_scored: bool = False,
 ) -> pd.DataFrame:
     """
-    Read basket score results for report creation
+    Read TOPAS score results for report creation
     Requires one of [basket_scores_4th_gen.tsv|basket_scores.tsv]
     """
     z_scored_suffix = ""
     if z_scored:
         z_scored_suffix = "_zscored"
 
-    for basket_score_file_name in [
+    for topas_score_file_name in [
         f"basket_scores_4th_gen{z_scored_suffix}.tsv",
         "basket_scores{z_scored_suffix}.tsv",
     ]:
-        basket_scores_file_path = os.path.join(results_folder, basket_score_file_name)
-        if not os.path.exists(basket_scores_file_path):
+        topas_scores_file_path = os.path.join(results_folder, topas_score_file_name)
+        if not os.path.exists(topas_scores_file_path):
             continue
 
         try:
-            basket_scores_df = pd.read_csv(
-                basket_scores_file_path, sep="\t", index_col="Sample"
+            topas_scores_df = pd.read_csv(
+                topas_scores_file_path, sep="\t", index_col="Sample"
             )
         except PermissionError:
             raise PermissionError(
-                f"Cannot open basket scores file, check if you have it open in Excel. {basket_scores_file_path}"
+                f"Cannot open TOPAS scores file, check if you have it open in Excel. {topas_scores_file_path}"
             )
 
-        if basket_score_file_name == "basket_scores.tsv":
+        if topas_score_file_name == "basket_scores.tsv":
             if data_type != "None":
                 try:
-                    basket_scores_df = basket_scores_df.iloc[
-                        :, basket_scores_df.columns.str.startswith(data_type.upper())
+                    topas_scores_df = topas_scores_df.iloc[
+                        :, topas_scores_df.columns.str.startswith(data_type.upper())
                     ]
                 except ValueError:
                     raise ValueError(
-                        f"Data type given for subset is not found in basket score file: {data_type}"
+                        f"Data type given for subset is not found in TOPAS score file: {data_type}"
                     )
             # remove drug scores
-            basket_scores_df = basket_scores_df.iloc[
-                :, ~basket_scores_df.columns.str.contains("TOPAS")
+            topas_scores_df = topas_scores_df.iloc[
+                :, ~topas_scores_df.columns.str.contains("TOPAS")
             ]
-            if main_basket_only:
-                # remove RTK baskets
-                basket_scores_df = basket_scores_df.iloc[
-                    :, ~basket_scores_df.columns.str.contains("RTK")
+            if main_topas_only:
+                # remove RTK TOPAS scores
+                topas_scores_df = topas_scores_df.iloc[
+                    :, ~topas_scores_df.columns.str.contains("RTK")
                 ]
 
-        return basket_scores_df
+        return topas_scores_df
 
-    raise FileNotFoundError("No baskets score file found")
+    raise FileNotFoundError("No TOPAS score file found")
 
 
-def read_topas_subscores(results_folder: Union[str, Path]) -> List:
+def read_topas_subscores(results_folder: Union[str, Path]) -> pd.DataFrame:
     """
-    Read basket score results for report creation
+    Read TOPAS subscore results for report creation
     Requires one of [basket_scores_4th_gen.tsv|basket_scores.tsv]
     """
-    sub_basket_files = get_paths_to_sub_basket_files(results_folder)
+    topas_subscore_files = get_paths_to_topas_subscore_files(results_folder)
     # read in df and combine
     list_dfs = []
-    for file in sub_basket_files:
-        sub_basket_file = os.path.join(results_folder, file)
-        if os.path.exists(sub_basket_file):
+    for file in topas_subscore_files:
+        topas_subscore_file = os.path.join(results_folder, file)
+        if os.path.exists(topas_subscore_file):
             try:
-                df = pd.read_csv(sub_basket_file, sep="\t", index_col="index")
+                df = pd.read_csv(topas_subscore_file, sep="\t", index_col="index")
             except PermissionError:
                 raise PermissionError(
-                    f"Cannot open subbasket scores file, check if you have it open in Excel. {sub_basket_file}"
+                    f"Cannot open TOPAS subscores file, check if you have it open in Excel. {topas_subscore_file}"
                 )
         else:
             raise FileNotFoundError(
-                f"Subbaskets score file not found. {sub_basket_file}"
+                f"TOPAS subscore file not found. {topas_subscore_file}"
             )
         # get rid of total basket score column, sample name and sarcoma subtype
         # TODO: make this not dependent on lower and bigger case!
@@ -141,11 +141,11 @@ def read_topas_subscores(results_folder: Union[str, Path]) -> List:
         )
         list_dfs.append(df.transpose())
     list_dfs = [df.loc[:, ~df.columns.duplicated(keep="first")] for df in list_dfs]
-    subbasket_scores = pd.concat(list_dfs)
-    return subbasket_scores
+    topas_subscores_df = pd.concat(list_dfs)
+    return topas_subscores_df
 
 
-def get_paths_to_sub_basket_files(results_folder):
+def get_paths_to_topas_subscore_files(results_folder):
     files = [
         filename
         for filename in os.listdir(results_folder)
@@ -223,7 +223,7 @@ def compute_TOPAS_scores(
     metadata_file: Union[str, Path],
     topas_annotation_file: Union[str, Path],
     data_types: List[str],
-    basket_results_folder: str = "",
+    topas_results_folder: str = "",
 ) -> None:
     """
     Computes TOPAS subscores and TOPAS scores
@@ -234,36 +234,36 @@ def compute_TOPAS_scores(
     """
     logger.info("Running TOPAS scoring module")
     if os.path.exists(
-        os.path.join(results_folder, basket_results_folder, "basket_scores_4th_gen.tsv")
+        os.path.join(results_folder, topas_results_folder, "basket_scores_4th_gen.tsv")
     ):
         logger.info(f"TOPAS scoring skipped - found files already preprocessed")
         return
 
     # TODO: find a way to read in only necessary columns - patients, topas annot+TOPAS sub annot --> not metadata
     metadata_df = sample_metadata.load(metadata_file)
-    all_baskets_df = read_topas_annotation_file(topas_annotation_file)
-    all_baskets_df = all_baskets_df[all_baskets_df["GROUP"] != "OTHER"]
+    topas_annotation_df = read_topas_annotation_file(topas_annotation_file)
+    topas_annotation_df = topas_annotation_df[topas_annotation_df["GROUP"] != "OTHER"]
     z_scores_fp_df = load_z_scores_fp(results_folder)
     z_scores_pp_df = load_z_scores_pp(results_folder)
     protein_phosphorylation_df = load_protein_phosphorylation(results_folder)
     kinase_scores_df = load_kinase_scores(results_folder)
-    total_basket_scores = {}
-    for basket_name, basket_df in all_baskets_df.groupby("TOPAS_SCORE"):
-        logger.info(f"Calculating TOPAS scores for {basket_name}")
-        subbasket_scores = {}
-        for subbasket_name, subbasket_df in basket_df.groupby("TOPAS_subscore_level"):
-            scoring_rule = subbasket_df["SCORING RULE"].iloc[0].lower()
+    total_topas_scores = {}
+    for topas_name, topas_score_df in topas_annotation_df.groupby("TOPAS_SCORE"):
+        logger.info(f"Calculating TOPAS scores for {topas_name}")
+        topas_subscores = {}
+        for topas_subscore_name, topas_subscore_df in topas_score_df.groupby("TOPAS_subscore_level"):
+            scoring_rule = topas_subscore_df["SCORING RULE"].iloc[0].lower()
             ligand = False
-            if "Ligand" in subbasket_name:
+            if "Ligand" in topas_subscore_name:
                 ligand = True
             if scoring_rule == "highest z-score":
-                subbasket_score = get_weighted_max(
-                    z_scores_fp_df, subbasket_df, "Gene names", "GENE NAME", ligand
+                topas_subscore = get_weighted_max(
+                    z_scores_fp_df, topas_subscore_df, "Gene names", "GENE NAME", ligand
                 )
             elif scoring_rule == "highest z-score (p-site)":
-                subbasket_score = get_weighted_max(
+                topas_subscore = get_weighted_max(
                     z_scores_pp_df,
-                    subbasket_df,
+                    topas_subscore_df,
                     "Modified sequence",
                     "MODIFIED SEQUENCE",
                     ligand,
@@ -272,52 +272,52 @@ def compute_TOPAS_scores(
                 scoring_rule
                 == "highest protein phosphorylation score (2nd level z-score, fh)"
             ):
-                subbasket_score = get_weighted_max(
+                topas_subscore = get_weighted_max(
                     protein_phosphorylation_df,
-                    subbasket_df,
+                    topas_subscore_df,
                     "Gene names",
                     "GENE NAME",
                     ligand,
                 )
             elif scoring_rule == "highest kinase score (2nd level z-score, fh)":
-                subbasket_score = get_weighted_max(
-                    kinase_scores_df, subbasket_df, "PSP Kinases", "GENE NAME", ligand
+                topas_subscore = get_weighted_max(
+                    kinase_scores_df, topas_subscore_df, "PSP Kinases", "GENE NAME", ligand
                 )
             elif scoring_rule == "summed z-score":
-                subbasket_score = get_summed_zscore(
-                    z_scores_fp_df, subbasket_df, "Gene names", "GENE NAME", ligand
+                topas_subscore = get_summed_zscore(
+                    z_scores_fp_df, topas_subscore_df, "Gene names", "GENE NAME", ligand
                 )
             else:
                 raise ValueError(f"Unknown scoring rule {scoring_rule}")
-            subbasket_scores[f"{basket_name} - {subbasket_name}"] = subbasket_score
+            topas_subscores[f"{topas_name} - {topas_subscore_name}"] = topas_subscore
 
-        subbasket_scores_df = pd.DataFrame.from_dict(subbasket_scores)
+        topas_subscores_df = pd.DataFrame.from_dict(topas_subscores)
 
         # Use a mask. We only want to sum up positive subbasket scores to the total TUPAC score!
-        subbasket_scores_df[f"{basket_name}_total_basket_score"] = (
-            subbasket_scores_df.sum(axis=1)
+        topas_subscores_df[f"{topas_name}_total_basket_score"] = (
+            topas_subscores_df.sum(axis=1)
         )
-        total_basket_scores[basket_name] = subbasket_scores_df[
-            f"{basket_name}_total_basket_score"
+        total_topas_scores[topas_name] = topas_subscores_df[
+            f"{topas_name}_total_basket_score"
         ]
 
         # Remove replicate suffix before merging against the metadata table which only has sample names (i.e. without replicate suffixes)
-        subbasket_scores_df["Sample name"] = subbasket_scores_df.index.str.replace(
+        topas_subscores_df["Sample name"] = topas_subscores_df.index.str.replace(
             r"-R\d{1}", "", regex=True
         )
         if "Histologic subtype" in metadata_df.columns:
             subtype_df = metadata_df[["Sample name", "Histologic subtype"]]
         else:
             subtype_df = metadata_df[["Sample name"]]
-        subbasket_scores_df = subbasket_scores_df.reset_index().merge(
+        topas_subscores_df = topas_subscores_df.reset_index().merge(
             subtype_df, on="Sample name", how="left"
         )
-        subbasket_output_file = os.path.join(
+        topas_subscores_output_file = os.path.join(
             results_folder,
-            basket_results_folder,
-            f'subbasket_scores_{basket_name.replace("/", "_").replace(" ", "_")}.tsv',
+            topas_results_folder,
+            f'subbasket_scores_{topas_name.replace("/", "_").replace(" ", "_")}.tsv',
         )
-        subbasket_scores_df.to_csv(subbasket_output_file, sep="\t", index=False, float_format="%.4g")
+        topas_subscores_df.to_csv(topas_subscores_output_file, sep="\t", index=False, float_format="%.4g")
 
         # apply second-level z-scoring per basket (i.e. per column)
         # subbasket_scores_df = subbasket_scores_df.apply(zscore)
@@ -325,24 +325,24 @@ def compute_TOPAS_scores(
         # subbasket_scores_df.to_csv(subbasket_output_file_zscored, sep='\t', index=False)
 
         logger.info(
-            f"Written basket results for {basket_name} to: {subbasket_output_file}"
+            f"Written TOPAS results for {topas_name} to: {topas_subscores_output_file}"
         )
 
-    basket_scores_df = pd.DataFrame.from_dict(total_basket_scores)
+    topas_scores_df = pd.DataFrame.from_dict(total_topas_scores)
     save_topas_scores(
-        basket_scores_df,
+        topas_scores_df,
         os.path.join(
-            results_folder, basket_results_folder, "basket_scores_4th_gen.tsv"
+            results_folder, topas_results_folder, "basket_scores_4th_gen.tsv"
         ),
     )
 
     # apply second-level z-scoring per basket (i.e. per column)
     # basket_scores_df = basket_scores_df.apply(zscore)
 
-    basket_scores_df = basket_scores_df.drop(
-        basket_scores_df[basket_scores_df.index.str.startswith("targets")].index
+    topas_scores_df = topas_scores_df.drop(
+        topas_scores_df[topas_scores_df.index.str.startswith("targets")].index
     )
-    measures = metrics.compute_measures(basket_scores_df.T)
+    measures = metrics.compute_measures(topas_scores_df.T)
     measures["z-score"].columns = measures["z-score"].columns.str.strip("zscore_")
     zscores = measures["z-score"].T
 
@@ -352,27 +352,27 @@ def compute_TOPAS_scores(
     save_topas_scores(
         zscores,
         os.path.join(
-            results_folder, basket_results_folder, "basket_scores_4th_gen_zscored.tsv"
+            results_folder, topas_results_folder, "basket_scores_4th_gen_zscored.tsv"
         ),
     )
 
 
 def save_rtk_scores_w_metadata(
-    basket_scores: pd.DataFrame, metadata_df: pd.DataFrame, out_file
-):
+    topas_scores_df: pd.DataFrame, metadata_df: pd.DataFrame, out_file: str
+) -> None:
     # subset to RTK using TUPAC_CATEGORIES keys and then map metadata
 
-    basket_scores = basket_scores.loc[
-        :, basket_scores.columns.isin(TUPAC_CATEGORIES.keys())
+    topas_scores_df = topas_scores_df.loc[
+        :, topas_scores_df.columns.isin(TUPAC_CATEGORIES.keys())
     ]
     if "code_oncotree" in metadata_df.columns:
-        basket_scores = map_index_to_df(basket_scores, metadata_df)
-        basket_scores = basket_scores.set_index("Sample name")
+        topas_scores_df = map_index_to_df(topas_scores_df, metadata_df)
+        topas_scores_df = topas_scores_df.set_index("Sample name")
 
-        # basket_scores = basket_scores.rename(index=lambda x: x.replace("score_", ""))
-        basket_scores.index.name = "Sample name"
-    basket_scores = basket_scores.fillna(0)
-    basket_scores.to_csv(out_file, sep="\t", float_format="%.4g")
+        # topas_scores_df = topas_scores_df.rename(index=lambda x: x.replace("score_", ""))
+        topas_scores_df.index.name = "Sample name"
+    topas_scores_df = topas_scores_df.fillna(0)
+    topas_scores_df.to_csv(out_file, sep="\t", float_format="%.4g")
 
 
 def map_index_to_df(df1, df2):
@@ -427,7 +427,7 @@ def get_number_ident_annot_per_sample(
         dfs[data_type + ".num_annotated"] = (
             dfs[data_type][tmt_channels + ["basket"]]
             .set_index("basket")
-            .apply(count_basket_annotations)
+            .apply(count_topas_annotations)
         )
 
     # save ident and annot to file
@@ -443,7 +443,7 @@ def count_sample_identifications(df):
     return df.filter(regex="pat_", axis=1).mask(df == "").count()
 
 
-def count_basket_annotations(column):
+def count_topas_annotations(column):
     temp = column.mask(column == "").dropna()
     return pd.Series(temp.index.where(temp.index != "", other=np.nan)).count()
 
@@ -451,33 +451,33 @@ def count_basket_annotations(column):
 def count_significant_topas_scores(
     df_zscored: pd.DataFrame, thresholds: List[float] = [2.0]
 ):
-    """Computes number of significant basket scores per sample.
+    """Computes number of significant TOPAS scores per sample.
 
     Args:
-        df_zscored: DataFrame with z-scores basket scores with one column per sample.
+        df_zscored: DataFrame with z-scores TOPAS scores with one column per sample.
         thresholds: List of z-score thresholds to assess significance. Defaults to [2.0].
 
     Returns:
-        Dataframe with sample names and number of significant basket scores.
+        Dataframe with sample names and number of significant TOPAS scores.
     """
-    significant_baskets_per_patient = (
+    significant_topas_per_patient = (
         (df_zscored >= thresholds[0]).sum(axis=1).to_frame("num_significant_baskets")
     )
     if len(thresholds) > 1:
         for threshold in thresholds[1:]:
-            significant_baskets_per_patient[
+            significant_topas_per_patient[
                 f"num_significant_baskets_z>={threshold}"
             ] = (df_zscored >= threshold).sum(axis=1)
-    return significant_baskets_per_patient
+    return significant_topas_per_patient
 
 
-def topas_sheet_sanity_check(all_baskets_df: pd.DataFrame) -> None:
+def topas_sheet_sanity_check(topas_annotation_df: pd.DataFrame) -> None:
     """
     Explain
 
     TODO: add check that there are no protein groups in the gene names column, e.g. Gene1;Gene2
     """
-    scoring_rules_found = set(all_baskets_df["SCORING RULE"].str.lower().unique())
+    scoring_rules_found = set(topas_annotation_df["SCORING RULE"].str.lower().unique())
     valid_scoring_rules = {
         "highest z-score",
         "highest z-score (p-site)",
@@ -491,7 +491,7 @@ def topas_sheet_sanity_check(all_baskets_df: pd.DataFrame) -> None:
 
     # validate that scoring rule is "highest z-score (p-site)" if modified sequence column is not empty
     scoring_rules_found = set(
-        all_baskets_df[~all_baskets_df["MODIFIED SEQUENCE"].isnull()]["SCORING RULE"]
+        topas_annotation_df[~topas_annotation_df["MODIFIED SEQUENCE"].isnull()]["SCORING RULE"]
         .str.lower()
         .unique()
     )
@@ -503,34 +503,34 @@ def topas_sheet_sanity_check(all_baskets_df: pd.DataFrame) -> None:
         )
 
 
-def read_topas_annotation_file(baskets_file):
-    all_baskets_df = pd.read_excel(baskets_file)
-    all_baskets_df = utils.whitespace_remover(all_baskets_df)
-    for col in all_baskets_df.columns:
+def read_topas_annotation_file(topas_annotation_file: str):
+    topas_annotation_df = pd.read_excel(topas_annotation_file)
+    topas_annotation_df = utils.whitespace_remover(topas_annotation_df)
+    for col in topas_annotation_df.columns:
         if "WEIGHT" not in col:
-            all_baskets_df[col] = all_baskets_df[col].str.strip()
-    all_baskets_df["TOPAS_subscore_level"] = (
-        all_baskets_df["TOPAS_SUBSCORE"] + " - " + all_baskets_df["LEVEL"]
+            topas_annotation_df[col] = topas_annotation_df[col].str.strip()
+    topas_annotation_df["TOPAS_subscore_level"] = (
+        topas_annotation_df["TOPAS_SUBSCORE"] + " - " + topas_annotation_df["LEVEL"]
     )
-    all_baskets_df["WEIGHT"] = all_baskets_df["WEIGHT"].fillna(
+    topas_annotation_df["WEIGHT"] = topas_annotation_df["WEIGHT"].fillna(
         1
     )  # empty cell in WEIGHT column means weight = 1
 
-    topas_sheet_sanity_check(all_baskets_df)
+    topas_sheet_sanity_check(topas_annotation_df)
 
-    return all_baskets_df
+    return topas_annotation_df
 
 
 def get_weighted_max(
     z_score_df: pd.DataFrame,
-    subbasket_df: pd.DataFrame,
+    topas_subscore_df: pd.DataFrame,
     z_score_index_col: str,
-    subbasket_index_col: str,
+    topas_subscore_index_col: str,
     ligand: bool,
 ) -> pd.Series:
 
     z_scores = get_weighted_z_scores(
-        z_score_df, subbasket_df, z_score_index_col, subbasket_index_col
+        z_score_df, topas_subscore_df, z_score_index_col, topas_subscore_index_col
     )
 
     # cap the z-scores between -4 and +4 unless ligand
@@ -545,14 +545,14 @@ def get_weighted_max(
 
 def get_summed_zscore(
     z_score_df: pd.DataFrame,
-    subbasket_df: pd.DataFrame,
+    topas_subscore_df: pd.DataFrame,
     z_score_index_col: str,
-    subbasket_index_col: str,
+    topas_subscore_index_col: str,
     ligand: bool,
 ) -> pd.Series:
 
     z_scores = get_weighted_z_scores(
-        z_score_df, subbasket_df, z_score_index_col, subbasket_index_col
+        z_score_df, topas_subscore_df, z_score_index_col, topas_subscore_index_col
     )
     # cap the z-scores between -4 and +4 unless ligand
     if ligand:
@@ -566,9 +566,9 @@ def get_summed_zscore(
 
 def get_zscores(
     z_score_df: pd.DataFrame,
-    subbasket_df: pd.DataFrame,
+    topas_subscore_df: pd.DataFrame,
     z_score_index_col: str,
-    subbasket_index_col: str,
+    topas_subscore_index_col: str,
 ):
     # only keep samples and z_score_index_col columns
     z_scores = z_score_df.astype(
@@ -578,16 +578,16 @@ def get_zscores(
 
     # deal with protein groups; in the z-score dataframe protein groups exists,
     # e.g. AKT1;AKT2;AKT3. We temporarily split them in separate rows to merge
-    # with subbasket_df, where each row only contains a single protein. After
+    # with topas_subscore_df, where each row only contains a single protein. After
     # merging we combine those rows into a single row again.
     z_scores, z_score_index_col_exploded = utils.explode_on_separated_string(
         z_scores, z_score_index_col
     )
-    # merge z-score dataframe with basket genes
+    # merge z-score dataframe with TOPAS genes
     z_scores = z_scores.merge(
-        subbasket_df[[subbasket_index_col]],
+        topas_subscore_df[[topas_subscore_index_col]],
         left_on=z_score_index_col_exploded,
-        right_on=subbasket_index_col,
+        right_on=topas_subscore_index_col,
     )
     # merge proteins from the same protein group into a single row
     z_scores = z_scores.groupby(z_score_index_col).agg("first").reset_index()
@@ -597,15 +597,15 @@ def get_zscores(
 
 def get_weighted_z_scores(
     z_score_df: pd.DataFrame,
-    subbasket_df: pd.DataFrame,
+    topas_subscore_df: pd.DataFrame,
     z_score_index_col: str,
-    subbasket_index_col: str,
+    topas_subscore_index_col: str,
 ) -> pd.DataFrame:
     """
     z_score_df is a pandas dataframe with z_scores as columns and genes/modified sequences as rows
-    subbasket_df is a pandas dataframe with genes with weights as rows
+    topas_subscore_df is a pandas dataframe with genes with weights as rows
     z_score_index_col is the column name with the identifier in z_score_df, e.g. "Gene names" or "Modified sequence"
-    subbasket_index_col is the column name with the identifier in subbasket_df, e.g. "GENE NAME" or "Modified sequence"
+    topas_subscore_index_col is the column name with the identifier in subbasket_df, e.g. "GENE NAME" or "Modified sequence"
     """
     # only keep samples and z_score_index_col columns
     z_scores = z_score_df.astype(
@@ -615,23 +615,23 @@ def get_weighted_z_scores(
 
     # deal with protein groups; in the z-score dataframe protein groups exists,
     # e.g. AKT1;AKT2;AKT3. We temporarily split them in separate rows to merge
-    # with subbasket_df, where each row only contains a single protein. After
+    # with topas_subscore_df, where each row only contains a single protein. After
     # merging we combine those rows into a single row again.
     z_scores, z_score_index_col_exploded = utils.explode_on_separated_string(
         z_scores, z_score_index_col
     )
 
-    # merge z-score dataframe with basket genes
+    # merge z-score dataframe with TOPAS genes
     z_scores = z_scores.merge(
-        subbasket_df[[subbasket_index_col, "WEIGHT"]],
+        topas_subscore_df[[topas_subscore_index_col, "WEIGHT"]],
         left_on=z_score_index_col_exploded,
-        right_on=subbasket_index_col,
+        right_on=topas_subscore_index_col,
     )
-    if set(subbasket_df[subbasket_index_col]) != set(
+    if set(topas_subscore_df[topas_subscore_index_col]) != set(
         z_scores[z_score_index_col_exploded]
     ):
         logger.warning(
-            f"Could not find all identifiers: {set(subbasket_df[subbasket_index_col]) - set(z_scores[z_score_index_col_exploded])}"
+            f"Could not find all identifiers: {set(topas_subscore_df[topas_subscore_index_col]) - set(z_scores[z_score_index_col_exploded])}"
         )
 
     # merge proteins from the same protein group into a single row
@@ -641,7 +641,7 @@ def get_weighted_z_scores(
     # multiply the z-score by the associated weight (usually -1 or +1)
     weights = z_scores["WEIGHT"]
     z_scores = z_scores.drop(
-        columns=[z_score_index_col_exploded, subbasket_index_col, "WEIGHT"]
+        columns=[z_score_index_col_exploded, topas_subscore_index_col, "WEIGHT"]
     )
     z_scores = z_scores.multiply(weights, axis=0)
     return z_scores
@@ -649,7 +649,7 @@ def get_weighted_z_scores(
 
 def calculate_topas_scores(
     measures: Dict[str, pd.DataFrame],
-    basket_scores: pd.DataFrame,
+    topas_scores_df: pd.DataFrame,
     data_type: str,
     score_method: str = "sum_weighted_zscore",
 ) -> pd.DataFrame:
@@ -665,100 +665,100 @@ def calculate_topas_scores(
             message=r".*DataFrame is highly fragmented*",
         )
 
-        basket_scores = calculate_basket_scores_single(
-            measures["score"], f"{data_type.upper()} - Scores", "basket", basket_scores
+        topas_scores_df = calculate_topas_scores_single(
+            measures["score"], f"{data_type.upper()} - Scores", "basket", topas_scores_df
         )
-        basket_scores = calculate_basket_scores_single(
-            measures["score"], f"{data_type.upper()} - RTK Scores", "rtk", basket_scores
+        topas_scores_df = calculate_topas_scores_single(
+            measures["score"], f"{data_type.upper()} - RTK Scores", "rtk", topas_scores_df
         )
 
-    return basket_scores
+    return topas_scores_df
 
 
-def calculate_basket_scores_single(
+def calculate_topas_scores_single(
     score_df: pd.DataFrame,
     sheet_name: str,
-    basket_column: str,
+    topas_column: str,
     scores: pd.DataFrame,
     apply_z_score=False,
 ):
-    logger.info(f"Calculating basket scores for {sheet_name}")
+    logger.info(f"Calculating TOPAS scores for {sheet_name}")
 
     patient_columns = [c for c in score_df.columns if c.startswith("score_")]
 
     # save number of identified annotated genes/p-sites for boxplot titles
     scores[f"{sheet_name}.num_identified"] = score_df[patient_columns].count()
 
-    # filter only entries with a basket entry
-    score_df = score_df[score_df[basket_column].notna()].copy(deep=False)
+    # filter only entries with a TOPAS entry
+    score_df = score_df[score_df[topas_column].notna()].copy(deep=False)
 
     # save number of identified annotated genes/p-sites for boxplot titles
     scores[f"{sheet_name}.num_annotated"] = score_df[patient_columns].count()
 
-    score_df[basket_column] = score_df[basket_column].apply(lambda x: x.split(";"))
-    score_df = score_df.astype({f"{basket_column}_weights": str}, errors="raise")
-    score_df[f"{basket_column}_weights"] = score_df[f"{basket_column}_weights"].apply(
+    score_df[topas_column] = score_df[topas_column].apply(lambda x: x.split(";"))
+    score_df = score_df.astype({f"{topas_column}_weights": str}, errors="raise")
+    score_df[f"{topas_column}_weights"] = score_df[f"{topas_column}_weights"].apply(
         lambda x: x.split(";")
     )
 
-    # replicate each entry into multiple rows for each corresponding basket annotations
-    score_df = score_df.explode([basket_column, f"{basket_column}_weights"])
-    for basket, df_basket in score_df.groupby(basket_column):
+    # replicate each entry into multiple rows for each corresponding TOPAS annotations
+    score_df = score_df.explode([topas_column, f"{topas_column}_weights"])
+    for topas_name, topas_score_df in score_df.groupby(topas_column):
         if "FP" in sheet_name:
-            df_basket[patient_columns] = df_basket[patient_columns].multiply(
-                df_basket[f"{basket_column}_weights"].astype(float), axis="index"
+            topas_score_df[patient_columns] = topas_score_df[patient_columns].multiply(
+                topas_score_df[f"{topas_column}_weights"].astype(float), axis="index"
             )
         if (
             sheet_name == "FP - Scores"
-            and basket_column == "basket"
-            and basket in ["TK", "Immunotherapy"]
+            and topas_column == "basket"
+            and topas_name in ["TK", "Immunotherapy"]
         ):
-            scores[f"{sheet_name}.{basket}"] = df_basket[patient_columns].max(axis=0)
+            scores[f"{sheet_name}.{topas_name}"] = topas_score_df[patient_columns].max(axis=0)
         else:
-            scores[f"{sheet_name}.{basket}"] = df_basket[patient_columns].sum(axis=0)
+            scores[f"{sheet_name}.{topas_name}"] = topas_score_df[patient_columns].sum(axis=0)
         if apply_z_score:
-            scores[f"{sheet_name}.{basket}"] = (
-                scores[f"{sheet_name}.{basket}"]
-                - scores[f"{sheet_name}.{basket}"].median()
-            ) / scores[f"{sheet_name}.{basket}"].std()
+            scores[f"{sheet_name}.{topas_name}"] = (
+                scores[f"{sheet_name}.{topas_name}"]
+                - scores[f"{sheet_name}.{topas_name}"].median()
+            ) / scores[f"{sheet_name}.{topas_name}"].std()
     return scores
 
 
-def save_topas_scores(basket_scores: pd.DataFrame, out_file: str):
-    basket_scores = basket_scores.rename(index=lambda x: x.replace("score_", ""))
-    basket_scores.index.name = "Sample"
-    basket_scores = basket_scores.fillna(0)
-    basket_scores.to_csv(out_file, sep="\t", float_format="%.4g")
+def save_topas_scores(topas_scores_df: pd.DataFrame, out_file: str):
+    topas_scores_df = topas_scores_df.rename(index=lambda x: x.replace("score_", ""))
+    topas_scores_df.index.name = "Sample"
+    topas_scores_df = topas_scores_df.fillna(0)
+    topas_scores_df.to_csv(out_file, sep="\t", float_format="%.4g")
 
 
-def save_topas_scores_long_format(basket_scores, out_file):
-    basket_names = basket_scores.columns[
-        basket_scores.columns != "Sample"
+def save_topas_scores_long_format(topas_scores_df: pd.DataFrame, out_file: str):
+    topas_names = topas_scores_df.columns[
+        topas_scores_df.columns != "Sample"
     ].values.tolist()
-    basket_scores_long = pd.melt(
-        basket_scores.reset_index(), id_vars="Sample", value_vars=basket_names
+    topas_scores_df_long = pd.melt(
+        topas_scores_df.reset_index(), id_vars="Sample", value_vars=topas_names
     )
-    basket_scores_long["Data type"] = [
+    topas_scores_df_long["Data type"] = [
         "FP" if "FP" in variable else "PP"
-        for variable in basket_scores_long["variable"]
+        for variable in topas_scores_df_long["variable"]
     ]
-    basket_scores_long["Basket type"] = [
+    topas_scores_df_long["Basket type"] = [
         "RTK" if "RTK Scores" in variable else "Main"
-        for variable in basket_scores_long["variable"]
+        for variable in topas_scores_df_long["variable"]
     ]
-    basket_scores_long = basket_scores_long.loc[
-        ~basket_scores_long["variable"].str.contains("TOPAS Drug"), :
+    topas_scores_df_long = topas_scores_df_long.loc[
+        ~topas_scores_df_long["variable"].str.contains("TOPAS Drug"), :
     ]
-    basket_scores_long["variable"] = (
-        basket_scores_long["variable"].str.split(".").str.get(-1)
+    topas_scores_df_long["variable"] = (
+        topas_scores_df_long["variable"].str.split(".").str.get(-1)
     )
-    basket_scores_long.to_csv(out_file, sep="\t", float_format="%.4g")
+    topas_scores_df_long.to_csv(out_file, sep="\t", float_format="%.4g")
 
 
 def extract_topas_member_z_scores(
     results_folder: Union[str, Path],
     topas_annotation_file: Union[str, Path],
-    basket_results_folder: str = "",
+    topas_results_folder: str = "",
 ) -> None:
     """
     Extracts original p-site/gene z-scores / phosphorylation scores / kinase scores
@@ -768,33 +768,33 @@ def extract_topas_member_z_scores(
     - kinase_results/kinase_scores.tsv is generated by TOPAS_kinase_scoring.py
     """
 
-    all_baskets_df = read_topas_annotation_file(topas_annotation_file)
+    topas_annotation_df = read_topas_annotation_file(topas_annotation_file)
 
     z_scores_fp_df = load_z_scores_fp(results_folder)
     z_scores_pp_df = load_z_scores_pp(results_folder)
     protein_phosphorylation_df = load_protein_phosphorylation(results_folder)
     kinase_scores_df = load_kinase_scores(results_folder)
 
-    all_baskets_df["WEIGHT"] = 1
+    topas_annotation_df["WEIGHT"] = 1
 
     os.makedirs(
-        os.path.join(results_folder, basket_results_folder, "basket_member_z_scores"),
+        os.path.join(results_folder, topas_results_folder, "basket_member_z_scores"),
         exist_ok=True,
     )
 
-    for basket_name, basket_df in all_baskets_df.groupby("BASKET"):
-        logger.info(f"Extracting basket member z-scores for {basket_name}")
+    for topas_name, topas_score_df in topas_annotation_df.groupby("BASKET"):
+        logger.info(f"Extracting basket member z-scores for {topas_name}")
         z_score_dfs = []
-        for subbasket_name, subbasket_df in basket_df.groupby("subbasket_level"):
-            scoring_rule = subbasket_df["SCORING RULE"].iloc[0].lower()
+        for topas_subscore_name, topas_subscore_df in topas_score_df.groupby("subbasket_level"):
+            scoring_rule = topas_subscore_df["SCORING RULE"].iloc[0].lower()
             if scoring_rule == "highest z-score":
-                subbasket_z_scores = get_weighted_z_scores(
-                    z_scores_fp_df, subbasket_df, "Gene names", "GENE NAME"
+                topas_subscore_z_scores = get_weighted_z_scores(
+                    z_scores_fp_df, topas_subscore_df, "Gene names", "GENE NAME"
                 )
             elif scoring_rule == "highest z-score (p-site)":
-                subbasket_z_scores = get_weighted_z_scores(
+                topas_subscore_z_scores = get_weighted_z_scores(
                     z_scores_pp_df,
-                    subbasket_df,
+                    topas_subscore_df,
                     "Modified sequence",
                     "MODIFIED SEQUENCE",
                 )
@@ -802,25 +802,25 @@ def extract_topas_member_z_scores(
                 scoring_rule
                 == "highest protein phosphorylation score (2nd level z-score, fh)"
             ):
-                subbasket_z_scores = get_weighted_z_scores(
-                    protein_phosphorylation_df, subbasket_df, "Gene names", "GENE NAME"
+                topas_subscore_z_scores = get_weighted_z_scores(
+                    protein_phosphorylation_df, topas_subscore_df, "Gene names", "GENE NAME"
                 )
             elif scoring_rule == "highest kinase score (2nd level z-score, fh)":
-                subbasket_z_scores = get_weighted_z_scores(
-                    kinase_scores_df, subbasket_df, "PSP Kinases", "GENE NAME"
+                topas_subscore_z_scores = get_weighted_z_scores(
+                    kinase_scores_df, topas_subscore_df, "PSP Kinases", "GENE NAME"
                 )
             elif scoring_rule == "summed z-score":
-                subbasket_z_scores = get_weighted_z_scores(
-                    z_scores_fp_df, subbasket_df, "Gene names", "GENE NAME"
+                topas_subscore_z_scores = get_weighted_z_scores(
+                    z_scores_fp_df, topas_subscore_df, "Gene names", "GENE NAME"
                 )
             else:
                 raise ValueError(f"Unknown scoring rule {scoring_rule}")
 
-            subbasket_z_scores.index = subbasket_z_scores.index.map(
-                lambda x: f"{x} - {subbasket_name}"
+            topas_subscore_z_scores.index = topas_subscore_z_scores.index.map(
+                lambda x: f"{x} - {topas_subscore_name}"
             )
 
-            z_score_dfs.append(subbasket_z_scores)
+            z_score_dfs.append(topas_subscore_z_scores)
 
         z_score_df = pd.concat(z_score_dfs).T
         z_score_df = z_score_df.drop(
@@ -830,9 +830,9 @@ def extract_topas_member_z_scores(
         z_score_df.to_csv(
             os.path.join(
                 results_folder,
-                basket_results_folder,
+                topas_results_folder,
                 "basket_member_z_scores",
-                f'basket_member_z_scores_{basket_name.replace("/", "_").replace(" ", "_")}.tsv',
+                f'basket_member_z_scores_{topas_name.replace("/", "_").replace(" ", "_")}.tsv',
             ),
             sep="\t",
             float_format="%.4g",
@@ -876,12 +876,12 @@ if __name__ == "__main__":
         data_types=configs.data_types,
         topas_annotation_file=configs.clinic_proc.prot_baskets,
         metadata_file=configs.metadata_annotation,
-        basket_results_folder=args.basket_results_folder,
+        topas_results_folder=args.basket_results_folder,
     )
 
     if args.basket_member_zscores:
         extract_topas_member_z_scores(
             configs.results_folder,
             topas_annotation_file=configs.clinic_proc.prot_baskets,
-            basket_results_folder=args.basket_results_folder,
+            topas_results_folder=args.basket_results_folder,
         )
