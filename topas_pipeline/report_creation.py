@@ -13,8 +13,8 @@ from . import config
 from . import sample_annotation as sa
 from . import utils as utils
 from . import metrics as metrics
-from . import clinical_annotation as clinical_annotation
-from . import clinical_tools as clinical_tools
+from . import clinical_annotation
+from . import clinical_tools
 from . import TOPAS_scoring
 from . import TOPAS_kinase_scoring as kinase_scoring
 from . import TOPAS_protein_phosphorylation_scoring as protein_phoshorylation_scoring
@@ -23,6 +23,40 @@ logger = logging.getLogger(__name__)
 
 TOPAS_SCORE_COLUMNS = clinical_annotation.TOPAS_SCORE_COLUMNS
 TOPAS_SUBSCORE_COLUMNS = clinical_annotation.TOPAS_SUBSCORE_COLUMNS
+
+
+def get_unique_topas_names(topas_names: Union[List, str, float]) -> str:
+    if type(topas_names) != list and type(topas_names) != float:
+        topas_names = topas_names.split(";")
+    if type(topas_names) != float:
+        topas_names = ";".join(np.unique(np.array(topas_names)))
+    return topas_names
+
+
+def merge_topas_score_and_subscore_names(row: pd.Series) -> str:
+    topas_subscore_names = row[list(TOPAS_SUBSCORE_COLUMNS.keys())[0]]
+    if not pd.isnull(row[list(TOPAS_SUBSCORE_COLUMNS.keys())[0]]):
+        topas_subscore_list = row[list(TOPAS_SUBSCORE_COLUMNS.keys())[0]].split(";")
+        topas_score_list = row[list(TOPAS_SCORE_COLUMNS.keys())[0]].split(";")
+        topas_subscore_names = [
+            (
+                topas_score_list[i] + " - " + topas_subscore_list[i]
+                if len(topas_score_list[i]) > 0
+                else ""
+            )
+            for i in range(len(topas_subscore_list))
+        ]
+        topas_subscore_names = get_unique_topas_names(topas_subscore_names)
+    return topas_subscore_names
+
+
+def post_process_topas_columns(annot: pd.DataFrame) -> pd.DataFrame:
+    # Get unique TOPAS names and add main TOPAS name to TOPAS subscore level
+    for key in TOPAS_SUBSCORE_COLUMNS.keys():
+        annot[key] = annot.apply(merge_topas_score_and_subscore_names, axis=1)
+    for key in TOPAS_SCORE_COLUMNS.keys():
+        annot[key] = annot[key].apply(get_unique_topas_names)
+    return annot
 
 
 def create_report(
@@ -104,7 +138,7 @@ def create_report(
         annot = clinical_annotation.read_annotated_expression_file(
             results_folder, data_type
         )
-        annot = clinical_annotation.post_process_topas_columns(annot)
+        annot = post_process_topas_columns(annot)
         measure_dfs[data_type] = {"metrics": measures, "metadata": annot}
         if len(samples_list) == 0:
             samples_for_report = (
@@ -847,7 +881,7 @@ def create_wp2_worksheet(
     for topas_score in TOPAS_SCORE_COLUMNS.keys():
         # remove duplicated TOPAS annotations
         measures[topas_score] = measures[topas_score].apply(
-            clinical_annotation.get_unique_topas_names
+            get_unique_topas_names
         )
 
     # rename the metric columns and TOPAS score
