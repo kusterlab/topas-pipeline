@@ -20,7 +20,7 @@ class TestClinicalProcess:
             "topas_pipeline.clinical_annotation.add_clinical_annotations_data_type",
             side_effect=mock_add_clinical_annotations_data_type,
         )
-        cp.add_clinical_annotations(data_types=data_types)
+        cp.add_clinical_annotations(data_types=data_types, debug=False)
 
         assert data_types_processed == data_types
 
@@ -47,7 +47,6 @@ class TestClinicalProcessDataType:
 
         # Test data
         results_folder = "test_results"
-        debug = False
         clinic_proc_config = config.ClinicProc(
             prot_baskets="test_topas_annotation_file",
             pspFastaFile="test_fasta",
@@ -61,7 +60,6 @@ class TestClinicalProcessDataType:
         # Call the function
         cp.add_clinical_annotations_data_type(
             results_folder,
-            debug,
             clinic_proc_config,
             data_type,
         )

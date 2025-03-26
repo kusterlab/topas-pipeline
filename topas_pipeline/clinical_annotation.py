@@ -32,13 +32,16 @@ TOPAS_SUBSCORE_COLUMNS = {
 
 def add_clinical_annotations(*args, **kwargs) -> None:
     data_types = kwargs.pop("data_types")
+    debug = kwargs.pop("debug")
+    if debug:
+        data_types += [data_type + "_with_ref" for data_type in data_types]
+
     for data_type in data_types:
         add_clinical_annotations_data_type(*args, **kwargs, data_type=data_type)
 
 
 def add_clinical_annotations_data_type(
     results_folder: Union[str, Path],
-    debug: bool,
     clinic_proc_config: config.ClinicProc,
     data_type: str,
 ) -> None:
@@ -52,67 +55,48 @@ def add_clinical_annotations_data_type(
     """
     # TODO: check if data files with ref if so use these as with_ref otherwise use normal as with_ref
 
-    # check if this step has already been done
     if os.path.exists(os.path.join(results_folder, f"annot_{data_type}.csv")):
         logger.info(
             f"Clinical processing {data_type} skipped - found files already preprocessed"
         )
         return
-    dfs = dict()
-    if data_type == "fp":
+
+    if data_type.startswith("fp"):
         index_col = "Gene names"
         keep_default_na = True
     else:
         index_col = "Modified sequence"
         keep_default_na = False
-    dfs[data_type] = pd.read_csv(
+    preprocessed_df = pd.read_csv(
         os.path.join(results_folder, f"preprocessed_{data_type}.csv"),
-        index_col=index_col,
-        keep_default_na=keep_default_na,
-    )
-
-    data_type_with_ref = f"{data_type}_with_ref"
-    dfs[data_type_with_ref] = pd.read_csv(
-        os.path.join(results_folder, f"preprocessed_{data_type_with_ref}.csv"),
         index_col=index_col,
         keep_default_na=keep_default_na,
     )
 
     if data_type == "pp":
         logger.info("Annotating phospho sites")
-        dfs[data_type] = clinical_tools.phospho_annot(
-            dfs[data_type],
+        preprocessed_df = clinical_tools.phospho_annot(
+            preprocessed_df,
             clinic_proc_config,
         )
 
         logger.info("Adding PhosphoSitePlus URLs")
-        # TODO: add PSP URLs again
-        dfs[data_type] = clinical_tools.add_psp_urls(dfs[data_type])
-
-        if debug:
-            dfs[data_type_with_ref] = clinical_tools.phospho_annot(
-                dfs[data_type_with_ref],
-                clinic_proc_config,
-            )
-            dfs[data_type_with_ref] = clinical_tools.add_psp_urls(
-                dfs[data_type_with_ref]
-            )
+        preprocessed_df = clinical_tools.add_psp_urls(preprocessed_df)
 
     annot_levels = list(TOPAS_SCORE_COLUMNS.keys()) + list(
         TOPAS_SUBSCORE_COLUMNS.keys()
     )
 
-    for data_type in dfs.keys():
-        for annot_type in annot_levels:
-            dfs[data_type] = clinical_tools.prot_clinical_annotation(
-                dfs[data_type],
-                clinic_proc_config.prot_baskets,
-                data_type=data_type,
-                annot_type=annot_type,
-            )
-        dfs[data_type].to_csv(
-            os.path.join(results_folder, f"annot_{data_type}.csv"), float_format="%.6g"
+    for annot_type in annot_levels:
+        preprocessed_df = clinical_tools.prot_clinical_annotation(
+            preprocessed_df,
+            clinic_proc_config.prot_baskets,
+            data_type=data_type,
+            annot_type=annot_type,
         )
+    preprocessed_df.to_csv(
+        os.path.join(results_folder, f"annot_{data_type}.csv"), float_format="%.6g"
+    )
 
 
 def merge_topas_score_and_subscore_names(row: pd.Series) -> str:

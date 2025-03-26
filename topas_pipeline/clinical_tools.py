@@ -273,8 +273,6 @@ def read_clinical_annotation(annot_file: str) -> pd.DataFrame:
     topas_annotation_df["WEIGHT"] = topas_annotation_df["WEIGHT"].fillna(
         1
     )  # empty cell in WEIGHT column means weight = 1
-    # topas_annotation_df = topas_annotation_df.rename(
-    #     {'TOPAS_SCORE': 'TOPAS_score', 'TOPAS_SUBSCORE': 'TOPAS_subscore', 'WEIGHT': 'weight', 'GENE NAME': 'gene'}, axis=1)
     topas_annotation_df = topas_annotation_df.rename(
         {
             "TOPAS_SCORE": "basket",
