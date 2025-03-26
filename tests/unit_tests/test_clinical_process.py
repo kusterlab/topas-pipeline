@@ -120,12 +120,10 @@ class TestReadAnnotationFiles:
         mocker.patch("pandas.read_csv", return_value=mock_annot)
 
         results_folder = "test_folder"
-        debug = False
         data_type = "test_type"
 
-        annot, annot_ref = cp.read_annotation_files(results_folder, debug, data_type)
+        annot = cp.read_annotated_expression_file(results_folder, data_type)
 
         assert annot is not None
-        assert annot_ref is None
         assert "TOPAS_score" in annot.columns
         assert "TOPAS_subscore" in annot.columns

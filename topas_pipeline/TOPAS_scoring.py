@@ -162,7 +162,7 @@ def load_z_scores_fp(results_folder):
     z_scores_fp_df = utils.keep_only_sample_columns(z_scores_fp_df)
 
     # replace missing values but detected in batch with -4.0
-    annot_fp, _ = clinical_process.read_annotation_files(results_folder, False, "fp")
+    annot_fp = clinical_process.read_annotated_expression_file(results_folder, "fp")
     z_scores_fp_df = id_meta.replace_detected_in_batch(z_scores_fp_df, annot_fp, -4.0)
 
     return z_scores_fp_df

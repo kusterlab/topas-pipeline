@@ -37,9 +37,13 @@ def compute_metrics(
             continue
 
         logger.info(f"Reading in clinically annotated {data_type} data")
-        annot, annot_ref = clinical_process.read_annotation_files(
-            results_folder, debug, data_type
+        annot = clinical_process.read_annotated_expression_file(
+            results_folder, data_type
         )
+        if debug:
+            annot_ref = clinical_process.read_annotated_expression_file(
+                results_folder, f"{data_type}_with_ref"
+            )
         # filter for patient columns
         # annot = annot.filter(regex=patient_regex)
         # remove metadata

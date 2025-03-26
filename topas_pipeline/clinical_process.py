@@ -138,29 +138,16 @@ def get_unique_topas_names(topas_names: Union[List, str, float]) -> str:
     return topas_names
 
 
-def read_annotation_files(
+def read_annotated_expression_file(
     results_folder: Union[str, Path],
-    debug: bool,
     data_type: str,
     post_process_topas_columns: bool = True,
-):
+) -> pd.DataFrame:
     index_cols = utils.get_index_cols(data_type)
 
     annot = pd.read_csv(
         os.path.join(results_folder, f"annot_{data_type}.csv"), index_col=index_cols
     )
-
-    annot_ref = None
-    if debug:
-        annot_ref = pd.read_csv(
-            os.path.join(results_folder, f"annot_{data_type}_with_ref.csv"),
-            index_col=index_cols,
-        )
-        if post_process_topas_columns:
-            for key in TOPAS_SUBSCORE_COLUMNS.keys():
-                annot_ref[key] = annot_ref.apply(merge_topas_score_and_subscore_names, axis=1)
-            for key in TOPAS_SCORE_COLUMNS.keys():
-                annot_ref[key] = annot_ref[key].apply(get_unique_topas_names)
 
     if post_process_topas_columns:
         # Get unique TOPAS names and add main TOPAS name to TOPAS subscore level
@@ -168,7 +155,7 @@ def read_annotation_files(
             annot[key] = annot.apply(merge_topas_score_and_subscore_names, axis=1)
         for key in TOPAS_SCORE_COLUMNS.keys():
             annot[key] = annot[key].apply(get_unique_topas_names)
-    return annot, annot_ref
+    return annot
 
 
 """

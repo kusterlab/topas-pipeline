@@ -81,15 +81,14 @@ class TestLoadZScoresFp:
         )
         mocker.patch("topas_pipeline.metrics.read_measures", return_value={"z-score": measure1_df})
         mocker.patch(
-            "topas_pipeline.metrics.clinical_process.read_annotation_files",
+            "topas_pipeline.metrics.clinical_process.read_annotated_expression_file",
             return_value=(
                 pd.DataFrame(
                     {
                         "Identification metadata patient1": ["", "detected in batch;"],
                         "Identification metadata patient2": ["", ""],
                     }
-                ),
-                pd.DataFrame(),
+                )
             ),
         )
 

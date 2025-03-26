@@ -101,8 +101,8 @@ def create_report(
     measure_dfs = dict()
     for data_type in data_types:
         measures = metrics.read_measures(results_folder, data_type)
-        annot, _ = clinical_process.read_annotation_files(
-            results_folder, debug, data_type
+        annot = clinical_process.read_annotated_expression_file(
+            results_folder, data_type
         )
         measure_dfs[data_type] = {"metrics": measures, "metadata": annot}
         if len(samples_list) == 0:

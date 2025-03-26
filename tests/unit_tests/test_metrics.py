@@ -19,7 +19,7 @@ class TestComputeMetrics:
             "topas_pipeline.metrics.check_measures_computed", return_value=False
         )
         mocker.patch(
-            "topas_pipeline.metrics.clinical_process.read_annotation_files",
+            "topas_pipeline.metrics.clinical_process.read_annotated_expression_file",
             return_value=(
                 pd.DataFrame(
                     {
@@ -28,8 +28,7 @@ class TestComputeMetrics:
                         "TOPAS_subscore": ["subtopas1", "subtopas2"],
                         "TOPAS_subscore_weights": [0.25, 0.8],
                     }
-                ),
-                pd.DataFrame(),
+                )
             ),
         )
 
@@ -43,7 +42,7 @@ class TestComputeMetrics:
 
         # Assertions to ensure the functions were called correctly
         assert metrics.check_measures_computed.call_count == len(data_types)
-        assert metrics.clinical_process.read_annotation_files.call_count == len(
+        assert metrics.clinical_process.read_annotated_expression_file.call_count == len(
             data_types
         )
         assert metrics.save_measures.call_count == len(data_types)
