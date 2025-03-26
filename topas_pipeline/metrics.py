@@ -10,6 +10,7 @@ import scipy.stats
 import numpy as np
 import pandas as pd
 
+from . import clinical_tools
 from . import clinical_annotation
 from . import utils
 
@@ -40,12 +41,15 @@ def compute_metrics(
             continue
 
         logger.info(f"Reading in clinically annotated {data_type} data")
-        annot = clinical_annotation.read_annotated_expression_file(
+        annot_df = clinical_annotation.read_annotated_expression_file(
             results_folder, data_type
         )
-        annot = annot.filter(regex=r"(^pat_)|(^ref_)")
 
-        measures = compute_measures(annot)
+        measures = get_metrics(annot_df.filter(regex=r"(^pat_)|(^ref_)"))
+        # TODO: check if these annotation columns are still used anywhere, they 
+        # have been absent since renaming 'BASKET' to 'TOPAS_SCORE' in the TOPAS
+        # annotation file around January 2025
+        # measures["z-score"] = add_topas_annotations(measures["z-score"], annot_df)
 
         save_measures(
             results_folder,
@@ -53,6 +57,25 @@ def compute_metrics(
             measures,
             data_type,
         )
+
+
+def add_topas_annotations(
+    measure_df: pd.DataFrame, annot_df: pd.DataFrame
+) -> pd.DataFrame:
+    topas_score_col = list(clinical_tools.TOPAS_SCORE_COLUMNS.keys())[0]
+    topas_subscore_col = list(clinical_tools.TOPAS_SUBSCORE_COLUMNS.keys())[0]
+    measure_df = measure_df.join(
+        annot_df.loc[
+            :,
+            [
+                topas_score_col,
+                f"{topas_score_col}_weights",
+                topas_subscore_col,
+                f"{topas_subscore_col}_weights",
+            ],
+        ]
+    )
+    return measure_df
 
 
 class Metrics:
@@ -254,35 +277,15 @@ def read_measures(
     return measures
 
 
-def compute_measures(df: pd.DataFrame) -> Dict[str, pd.DataFrame]:
-    """
-    describe and also what data is
-    """
-    measures = get_metrics(df)  # ~1 minute
-
-    # add TOPAS score annotations to z-scores dataframe
-    if "rtk" in df.columns:
-        measures["z-score"] = measures["z-score"].join(
-            df.loc[
-                :,
-                [
-                    "basket",
-                    "basket_weights",
-                    "other",
-                    "other_weights",
-                    "rtk",
-                    "rtk_weights",
-                ],
-            ]
-        )
-    else:
-        if "basket_weights" in df.columns:
-            measures["z-score"] = measures["z-score"].join(
-                df.loc[
-                    :, ["basket", "basket_weights", "sub_basket", "sub_basket_weights"]
-                ]
-            )
-    return measures
+def get_topas_annotation_columns() -> List[str]:
+    topas_score_col = list(clinical_tools.TOPAS_SCORE_COLUMNS.keys())[0]
+    topas_subscore_col = list(clinical_tools.TOPAS_SUBSCORE_COLUMNS.keys())[0]
+    return [
+        topas_score_col,
+        f"{topas_score_col}_weights",
+        topas_subscore_col,
+        f"{topas_subscore_col}_weights",
+    ]
 
 
 def save_measures(

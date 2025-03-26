@@ -266,6 +266,10 @@ def topas_score_preprocess(results_folder, discard_isoforms=True):
     drop_cols = [
         "PSP_URL",
         "PSP_URL_extra",
+        "TOPAS_score",
+        "TOPAS_score_weights",
+        "TOPAS_subscore",
+        "TOPAS_subscore_weights",
         "basket",
         "basket_weights",
         "sub_basket",

@@ -21,42 +21,8 @@ from . import TOPAS_protein_phosphorylation_scoring as protein_phoshorylation_sc
 
 logger = logging.getLogger(__name__)
 
-TOPAS_SCORE_COLUMNS = clinical_annotation.TOPAS_SCORE_COLUMNS
-TOPAS_SUBSCORE_COLUMNS = clinical_annotation.TOPAS_SUBSCORE_COLUMNS
-
-
-def get_unique_topas_names(topas_names: Union[List, str, float]) -> str:
-    if type(topas_names) != list and type(topas_names) != float:
-        topas_names = topas_names.split(";")
-    if type(topas_names) != float:
-        topas_names = ";".join(np.unique(np.array(topas_names)))
-    return topas_names
-
-
-def merge_topas_score_and_subscore_names(row: pd.Series) -> str:
-    topas_subscore_names = row[list(TOPAS_SUBSCORE_COLUMNS.keys())[0]]
-    if not pd.isnull(row[list(TOPAS_SUBSCORE_COLUMNS.keys())[0]]):
-        topas_subscore_list = row[list(TOPAS_SUBSCORE_COLUMNS.keys())[0]].split(";")
-        topas_score_list = row[list(TOPAS_SCORE_COLUMNS.keys())[0]].split(";")
-        topas_subscore_names = [
-            (
-                topas_score_list[i] + " - " + topas_subscore_list[i]
-                if len(topas_score_list[i]) > 0
-                else ""
-            )
-            for i in range(len(topas_subscore_list))
-        ]
-        topas_subscore_names = get_unique_topas_names(topas_subscore_names)
-    return topas_subscore_names
-
-
-def post_process_topas_columns(annot: pd.DataFrame) -> pd.DataFrame:
-    # Get unique TOPAS names and add main TOPAS name to TOPAS subscore level
-    for key in TOPAS_SUBSCORE_COLUMNS.keys():
-        annot[key] = annot.apply(merge_topas_score_and_subscore_names, axis=1)
-    for key in TOPAS_SCORE_COLUMNS.keys():
-        annot[key] = annot[key].apply(get_unique_topas_names)
-    return annot
+TOPAS_SCORE_COLUMNS = clinical_tools.TOPAS_SCORE_COLUMNS
+TOPAS_SUBSCORE_COLUMNS = clinical_tools.TOPAS_SUBSCORE_COLUMNS
 
 
 def create_report(
@@ -99,7 +65,11 @@ def create_report(
         remove_replicates=False,
         remove_reference=True,
     )
-    sample_annotation_df["Batch Name"] = sample_annotation_df["Cohort"] + "_Batch" + sample_annotation_df["Batch Name"].astype(str)
+    sample_annotation_df["Batch Name"] = (
+        sample_annotation_df["Cohort"]
+        + "_Batch"
+        + sample_annotation_df["Batch Name"].astype(str)
+    )
     sample_annotation_df = sample_annotation_df.sort_values(by="Batch Name")
 
     # Read scoring files and calculate extra annotation metrics
@@ -179,9 +149,7 @@ def read_and_compute_scores(results_folder: Union[str, Path]) -> Tuple:
         dict(),
         dict(),
     )
-    topas_scores["scores"] = TOPAS_scoring.read_topas_scores(
-        results_folder
-    ).transpose()
+    topas_scores["scores"] = TOPAS_scoring.read_topas_scores(results_folder).transpose()
     topas_scores["scores"] = topas_scores["scores"].loc[
         :, ~topas_scores["scores"].columns.str.startswith("target")
     ]
@@ -219,17 +187,55 @@ def read_and_compute_scores(results_folder: Union[str, Path]) -> Tuple:
     ]
 
     for i, score_dict in enumerate(all_scores):
-        score_dict["measures"] = metrics.compute_measures(score_dict["scores"])
+        score_dict["measures"] = metrics.get_metrics(score_dict["scores"])
         score_dict["significance"] = all_scores_copy[i].apply(
             assign_significance_score, axis=1
         )
     return topas_scores, topas_subscores, kinase_scores, protein_scores
 
 
+def get_unique_topas_names(topas_names: Union[List, str, float]) -> str:
+    if type(topas_names) != list and type(topas_names) != float:
+        topas_names = topas_names.split(";")
+    if type(topas_names) != float:
+        topas_names = ";".join(np.unique(np.array(topas_names)))
+    return topas_names
+
+
+def merge_topas_score_and_subscore_names(row: pd.Series) -> str:
+    topas_score_col = list(TOPAS_SCORE_COLUMNS.keys())[0]
+    topas_subscore_col = list(TOPAS_SUBSCORE_COLUMNS.keys())[0]
+    topas_subscore_names = row[topas_subscore_col]
+    if not pd.isnull(row[topas_subscore_col]):
+        topas_subscore_list = row[topas_subscore_col].split(";")
+        topas_score_list = row[topas_score_col].split(";")
+        topas_subscore_names = [
+            (
+                topas_score_list[i] + " - " + topas_subscore_list[i]
+                if len(topas_score_list[i]) > 0
+                else ""
+            )
+            for i in range(len(topas_subscore_list))
+        ]
+        topas_subscore_names = get_unique_topas_names(topas_subscore_names)
+    return topas_subscore_names
+
+
+def post_process_topas_columns(annot_df: pd.DataFrame) -> pd.DataFrame:
+    # Get unique TOPAS names and add main TOPAS name to TOPAS subscore level
+    for key in TOPAS_SUBSCORE_COLUMNS.keys():
+        annot_df[key] = annot_df.apply(merge_topas_score_and_subscore_names, axis=1)
+    for key in TOPAS_SCORE_COLUMNS.keys():
+        annot_df[key] = annot_df[key].apply(get_unique_topas_names)
+    return annot_df
+
+
 def compute_in_batch_rank(
     topas_scores_df: pd.DataFrame, sample_annotation_df: pd.DataFrame
 ) -> Dict:
-    topas_scores_df_copy = topas_scores_df.copy()  # copy necessary to not alter original df
+    topas_scores_df_copy = (
+        topas_scores_df.copy()
+    )  # copy necessary to not alter original df
     if "zscore" in topas_scores_df_copy.columns[1]:
         topas_scores_df_copy.columns = topas_scores_df_copy.columns.str.replace(
             "zscore_", ""
@@ -284,7 +290,7 @@ def new_compute_in_batch_scores(
         batch_mask = common_sample_annotation_df["Sample name"][
             common_sample_annotation_df["Batch Name"] == batch
         ].tolist()
-        all_measures[batch] = metrics.compute_measures(topas_scores_df.loc[:, batch_mask])
+        all_measures[batch] = metrics.get_metrics(topas_scores_df.loc[:, batch_mask])
     return all_measures
 
 
@@ -880,9 +886,7 @@ def create_wp2_worksheet(
         measures = pd.merge(left=measures, right=topas_df, on=index_values)
     for topas_score in TOPAS_SCORE_COLUMNS.keys():
         # remove duplicated TOPAS annotations
-        measures[topas_score] = measures[topas_score].apply(
-            get_unique_topas_names
-        )
+        measures[topas_score] = measures[topas_score].apply(get_unique_topas_names)
 
     # rename the metric columns and TOPAS score
     measures = measures.rename(extra_annotation_columns, axis="columns")

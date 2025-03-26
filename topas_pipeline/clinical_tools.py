@@ -12,6 +12,23 @@ from . import config
 
 logger = logging.getLogger(__name__)
 
+TOPAS_SCORE_COLUMNS = {
+    "TOPAS_score": "TOPAS annot",
+    "POI_category": "POI category",
+}
+TOPAS_SUBSCORE_COLUMNS = {
+    "TOPAS_subscore": "TOPAS sublevel annot",
+}
+
+
+# # Old annotation file format column names
+# TOPAS_SCORE_COLUMNS = {
+#     "basket": "TOPAS annot",
+# }
+# TOPAS_SUBSCORE_COLUMNS = {
+#     "sub_basket": "TOPAS sublevel annot",
+# }
+
 
 def add_phospho_annotations(
     df: pd.DataFrame,
@@ -127,7 +144,7 @@ def add_topas_annotations(
     :param df: dataframe with a 'Gene names' column to be annotated
     :param annot_file: path to file with annotations
     :param data_type: either 'pp' for phospho or 'fp' for full proteome
-    :param annot_type: either 'TOPAS score', 'TOPAS subscore', 'POI'
+    :param annot_type: either 'TOPAS_score', 'TOPAS_subscore', 'POI_category'
     """
     logger.info(f"Proteomics TOPAS annotation {data_type} {annot_type}")
 
@@ -184,9 +201,9 @@ def map_identifier_list_to_annot_types(
         if identifier in annot_dict:
 
             # should we have two dictionaries or should we split the dictionary output in case there is more than one group?
-            annot_type_in_column = "basket"
+            annot_type_in_column = list(TOPAS_SCORE_COLUMNS.keys())[0]
             if "POI" in annot_type:
-                annot_type_in_column = "sub_basket"
+                annot_type_in_column = list(TOPAS_SUBSCORE_COLUMNS.keys())[0]
 
             groups = annot_dict[identifier]["GROUP"].split(";")
             annot_group = annot_dict[identifier][annot_type_in_column].split(";")
@@ -267,16 +284,17 @@ def create_identifier_to_topas_dict(
 def read_topas_annotations(topas_annotation_file: str) -> pd.DataFrame:
     topas_annotation_df = pd.read_excel(topas_annotation_file)
     topas_annotation_df = utils.whitespace_remover(topas_annotation_df)
+
     topas_annotation_df["topas_subscore_level"] = (
         topas_annotation_df["TOPAS_SUBSCORE"] + " - " + topas_annotation_df["LEVEL"]
     )
-    topas_annotation_df["WEIGHT"] = topas_annotation_df["WEIGHT"].fillna(
-        1
-    )  # empty cell in WEIGHT column means weight = 1
+    # empty cell in WEIGHT column means weight = 1
+    topas_annotation_df["WEIGHT"] = topas_annotation_df["WEIGHT"].fillna(1)
+
     topas_annotation_df = topas_annotation_df.rename(
         {
-            "TOPAS_SCORE": "basket",
-            "TOPAS_SUBSCORE": "sub_basket",
+            "TOPAS_SCORE": "TOPAS_score",
+            "TOPAS_SUBSCORE": "TOPAS_subscore",
             "WEIGHT": "weight",
             "GENE NAME": "gene",
         },
@@ -329,7 +347,7 @@ if __name__ == "__main__":
     t0 = time.time()
     for annot_type in ["TOPAS score", "POI"]:
         df = add_topas_annotations(
-            df, annot_file, data_type=args.data_type, basket_type=annot_type
+            df, annot_file, data_type=args.data_type, annot_type=annot_type
         )
 
     df.to_csv(args.output_file, sep="\t", float_format="%.6g")

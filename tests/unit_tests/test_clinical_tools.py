@@ -104,8 +104,8 @@ class TestTopasAnnotation:
             "topas_pipeline.clinical_tools.read_topas_annotations",
             return_value=pd.DataFrame(
                 {
-                    "basket": ["topas1", "topas2"],
-                    "sub_basket": ["subtopas1", "subtopas2"],
+                    "TOPAS_score": ["topas1", "topas2"],
+                    "TOPAS_subscore": ["subtopas1", "subtopas2"],
                     "gene": ["GeneA", "GeneB"],
                     "weight": [1, np.nan],
                     "GROUP": ["(R)TK", "OTHER"],
@@ -121,16 +121,13 @@ class TestTopasAnnotation:
 
         # Calling the function under test
         result_df = ct.add_topas_annotations(
-            df, "path/to/annotation/file", "fp", "basket"
+            df, "path/to/annotation/file", "fp", "TOPAS_score"
         )
 
         expected_result_df = pd.DataFrame(
-            {"basket": ["topas1", ""], "basket_weights": ["1.0", np.nan]},
+            {"TOPAS_score": ["topas1", ""], "TOPAS_score_weights": ["1.0", np.nan]},
             index=pd.Series(["GeneA", "GeneB"], name="Gene names"),
         )
-        # Asserting the results
-        assert "basket" in result_df.columns
-        assert "basket_weights" in result_df.columns
         pd.testing.assert_frame_equal(result_df, expected_result_df, check_dtype=False)
 
 
@@ -140,19 +137,19 @@ class TestCreateIdentifierToBasketDict:
             "gene": ["gene1", "gene2", "gene1"],
             "LEVEL": ["expression", "kinase activity", "expression"],
             "GROUP": ["(R)TK", "(R)TK", "(R)TK"],
-            "basket": ["topas1", "topas2", "topas3"],
+            "TOPAS_score": ["topas1", "topas2", "topas3"],
         }
         df = pd.DataFrame(data)
         expected_output = {
             "gene1": {
                 "GROUP": "(R)TK;(R)TK",
                 "LEVEL": "expression;expression",
-                "basket": "topas1;topas3",
+                "TOPAS_score": "topas1;topas3",
             },
             "gene2": {
                 "GROUP": "(R)TK",
                 "LEVEL": "kinase activity",
-                "basket": "topas2",
+                "TOPAS_score": "topas2",
             },
         }
 
@@ -170,19 +167,19 @@ class TestCreateIdentifierToBasketDict:
                 "kinase activity",
                 "important phosphorylation",
             ],
-            "basket": ["topas1", "topas2", "topas3"],
+            "TOPAS_SCORE": ["topas1", "topas2", "topas3"],
         }
         df = pd.DataFrame(data)
         expected_output = {
             "gene1": {
                 "GROUP": "(R)TK;(R)TK",
                 "LEVEL": "important phosphorylation;phosphorylation",
-                "basket": "topas1;topas3",
+                "TOPAS_SCORE": "topas1;topas3",
             },
             "gene2": {
                 "GROUP": "(R)TK",
                 "LEVEL": "kinase activity",
-                "basket": "topas2",
+                "TOPAS_SCORE": "topas2",
             },
         }
 
@@ -212,8 +209,8 @@ class TestReadTopasAnnotation:
             result,
             pd.DataFrame(
                 {
-                    "basket": ["topas1", "topas2"],
-                    "sub_basket": ["sub1", "sub2"],
+                    "TOPAS_score": ["topas1", "topas2"],
+                    "TOPAS_subscore": ["sub1", "sub2"],
                     "GROUP": ["(R)TK", "(R)TK"],
                     "LEVEL": ["expression", "kinase activity"],
                     "weight": [0.5, 0.8],

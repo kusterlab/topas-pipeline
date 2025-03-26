@@ -6,28 +6,14 @@ import pandas as pd
 from pathlib import Path
 from typing import Union
 
-
 from . import config
 from . import clinical_tools
 from . import utils
 
 logger = logging.getLogger(__name__)
 
-TOPAS_SCORE_COLUMNS = {
-    "TOPAS_score": "TOPAS annot",
-    "POI_category": "POI category",
-}
-TOPAS_SUBSCORE_COLUMNS = {
-    "TOPAS_subscore": "TOPAS sublevel annot",
-}
-
-# # Old annotation file format column names
-# TOPAS_SCORE_COLUMNS = {
-#     "basket": "TOPAS annot",
-# }
-# TOPAS_SUBSCORE_COLUMNS = {
-#     "sub_basket": "TOPAS sublevel annot",
-# }
+TOPAS_SCORE_COLUMNS = clinical_tools.TOPAS_SCORE_COLUMNS
+TOPAS_SUBSCORE_COLUMNS = clinical_tools.TOPAS_SUBSCORE_COLUMNS
 
 
 def add_clinical_annotations(*args, **kwargs) -> None:

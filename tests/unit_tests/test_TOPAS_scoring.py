@@ -79,7 +79,10 @@ class TestLoadZScoresFp:
         measure1_df = pd.DataFrame(
             {"zscore_pat_patient1": [1, np.nan], "zscore_pat_patient2": [3, 4]}
         )
-        mocker.patch("topas_pipeline.metrics.read_measures", return_value={"z-score": measure1_df})
+        mocker.patch(
+            "topas_pipeline.metrics.read_measures",
+            return_value={"z-score": measure1_df},
+        )
         mocker.patch(
             "topas_pipeline.metrics.clinical_annotation.read_annotated_expression_file",
             return_value=(
@@ -113,7 +116,10 @@ class TestLoadZScoresPp:
                 "zscore_pat_patient2": [3, 4],
             }
         )
-        mocker.patch("topas_pipeline.metrics.read_measures", return_value={"z-score": measure1_df})
+        mocker.patch(
+            "topas_pipeline.metrics.read_measures",
+            return_value={"z-score": measure1_df},
+        )
 
         results_folder = "some/results/folder"
         result = TOPAS_scoring.load_z_scores_pp(results_folder)
@@ -191,7 +197,7 @@ class TestGetNumberIdentAnnotPerSample:
                 "Gene names": ["gene1", "gene2"],
                 "pat_1": [1, 2],
                 "pat_2": [3, 4],
-                "basket": ["A", "B"],
+                "TOPAS_SCORE": ["A", "B"],
             }
         )
         mocker.patch("pandas.read_csv", return_value=mock_df)
@@ -287,7 +293,9 @@ class TestComputeTopasScores:
                 index=pd.Series(["pat_Sample1", "pat_Sample2"]),
             ),
         )
-        mock_save_topas_scores = mocker.patch("topas_pipeline.TOPAS_scoring.save_topas_scores")
+        mock_save_topas_scores = mocker.patch(
+            "topas_pipeline.TOPAS_scoring.save_topas_scores"
+        )
         mocker.patch("topas_pipeline.TOPAS_scoring.save_rtk_scores_w_metadata")
         mocker.patch("pandas.DataFrame.to_csv")
 
@@ -519,46 +527,6 @@ class TestGetSummedZscore:
         pd.testing.assert_series_equal(result, expected_result)
 
 
-class TestCalculateTopasScores:
-    def test_default_sum_weighted_zscore_method(self, mocker):
-        measures = {
-            "z-score": pd.DataFrame(
-                {
-                    "basket": ["topas1", "topas1;topas2", ""],
-                    "basket_weights": ["0.1", "0.2;0.5", "1.0"],
-                    "rtk": ["rtk1", "rtk1;rtk2", ""],
-                    "rtk_weights": ["0.1", "0.2;0.5", "1.0"],
-                    "score_patient1": [0.1, 0.2, 0.3],
-                    "score_patient2": [0.3, 0.2, 0.1],
-                }
-            )
-        }
-        topas_scores_df = pd.DataFrame()
-        data_type = "fp"
-
-        result = TOPAS_scoring.calculate_topas_scores(
-            measures, topas_scores_df, data_type
-        )
-
-        expected_result = pd.DataFrame(
-            {
-                "FP - Scores.num_identified": [3, 3],
-                "FP - Scores.num_annotated": [3, 3],
-                "FP - Scores.": [0.3, 0.1],
-                "FP - Scores.topas1": [0.05000000000000001, 0.07],
-                "FP - Scores.topas2": [0.1, 0.1],
-                "FP - RTK Scores.num_identified": [3, 3],
-                "FP - RTK Scores.num_annotated": [3, 3],
-                "FP - RTK Scores.": [0.3, 0.1],
-                "FP - RTK Scores.rtk1": [0.05000000000000001, 0.07],
-                "FP - RTK Scores.rtk2": [0.1, 0.1],
-            },
-            index=pd.Index(["score_patient1", "score_patient2"]),
-        )
-
-        pd.testing.assert_frame_equal(result, expected_result)
-
-
 class TestSaveTopasScores:
     def test_renames_index_by_removing_score_prefix(self, mocker):
         data = {"A": [1, 2], "B": [3, 4]}
@@ -614,13 +582,13 @@ class TestExtractTopasMemberZScores:
             "topas_pipeline.TOPAS_scoring.read_topas_annotation_file",
             return_value=pd.DataFrame(
                 {
-                    "BASKET": ["topas1", "topas2"],
-                    "SUBBASKET": ["subtopas1", "subtopas2"],
+                    "TOPAS_score": ["topas1", "topas2"],
+                    "TOPAS_subscore": ["subtopas1", "subtopas2"],
                     "GENE NAME": ["Gene1", "Gene2"],
                     "WEIGHT": [1, np.nan],
                     "GROUP": ["group1", "OTHER"],
                     "SCORING RULE": ["highest z-score", "highest z-score"],
-                    "subbasket_level": ["level1", "level1"],
+                    "TOPAS_subscore_level": ["level1", "level1"],
                 }
             ),
         )
@@ -672,9 +640,7 @@ class TestExtractTopasMemberZScores:
         mock_to_csv = mocker.patch("pandas.DataFrame.to_csv", autospec=True)
 
         # Call the function
-        TOPAS_scoring.extract_topas_member_z_scores(
-            "results_folder", "topas_file"
-        )
+        TOPAS_scoring.extract_topas_member_z_scores("results_folder", "topas_file")
 
         result_gene1_level1 = mock_to_csv.call_args_list[0][0][0]
         expected_result_gene1_level1 = pd.DataFrame(

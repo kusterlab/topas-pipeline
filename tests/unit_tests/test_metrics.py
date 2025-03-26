@@ -80,6 +80,9 @@ class TestComputeMetrics:
             return_value=(
                 pd.DataFrame(
                     {
+                        "pat_A": [200.0, 400.0],
+                        "pat_B": [300.0, 600.0],
+                        "pat_C": [250.0, 500.0],
                         "TOPAS_score": ["topas1", "topas2"],
                         "TOPAS_score_weights": [0.5, 1.0],
                         "TOPAS_subscore": ["subtopas1", "subtopas2"],
