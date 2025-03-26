@@ -104,6 +104,7 @@ def create_report(
         annot = clinical_process.read_annotated_expression_file(
             results_folder, data_type
         )
+        annot = clinical_process.post_process_topas_columns(annot)
         measure_dfs[data_type] = {"metrics": measures, "metadata": annot}
         if len(samples_list) == 0:
             samples_for_report = (

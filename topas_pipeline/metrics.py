@@ -31,6 +31,9 @@ def compute_metrics(
     """
     logger.info("Running compute metrics module")
 
+    if debug:
+        data_types += [data_type + "_with_ref" for data_type in data_types]
+
     for data_type in data_types:
         if check_measures_computed(results_folder, data_type, MEASURE_NAMES):
             logger.info(f"Skipping compute_metrics {data_type} - already computed")
@@ -40,65 +43,16 @@ def compute_metrics(
         annot = clinical_process.read_annotated_expression_file(
             results_folder, data_type
         )
-        if debug:
-            annot_ref = clinical_process.read_annotated_expression_file(
-                results_folder, f"{data_type}_with_ref"
-            )
-        # filter for patient columns
-        # annot = annot.filter(regex=patient_regex)
-        # remove metadata
-
-        # TODO: specify which columns to keep (e.g. with "pat_" prefix), rather than which to drop, also for pp below
-        annot = annot.drop(
-            columns=[
-                "TOPAS_score",
-                "TOPAS_score_weights",
-                "TOPAS_subscore",
-                "TOPAS_subscore_weights",
-            ]
-        )
-        annot = annot.drop(
-            columns=annot.loc[:, annot.columns.str.startswith("Identification")].columns
-        )
-
-        if data_type == "pp":
-            annot = annot.drop(
-                columns=[
-                    "Matched proteins",
-                    "Start positions",
-                    "End positions",
-                    "Site positions identified (MQ)",
-                    "Site sequence context",
-                    "PSP Kinases",
-                    "PSP_LT_LIT",
-                    "PSP_MS_LIT",
-                    "PSP_MS_CST",
-                    "PSP_ON_FUNCTION",
-                    "PSP_ON_PROCESS",
-                    "PSP_ON_PROT_INTERACT",
-                    "PSP_ON_OTHER_INTERACT",
-                    "Site positions",
-                    "PSP_URL",
-                    "PSP_URL_extra",
-                    "PSP_NOTES",
-                ]
-            )
+        annot = annot.filter(regex=r"(^pat_)|(^ref_)")
 
         measures = compute_measures(annot)
 
-        save_measures(results_folder, MEASURE_NAMES, measures, data_type)
-        if debug:
-            annot_ref = annot_ref.filter(
-                regex=rf"(pat_)|(^Reporter intensity corrected)|(^ref_)"
-            )
-            measures_ref = compute_measures(annot_ref)
-            save_measures(
-                results_folder,
-                MEASURE_NAMES,
-                measures_ref,
-                data_type,
-                with_reference_channels=True,
-            )
+        save_measures(
+            results_folder,
+            MEASURE_NAMES,
+            measures,
+            data_type,
+        )
 
 
 class Metrics:
@@ -251,9 +205,9 @@ def get_metrics(df: pd.DataFrame) -> Dict[str, pd.DataFrame]:
     return m.metrics_df
 
 
-def get_data_type_long(data_type):
+def get_data_type_long(data_type: str):
     # TODO: raise error for unknown data type instead of defaulting to full_proteome
-    if data_type == "pp":
+    if data_type.startswith("pp"):
         return "phospho"
     return "full_proteome"
 
@@ -268,7 +222,7 @@ def check_measures_computed(
 
     """
     data_type_long = get_data_type_long(data_type)
-    for m, measure in measure_names:
+    for m, _ in measure_names:
         filename = os.path.join(results_folder, f"{data_type_long}_measures_{m}.tsv")
         if not os.path.exists(filename):
             return False
@@ -336,16 +290,18 @@ def save_measures(
     measure_names: List[Tuple[str]],
     measures: Dict[str, pd.DataFrame],
     data_type: str,
-    with_reference_channels: bool = False,
 ):
     # save quantification measures
     data_type_long = get_data_type_long(data_type)
+
+    filename_suffix = ""
+    if data_type.endswith("_with_ref"):
+        filename_suffix = "_ref"
+
     for m, measure in measure_names:
-        filename = os.path.join(results_folder, f"{data_type_long}_measures_{m}.tsv")
-        if with_reference_channels:
-            filename = os.path.join(
-                results_folder, f"{data_type_long}_measures_{m}_ref.tsv"
-            )
+        filename = os.path.join(
+            results_folder, f"{data_type_long}_measures_{m}{filename_suffix}.tsv"
+        )
         measures[measure].to_csv(filename, sep="\t", float_format="%.6g")
 
 

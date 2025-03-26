@@ -49,7 +49,7 @@ def send_slack_message(message: str, results_folder: str, webhook_url: str):
 
 def get_index_cols(data_type: str) -> List[str]:
     index_cols = ["Gene names"]
-    if data_type == "pp":
+    if data_type.startswith("pp"):
         index_cols = ["Gene names", "Modified sequence", "Proteins"]
     return index_cols
 

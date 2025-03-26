@@ -73,22 +73,7 @@ def calculate_modified_sequence_weights(
     Returns:
         dataframe with weights for each modified sequence
     """
-
     weight_dataframe = patient_dataframe.groupby([summing_column, "Modified sequence"])
-    """
-    weight_agg = {
-        weight_col: pd.NamedAgg(column=weight_col, aggfunc=sum)
-        for weight_col in patient_dataframe.columns.tolist() if 'weight_' in weight_col
-    }
-
-    patient_agg = {
-        pat_col: pd.NamedAgg(column=pat_col, aggfunc='first')
-        for pat_col in patient_dataframe.columns.tolist() if 'pat_' in pat_col
-    }
-
-    agg_dict = {**weight_agg, **patient_agg}
-    """
-
     weight_dataframe = weight_dataframe.agg(
         **{
             weight_col: pd.NamedAgg(column=weight_col, aggfunc="sum")

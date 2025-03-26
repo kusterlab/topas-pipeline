@@ -138,11 +138,6 @@ class TestReadMeasures:
 
 class TestSaveMeasures:
     def test_save_measures_correct_filenames(self, mocker):
-        # Mocking the get_data_type_long function
-        mocker.patch(
-            "topas_pipeline.metrics.get_data_type_long", return_value="long_data_type"
-        )
-
         # Mocking the to_csv method of pandas DataFrame
         mock_to_csv = mocker.patch.object(pd.DataFrame, "to_csv")
 
@@ -152,18 +147,18 @@ class TestSaveMeasures:
             "m1": pd.DataFrame({"col1": [1, 2], "col2": [3, 4]}),
             "m2": pd.DataFrame({"col1": [5, 6], "col2": [7, 8]}),
         }
-        data_type = "type"
+        data_type = "fp"
 
         metrics.save_measures(results_folder, measure_names, measures, data_type)
 
         expected_calls = [
             mocker.call(
-                os.path.join(results_folder, "long_data_type_measures_measure1.tsv"),
+                os.path.join(results_folder, "full_proteome_measures_measure1.tsv"),
                 sep="\t",
                 float_format="%.6g",
             ),
             mocker.call(
-                os.path.join(results_folder, "long_data_type_measures_measure2.tsv"),
+                os.path.join(results_folder, "full_proteome_measures_measure2.tsv"),
                 sep="\t",
                 float_format="%.6g",
             ),

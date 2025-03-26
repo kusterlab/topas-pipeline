@@ -1,7 +1,7 @@
 import pandas as pd
 
-folder1 = "results/2025.03.11_example_run"
-folder2 = "results/2025.03.14_example_run"
+folder1 = "results/2025.03.14_example_run"
+folder2 = "results/2025.03.26_example_run"
 
 file_names = [
     "basket_scores_4th_gen.tsv",

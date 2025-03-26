@@ -110,7 +110,9 @@ def clinical_process_data_type(
                 data_type=data_type,
                 annot_type=annot_type,
             )
-        dfs[data_type].to_csv(os.path.join(results_folder, f"annot_{data_type}.csv"), float_format="%.6g")
+        dfs[data_type].to_csv(
+            os.path.join(results_folder, f"annot_{data_type}.csv"), float_format="%.6g"
+        )
 
 
 def merge_topas_score_and_subscore_names(row: pd.Series) -> str:
@@ -141,20 +143,19 @@ def get_unique_topas_names(topas_names: Union[List, str, float]) -> str:
 def read_annotated_expression_file(
     results_folder: Union[str, Path],
     data_type: str,
-    post_process_topas_columns: bool = True,
 ) -> pd.DataFrame:
-    index_cols = utils.get_index_cols(data_type)
-
-    annot = pd.read_csv(
-        os.path.join(results_folder, f"annot_{data_type}.csv"), index_col=index_cols
+    return pd.read_csv(
+        os.path.join(results_folder, f"annot_{data_type}.csv"),
+        index_col=utils.get_index_cols(data_type),
     )
 
-    if post_process_topas_columns:
-        # Get unique TOPAS names and add main TOPAS name to TOPAS subscore level
-        for key in TOPAS_SUBSCORE_COLUMNS.keys():
-            annot[key] = annot.apply(merge_topas_score_and_subscore_names, axis=1)
-        for key in TOPAS_SCORE_COLUMNS.keys():
-            annot[key] = annot[key].apply(get_unique_topas_names)
+
+def post_process_topas_columns(annot: pd.DataFrame) -> pd.DataFrame:
+    # Get unique TOPAS names and add main TOPAS name to TOPAS subscore level
+    for key in TOPAS_SUBSCORE_COLUMNS.keys():
+        annot[key] = annot.apply(merge_topas_score_and_subscore_names, axis=1)
+    for key in TOPAS_SCORE_COLUMNS.keys():
+        annot[key] = annot[key].apply(get_unique_topas_names)
     return annot
 
 
