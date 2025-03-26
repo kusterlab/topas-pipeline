@@ -19,7 +19,7 @@ class TestComputeMetrics:
             "topas_pipeline.metrics.check_measures_computed", return_value=False
         )
         mocker.patch(
-            "topas_pipeline.metrics.clinical_process.read_annotated_expression_file",
+            "topas_pipeline.metrics.clinical_annotation.read_annotated_expression_file",
             return_value=(
                 pd.DataFrame(
                     {
@@ -42,7 +42,7 @@ class TestComputeMetrics:
 
         # Assertions to ensure the functions were called correctly
         assert metrics.check_measures_computed.call_count == len(data_types)
-        assert metrics.clinical_process.read_annotated_expression_file.call_count == len(
+        assert metrics.clinical_annotation.read_annotated_expression_file.call_count == len(
             data_types
         )
         assert metrics.save_measures.call_count == len(data_types)

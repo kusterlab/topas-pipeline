@@ -81,7 +81,7 @@ class TestLoadZScoresFp:
         )
         mocker.patch("topas_pipeline.metrics.read_measures", return_value={"z-score": measure1_df})
         mocker.patch(
-            "topas_pipeline.metrics.clinical_process.read_annotated_expression_file",
+            "topas_pipeline.metrics.clinical_annotation.read_annotated_expression_file",
             return_value=(
                 pd.DataFrame(
                     {

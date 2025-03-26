@@ -10,7 +10,7 @@ from .utils import init_file_logger, send_slack_message
 from . import config
 from . import simsi
 from . import preprocess
-from . import clinical_process
+from . import clinical_annotation
 from . import report_creation
 from . import metrics
 from . import TOPAS_psite_scoring
@@ -73,7 +73,7 @@ def main(argv):
 
         start_time = time.time()
         # 2) clinical processing (~3 minutes)
-        clinical_process.clinical_process(
+        clinical_annotation.add_clinical_annotations(
             results_folder=configs.results_folder,
             debug=configs.preprocessing.debug,
             clinic_proc_config=configs.clinic_proc,

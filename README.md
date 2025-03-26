@@ -153,7 +153,7 @@ python -m topas_pipeline.simsi -c config.json
 python -m topas_pipeline.main -c config.json 
 
 # run clinical annotation
-python -m topas_pipeline.clinical_process -c config.json
+python -m topas_pipeline.clinical_annotation -c config.json
 ```
 
 

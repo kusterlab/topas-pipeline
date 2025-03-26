@@ -12,7 +12,7 @@ from typing import List, Dict, Union
 from . import metrics
 from . import utils
 from . import z_scoring as scoring
-from . import clinical_process
+from . import clinical_annotation
 from . import identification_metadata as id_meta
 from . import sample_metadata
 
@@ -162,7 +162,7 @@ def load_z_scores_fp(results_folder):
     z_scores_fp_df = utils.keep_only_sample_columns(z_scores_fp_df)
 
     # replace missing values but detected in batch with -4.0
-    annot_fp = clinical_process.read_annotated_expression_file(results_folder, "fp")
+    annot_fp = clinical_annotation.read_annotated_expression_file(results_folder, "fp")
     z_scores_fp_df = id_meta.replace_detected_in_batch(z_scores_fp_df, annot_fp, -4.0)
 
     return z_scores_fp_df

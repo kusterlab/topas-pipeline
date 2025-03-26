@@ -30,13 +30,13 @@ TOPAS_SUBSCORE_COLUMNS = {
 # }
 
 
-def clinical_process(*args, **kwargs) -> None:
+def add_clinical_annotations(*args, **kwargs) -> None:
     data_types = kwargs.pop("data_types")
     for data_type in data_types:
-        clinical_process_data_type(*args, **kwargs, data_type=data_type)
+        add_clinical_annotations_data_type(*args, **kwargs, data_type=data_type)
 
 
-def clinical_process_data_type(
+def add_clinical_annotations_data_type(
     results_folder: Union[str, Path],
     debug: bool,
     clinic_proc_config: config.ClinicProc,
@@ -160,7 +160,7 @@ def post_process_topas_columns(annot: pd.DataFrame) -> pd.DataFrame:
 
 
 """
-python3 -m topas_pipeline.clinical_process -c config_patients.json
+python3 -m topas_pipeline.clinical_annotation -c config_patients.json
 """
 if __name__ == "__main__":
     import argparse
@@ -175,7 +175,7 @@ if __name__ == "__main__":
 
     configs = config.load(args.config)
 
-    clinical_process(
+    add_clinical_annotations(
         results_folder=configs.results_folder,
         debug=configs.preprocessing.debug,
         clinic_proc_config=configs.clinic_proc,

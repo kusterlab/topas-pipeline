@@ -1,13 +1,15 @@
 import pandas as pd
 
-import topas_pipeline.clinical_process as cp
+import topas_pipeline.clinical_annotation as cp
 from topas_pipeline import clinical_tools
 from topas_pipeline import config
 
 
 class TestClinicalProcess:
-    def test_executes_clinical_process_data_type_for_each_data_type(self, mocker):
-        def mock_clinical_process_data_type(*args, **kwargs):
+    def test_executes_add_clinical_annotations_data_type_for_each_data_type(
+        self, mocker
+    ):
+        def mock_add_clinical_annotations_data_type(*args, **kwargs):
             if "data_type" in kwargs:
                 data_types_processed.append(kwargs["data_type"])
 
@@ -15,10 +17,10 @@ class TestClinicalProcess:
         data_types = ["fp", "pp"]
 
         mocker.patch(
-            "topas_pipeline.clinical_process.clinical_process_data_type",
-            side_effect=mock_clinical_process_data_type,
+            "topas_pipeline.clinical_annotation.add_clinical_annotations_data_type",
+            side_effect=mock_add_clinical_annotations_data_type,
         )
-        cp.clinical_process(data_types=data_types)
+        cp.add_clinical_annotations(data_types=data_types)
 
         assert data_types_processed == data_types
 
@@ -57,7 +59,7 @@ class TestClinicalProcessDataType:
         data_type = "pp"
 
         # Call the function
-        cp.clinical_process_data_type(
+        cp.add_clinical_annotations_data_type(
             results_folder,
             debug,
             clinic_proc_config,
