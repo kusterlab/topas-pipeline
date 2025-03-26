@@ -75,7 +75,7 @@ def add_clinical_annotations_data_type(
 
     if data_type == "pp":
         logger.info("Annotating phospho sites")
-        preprocessed_df = clinical_tools.phospho_annot(
+        preprocessed_df = clinical_tools.add_phospho_annotations(
             preprocessed_df,
             clinic_proc_config,
         )
@@ -88,7 +88,7 @@ def add_clinical_annotations_data_type(
     )
 
     for annot_type in annot_levels:
-        preprocessed_df = clinical_tools.prot_clinical_annotation(
+        preprocessed_df = clinical_tools.add_topas_annotations(
             preprocessed_df,
             clinic_proc_config.prot_baskets,
             data_type=data_type,

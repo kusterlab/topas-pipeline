@@ -32,13 +32,13 @@ class TestClinicalProcessDataType:
         mocker.patch("os.path.exists", return_value=False)
         mock_read_csv = mocker.patch("pandas.read_csv", return_value=pd.DataFrame())
         mocker.patch(
-            "topas_pipeline.clinical_tools.phospho_annot", return_value=pd.DataFrame()
+            "topas_pipeline.clinical_tools.add_phospho_annotations", return_value=pd.DataFrame()
         )
         mocker.patch(
             "topas_pipeline.clinical_tools.add_psp_urls", return_value=pd.DataFrame()
         )
         mocker.patch(
-            "topas_pipeline.clinical_tools.prot_clinical_annotation",
+            "topas_pipeline.clinical_tools.add_topas_annotations",
             return_value=pd.DataFrame(),
         )
         mocker.patch("json.dump")
@@ -66,9 +66,9 @@ class TestClinicalProcessDataType:
 
         # # Assertions
         mock_read_csv.assert_called()
-        clinical_tools.phospho_annot.assert_called()
+        clinical_tools.add_phospho_annotations.assert_called()
         clinical_tools.add_psp_urls.assert_called()
-        clinical_tools.prot_clinical_annotation.assert_called()
+        clinical_tools.add_topas_annotations.assert_called()
         pd.DataFrame.to_csv.assert_called()
 
 

@@ -1,4 +1,3 @@
-import json
 import logging
 from itertools import compress
 from pathlib import Path
@@ -14,7 +13,7 @@ from . import config
 logger = logging.getLogger(__name__)
 
 
-def phospho_annot(
+def add_phospho_annotations(
     df: pd.DataFrame,
     clinic_proc_config: config.ClinicProc,
 ) -> pd.DataFrame:
@@ -23,10 +22,7 @@ def phospho_annot(
     experiments from the lab of Ishihama.
 
     :param df: dataframe with measured peptide intensities
-    :param pspFastaFile: file used for adding peptide and psite positions
-    :param pspKinaseSubstrateFile: file used for adding kinase substrate annotation
-    :param pspAnnotationFile: file used for adding annotations from Phosphosite Plus
-    :param pspRegulatoryFile: file used for adding regulatory information
+    :param clinic_proc_config: paths to files with PSP and TOPAS gene annotations
     """
     logger.info("Phosphosite annotation")
 
@@ -122,7 +118,7 @@ def add_url_columns(row) -> Tuple[str, List]:
     return main_url, URLs
 
 
-def prot_clinical_annotation(
+def add_topas_annotations(
     df: pd.DataFrame, annot_file: Union[str, Path], data_type: str, annot_type: str
 ) -> Tuple[pd.DataFrame, Dict]:
     """
@@ -137,7 +133,7 @@ def prot_clinical_annotation(
 
     # Some dataframes might have empty cells so let's exchange them with nans
     df = df.replace(r"^\s*$", np.nan, regex=True)
-    topas_annotation_df = read_clinical_annotation(annot_file)
+    topas_annotation_df = read_topas_annotations(annot_file)
     annot_dict = create_identifier_to_topas_dict(topas_annotation_df, data_type)
 
     if "fp" in data_type:
@@ -250,12 +246,16 @@ def create_identifier_to_topas_dict(
                 "important phosphorylation",
                 "kinase activity",
             ]
-        topas_annotation_df = topas_annotation_df[topas_annotation_df["GROUP"] != "OTHER"]
+        topas_annotation_df = topas_annotation_df[
+            topas_annotation_df["GROUP"] != "OTHER"
+        ]
         topas_annotation_df = topas_annotation_df[
             topas_annotation_df["LEVEL"].isin(accepted_type)
         ]
     else:  # other proteins of interest (POI)
-        topas_annotation_df = topas_annotation_df[topas_annotation_df["GROUP"] == "OTHER"]
+        topas_annotation_df = topas_annotation_df[
+            topas_annotation_df["GROUP"] == "OTHER"
+        ]
 
     topas_annotation_df = topas_annotation_df.groupby([identifier_type]).agg(
         lambda x: ";".join(sorted(map(str, x)))
@@ -264,8 +264,8 @@ def create_identifier_to_topas_dict(
     return annot_dict
 
 
-def read_clinical_annotation(annot_file: str) -> pd.DataFrame:
-    topas_annotation_df = pd.read_excel(annot_file)
+def read_topas_annotations(topas_annotation_file: str) -> pd.DataFrame:
+    topas_annotation_df = pd.read_excel(topas_annotation_file)
     topas_annotation_df = utils.whitespace_remover(topas_annotation_df)
     topas_annotation_df["topas_subscore_level"] = (
         topas_annotation_df["TOPAS_SUBSCORE"] + " - " + topas_annotation_df["LEVEL"]
@@ -291,7 +291,6 @@ python3 -m topas_pipeline.clinical_tools -c config_patients.json -i <input_tsv> 
 """
 if __name__ == "__main__":
     import argparse
-    import json
     import time
 
     # Parse command line arguments
@@ -329,7 +328,7 @@ if __name__ == "__main__":
     # Start pipeline
     t0 = time.time()
     for annot_type in ["TOPAS score", "POI"]:
-        df = prot_clinical_annotation(
+        df = add_topas_annotations(
             df, annot_file, data_type=args.data_type, basket_type=annot_type
         )
 

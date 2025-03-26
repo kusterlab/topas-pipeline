@@ -44,7 +44,7 @@ class TestPhosphoAnnot:
             prot_baskets=""
         )
 
-        result_df = ct.phospho_annot(df, clinic_proc_config=clinic_proc_config)
+        result_df = ct.add_phospho_annotations(df, clinic_proc_config=clinic_proc_config)
 
         assert not result_df.empty
         assert mock_add_positions.call_count == 2
@@ -101,7 +101,7 @@ class TestTopasAnnotation:
         import pandas as pd
 
         mocker.patch(
-            "topas_pipeline.clinical_tools.read_clinical_annotation",
+            "topas_pipeline.clinical_tools.read_topas_annotations",
             return_value=pd.DataFrame(
                 {
                     "basket": ["topas1", "topas2"],
@@ -120,7 +120,7 @@ class TestTopasAnnotation:
         df = df.set_index("Gene names")
 
         # Calling the function under test
-        result_df = ct.prot_clinical_annotation(
+        result_df = ct.add_topas_annotations(
             df, "path/to/annotation/file", "fp", "basket"
         )
 
@@ -206,7 +206,7 @@ class TestReadTopasAnnotation:
         )
         mocker.patch("pandas.read_excel", return_value=mock_excel_data)
 
-        result = ct.read_clinical_annotation("dummy_path.xlsx")
+        result = ct.read_topas_annotations("dummy_path.xlsx")
 
         pd.testing.assert_frame_equal(
             result,

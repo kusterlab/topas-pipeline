@@ -7,7 +7,7 @@ from topas_pipeline import clinical_tools, config
 CONFIG_FILE_PATH = './data/test_config.json'
 
 
-def test_phospho_annot():
+def test_add_phospho_annotations():
     """
     This only works after replacing all empty PSP files in location /data/annotation_files
     Further after first succesful run of pipeline add path of results_folder to test_config.json
@@ -28,7 +28,7 @@ def test_phospho_annot():
     patient_cols = preprocessed_pp.filter(regex=r"^pat_").columns
     preprocessed_pp[patient_cols] = (preprocessed_pp[patient_cols].replace("", np.nan).astype("float"))
 
-    preprocessed_pp = clinical_tools.phospho_annot(
+    preprocessed_pp = clinical_tools.add_phospho_annotations(
         preprocessed_pp,
         clinic_proc_config=configs.clinic_proc
     )
@@ -58,4 +58,4 @@ def test_phospho_annot():
 
 
 if __name__ == "__main__":
-    test_phospho_annot()
+    test_add_phospho_annotations()

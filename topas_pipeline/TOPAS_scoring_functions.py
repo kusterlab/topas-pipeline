@@ -294,7 +294,7 @@ def topas_score_preprocess(results_folder, discard_isoforms=True):
     patients.set_index("Modified sequence", inplace=True)
 
     # for debugging: if using preprocessed_pp instead of annot_pp, annotate the p-sites here
-    # clinical_tools.phospho_annot(patients, pspFastaFile, pspKinaseSubstrateFile, pspAnnotationFile, pspRegulatoryFile)
+    # clinical_tools.add_phospho_annotations(patients, pspFastaFile, pspKinaseSubstrateFile, pspAnnotationFile, pspRegulatoryFile)
 
     patients = calculate_peptide_occurrence(patients)  # better name?
 

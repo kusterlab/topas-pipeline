@@ -53,7 +53,7 @@ def create_report(
             print("Input not of type int or string")
         samples_list = samples_for_report
 
-    topas_annotation_df = clinical_tools.read_clinical_annotation(annot_file)
+    topas_annotation_df = clinical_tools.read_topas_annotations(annot_file)
 
     # Load sample annotation file
     sample_annotation_df = sa.load_sample_annotation(
