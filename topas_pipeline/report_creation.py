@@ -24,6 +24,25 @@ logger = logging.getLogger(__name__)
 TOPAS_SCORE_COLUMNS = clinical_tools.TOPAS_SCORE_COLUMNS
 TOPAS_SUBSCORE_COLUMNS = clinical_tools.TOPAS_SUBSCORE_COLUMNS
 
+ANNOTATION_COLUMNS = dict()
+ANNOTATION_COLUMNS["pp"] = {
+    **TOPAS_SCORE_COLUMNS,
+    "Site positions identified (MQ)": "Site positions (MQ identified - PSP)",
+    "Site positions": "Site positions (PSP)",
+    "PSP Kinases": "Kinases (PSP)",
+    "PSP_ON_FUNCTION": "Effects on Modified Protein (PSP)",
+    "PSP_ON_PROCESS": "Effects on Biological Processes (PSP)",
+    "PSP_ON_PROT_INTERACT": "Induce Interaction with protein (PSP)",
+    "PSP_ON_OTHER_INTERACT": "Induce Interaction with other (PSP)",
+    "PSP_NOTES": "PSP NOTES",
+    "PSP_LT_LIT": "Low throughput studies (PSP)",
+    "PSP_MS_LIT": "High throughput studies (PSP)",
+    "PSP_MS_CST": "CST studies (PSP)",
+}
+ANNOTATION_COLUMNS["fp"] = {
+    **TOPAS_SCORE_COLUMNS,
+}
+
 
 def create_report(
     results_folder: Union[str, Path],
@@ -72,6 +91,14 @@ def create_report(
     )
     sample_annotation_df = sample_annotation_df.sort_values(by="Batch Name")
 
+    # Create a mapping of patient columns to batch names directly
+    sample_to_batch_dict = dict(
+        zip(
+            sample_annotation_df.transpose().add_prefix("pat_").columns.tolist(),
+            sample_annotation_df["Batch Name"].values.tolist(),
+        )
+    )
+
     # Read scoring files and calculate extra annotation metrics
     topas_scores, topas_subscores, kinase_scores, protein_scores = (
         read_and_compute_scores(results_folder)
@@ -81,45 +108,36 @@ def create_report(
     # Questio is HOW to make it fast and efficient (takes a lot of memory to read all the data now. Do we need to read and close one file at a time?)
 
     logger.info("Calculate within batch ranks")
-    (
-        batch_topas_scores,
-        batch_topas_subscores,
-        batch_kinase_scores,
-        batch_protein_scores,
-        batch_phospho_scores,
-    ) = (dict(), dict(), dict(), dict(), dict())
-    batch_topas_scores["measures"] = compute_in_batch_rank(
-        topas_scores["scores"], sample_annotation_df
+    topas_scores["measures"] |= compute_in_batch_rank(
+        topas_scores["scores"], sample_to_batch_dict
     )
-    batch_topas_subscores["measures"] = compute_in_batch_rank(
-        topas_subscores["scores"], sample_annotation_df
+    topas_subscores["measures"] |= compute_in_batch_rank(
+        topas_subscores["scores"], sample_to_batch_dict
     )
-    batch_kinase_scores["measures"] = compute_in_batch_rank(
-        kinase_scores["scores"], sample_annotation_df
+    kinase_scores["measures"] |= compute_in_batch_rank(
+        kinase_scores["scores"], sample_to_batch_dict
     )
-    batch_protein_scores["measures"] = compute_in_batch_rank(
-        protein_scores["scores"], sample_annotation_df
+    protein_scores["measures"] |= compute_in_batch_rank(
+        protein_scores["scores"], sample_to_batch_dict
     )
+
+    if len(samples_list) == 0:
+        samples_for_report = topas_scores["scores"].columns.tolist()
+    else:
+        samples_for_report = get_samples_for_report(sample_annotation_df, samples_list)
 
     # Read and prepare patient intensity data + quant measures (fc, z-score)
     measure_dfs = dict()
     for data_type in data_types:
         measures = metrics.read_measures(results_folder, data_type)
-        annot = clinical_annotation.read_annotated_expression_file(
+        measures["occurrence"] = None
+        annot_df = clinical_annotation.read_annotated_expression_file(
             results_folder, data_type
         )
-        annot = post_process_topas_columns(annot)
-        measure_dfs[data_type] = {"metrics": measures, "metadata": annot}
-        if len(samples_list) == 0:
-            samples_for_report = (
-                measures["z-score"].filter(regex=r"zscore").columns.tolist()
-            )
-        else:
-            samples_for_report = get_samples_for_report(
-                sample_annotation_df, samples_list
-            )
-    batch_phospho_scores["measures"] = compute_in_batch_rank(
-        measure_dfs["pp"]["metrics"]["z-score"], sample_annotation_df
+        annot_df = post_process_topas_columns(annot_df)
+        measure_dfs[data_type] = {"measures": measures, "scores": annot_df}
+    measure_dfs["pp"]["measures"] |= compute_in_batch_rank(
+        measure_dfs["pp"]["measures"]["z-score"], sample_to_batch_dict
     )
 
     samples_for_report.reverse()  # print reports for newest batch first
@@ -127,17 +145,11 @@ def create_report(
         results_folder,
         measure_dfs,
         topas_scores,
-        batch_topas_scores,
         topas_subscores,
-        batch_topas_subscores,
         kinase_scores,
-        batch_kinase_scores,
         protein_scores,
-        batch_protein_scores,
-        batch_phospho_scores,
         samples_for_report,
         topas_annotation_df,
-        sample_annotation_df,
     )
 
 
@@ -149,47 +161,25 @@ def read_and_compute_scores(results_folder: Union[str, Path]) -> Tuple:
         dict(),
         dict(),
     )
-    topas_scores["scores"] = TOPAS_scoring.read_topas_scores(results_folder).transpose()
-    topas_scores["scores"] = topas_scores["scores"].loc[
-        :, ~topas_scores["scores"].columns.str.startswith("target")
-    ]
-
+    topas_scores["scores"] = TOPAS_scoring.read_topas_scores(results_folder)
     topas_subscores["scores"] = TOPAS_scoring.read_topas_subscores(results_folder)
-    topas_subscores["scores"] = topas_subscores["scores"].loc[
-        :, ~topas_subscores["scores"].columns.str.startswith("target")
-    ]
 
     kinase_scores["scores"] = kinase_scoring.read_kinase_scoring(results_folder)
-    kinase_scores["targets"] = kinase_scores["scores"].filter(regex=r"target")
+    kinase_scores["targets"] = kinase_scores["scores"].filter(regex=r"^targets_")
     kinase_scores["scores"] = kinase_scores["scores"].loc[
-        :, ~kinase_scores["scores"].columns.str.startswith("target")
+        :, ~kinase_scores["scores"].columns.str.startswith("targets_")
     ]
     kinase_scores["scores"] = kinase_scores["scores"].filter(regex="pat_")
 
     protein_scores["scores"] = protein_phoshorylation_scoring.read_protein_scoring(
         results_folder
     )
-    protein_scores["scores"] = protein_scores["scores"].loc[
-        :, ~protein_scores["scores"].columns.str.startswith("target")
-    ]
+    protein_scores["scores"] = protein_scores["scores"].filter(regex="pat_")
 
-    all_scores = [topas_scores, topas_subscores, kinase_scores, protein_scores]
-    for score_dict in all_scores:
-        if "No. of total targets" in score_dict["scores"].columns:
-            score_dict["scores"] = score_dict["scores"].drop(
-                columns="No. of total targets"
-            )
-    all_scores_copy = [
-        topas_scores["scores"].copy(),
-        topas_subscores["scores"].copy(),
-        kinase_scores["scores"].copy(),
-        protein_scores["scores"].copy(),
-    ]
-
-    for i, score_dict in enumerate(all_scores):
+    for score_dict in [topas_scores, topas_subscores, kinase_scores, protein_scores]:
         score_dict["measures"] = metrics.get_metrics(score_dict["scores"])
-        score_dict["significance"] = all_scores_copy[i].apply(
-            assign_significance_score, axis=1
+        score_dict["significance"] = (
+            score_dict["scores"].copy().apply(assign_significance_score, axis=1)
         )
     return topas_scores, topas_subscores, kinase_scores, protein_scores
 
@@ -231,74 +221,46 @@ def post_process_topas_columns(annot_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def compute_in_batch_rank(
-    topas_scores_df: pd.DataFrame, sample_annotation_df: pd.DataFrame
+    topas_scores_df: pd.DataFrame, sample_batch_dict: Dict[str, str]
 ) -> Dict:
-    topas_scores_df_copy = (
-        topas_scores_df.copy()
-    )  # copy necessary to not alter original df
-    if "zscore" in topas_scores_df_copy.columns[1]:
-        topas_scores_df_copy.columns = topas_scores_df_copy.columns.str.replace(
-            "zscore_", ""
-        )
-    # Create a mapping of patient columns to batch names directly
-    sample_batch_dict = dict(
-        zip(
-            sample_annotation_df.transpose().add_prefix("pat_").columns.tolist(),
-            sample_annotation_df["Batch Name"].values.tolist(),
-        )
-    )
-
     # Map each sample to its respective batch
     batch_names_by_sample = [
-        sample_batch_dict[sample] for sample in topas_scores_df_copy.columns
+        sample_batch_dict[sample]
+        for sample in topas_scores_df.columns.str.removeprefix("zscore_")
     ]
 
-    rank_values = {}
+    batch_ranks = []
+    batch_occurrences = []
     for batch in set(batch_names_by_sample):
         batch_mask = np.array(batch_names_by_sample) == batch
-        batch_scores = topas_scores_df_copy.loc[:, batch_mask]
-        ranks = metrics.Metrics.get_rank(batch_scores)
+        batch_scores = topas_scores_df.loc[:, batch_mask]
+        ranks_df = metrics.Metrics.get_rank(batch_scores)
+        ranks_df.columns = ranks_df.columns.str.replace("rank_zscore_", "rank_")
 
-        # Get occurrences and store results for current batch in dict
-        occurrences = ranks["rank_max"]
-        occurrences.name = "occurrence"
-        ranks = ranks.drop(columns="rank_max")
-        occurrences.to_frame()
-        rank_values[batch] = {"ranks": ranks, "occurrence": occurrences}
-    return rank_values
+        occurrences = ranks_df.pop("rank_max")
+        ranks_df = ranks_df.add_prefix("batch_")
+        batch_ranks.append(ranks_df)
 
-
-# TODO: find out what this was about. An attempt at optimizing?
-def new_compute_in_batch_scores(
-    topas_scores_df: pd.DataFrame, sample_annotation_df: pd.DataFrame
-) -> Dict:
-    common_samples = [
-        x
-        for x in sample_annotation_df["Sample name"].tolist()
-        if x in topas_scores_df.columns.tolist()
-    ]
-    common_sample_annotation_df = sample_annotation_df[
-        sample_annotation_df["Sample name"].isin(common_samples)
-    ]
-    common_sample_annotation_df = common_sample_annotation_df[
-        ["Sample name", "Batch Name"]
-    ]
-
-    all_batches = common_sample_annotation_df["Batch Name"].unique().tolist()
-    all_measures = dict()
-    for batch in all_batches:
-        batch_mask = common_sample_annotation_df["Sample name"][
-            common_sample_annotation_df["Batch Name"] == batch
-        ].tolist()
-        all_measures[batch] = metrics.get_metrics(topas_scores_df.loc[:, batch_mask])
-    return all_measures
+        occurrences_df = pd.DataFrame(
+            np.tile(occurrences.values, (len(ranks_df.columns), 1)).T,
+            columns=ranks_df.columns.str.replace("batch_rank_", "batch_occurrence_"),
+            index=ranks_df.index,
+        )
+        batch_occurrences.append(occurrences_df)
+    return {
+        "batch_rank": pd.concat(batch_ranks, axis=1),
+        "batch_occurrence": pd.concat(batch_occurrences, axis=1),
+    }
 
 
-def get_samples_for_report(sample_annotation_df: pd.DataFrame, samples_for_report):
+def get_samples_for_report(
+    sample_annotation_df: pd.DataFrame, samples_for_report: Union[str, List]
+):
     # samples_for_report = []
     # TODO: add test for this ? to crash with a message at least
     if "," in samples_for_report or ";" in samples_for_report:
         samples_for_report = utils.split_str_list(samples_for_report)
+
     if type(samples_for_report) == list:
         samples_for_report = sample_annotation_df.loc[
             sample_annotation_df["Batch Name"].isin(samples_for_report), "Sample name"
@@ -321,17 +283,11 @@ def write_patient_reports(
     results_folder: Union[str, Path],
     measure_dfs,
     topas_scores,
-    batch_topas_scores,
     topas_subscores,
-    batch_topas_subscores,
     kinase_scores,
-    batch_kinase_scores,
     protein_scores,
-    batch_protein_scores,
-    batch_phospho_scores,
     samples_for_report,
     topas_annotation_df: pd.DataFrame,
-    sample_annotation_df: pd.DataFrame,
 ):
     report_folder = os.path.join(results_folder, "Reports")
     os.makedirs(report_folder, mode=0o700, exist_ok=True)
@@ -347,36 +303,23 @@ def write_patient_reports(
         max_jobs_queued=10,
         print_progress_every=1,
     )
-    for i, patient in enumerate(samples_for_report):
-        if "zscore" in patient:
-            patient = patient.split("zscore_")[1]
-        batch = sample_annotation_df.loc[patient.split("pat_")[1], "Batch Name"]
+    # annotation_dfs is ~135MB
+    annotation_dfs = get_annotation_dfs(measure_dfs)
+
+    for patient in samples_for_report:
         report_file = os.path.join(report_folder, f"{patient}_proteomics_results.xlsx")
         if os.path.exists(report_file):
             processingPool.applyAsync(create_patient_report_dummy, ())
             continue
 
-        patient_data = create_patient_data(measure_dfs, patient)
-
         # patient data is ~70MB per patient
-        patient_data = add_scores_to_patient_data(
-            patient_data,
+        patient_data = create_patient_data(measure_dfs, patient)
+        patient_data |= create_patient_topas_score_data(
             patient,
             topas_scores,
-            batch_topas_scores,
             topas_subscores,
-            batch_topas_subscores,
             kinase_scores,
-            batch_kinase_scores,
             protein_scores,
-            batch_protein_scores,
-            batch_phospho_scores,
-            batch,
-        )
-
-        # annotation_columns_patient is ~135MB per patient
-        annotation_columns_patient = get_patient_annotation_columns(
-            patient, measure_dfs
         )
 
         processingPool.applyAsync(
@@ -385,7 +328,7 @@ def write_patient_reports(
                 report_file,
                 patient,
                 patient_data,
-                annotation_columns_patient,
+                annotation_dfs,
                 topas_annotation_df,
             ],
         )
@@ -401,90 +344,65 @@ def create_patient_data(measure_dfs, patient: str):
     # save patient column from each metric measure dataframe to patient dict for both data types
     patient_data = {}
     for data_type, dfs in measure_dfs.items():
-        ranked, fold_change, z_scores, p_values = dfs["metrics"].values()
-        patient_data[data_type] = pd.concat(
-            [
-                ranked.loc[:, "rank_" + patient],
-                ranked.loc[:, "rank_max"],
-                fold_change.loc[:, "fc_" + patient],
-                z_scores.loc[:, "zscore_" + patient],
-                p_values.loc[:, "pvalue_zscore_" + patient],
+        patient_columns = {
+            "Rank": dfs["measures"]["rank"].loc[:, "rank_" + patient],
+            "Occurrence": dfs["measures"]["rank"].loc[:, "rank_max"],
+            "FC": dfs["measures"]["fold_change"].loc[:, "fc_" + patient],
+            "Z-score": dfs["measures"]["z-score"].loc[:, "zscore_" + patient],
+            "P-value": dfs["measures"]["p-value"].loc[:, "pvalue_zscore_" + patient],
+        }
+        if "batch_rank" in dfs["measures"]:
+            patient_columns |= {
+                "Batch Rank": dfs["measures"]["batch_rank"].loc[
+                    :, "batch_rank_" + patient
+                ]
+            }
+        patient_columns |= {
+            "Intensity": dfs["scores"].loc[:, patient],
+            "Identification metadata": dfs["scores"].loc[
+                :, f"Identification metadata {patient.split('pat_')[1]}"
             ],
-            axis=1,
-        )
-        patient_data[data_type].columns = [
-            "Rank",
-            "Occurrence",
-            "FC",
-            "Z-score",
-            "P-value",
-        ]
+        }
+        patient_data[data_type] = pd.DataFrame.from_dict(patient_columns)
     return patient_data
 
 
-def get_patient_annotation_columns(patient, measure_dfs):
-    annotation_columns = get_annotation_columns(patient)
-
+def get_annotation_dfs(measure_dfs) -> Dict[str, pd.DataFrame]:
     annotation_columns_patient = {}
     for data_type, dfs in measure_dfs.items():
-        annotation_columns_patient[data_type] = {
-            "metadata": dfs["metadata"][annotation_columns[data_type].keys()].copy()
-        }
+        annotation_columns_patient[data_type] = dfs["scores"][
+            ANNOTATION_COLUMNS[data_type].keys()
+        ].copy()
     return annotation_columns_patient
-
-
-def get_annotation_columns(patient: str):
-    annotation_columns = dict()
-    annotation_columns["pp"] = {
-        patient: "Intensity",
-        f"Identification metadata {patient.split('pat_')[1]}": "Identification metadata",
-        **TOPAS_SCORE_COLUMNS,
-        "Site positions identified (MQ)": "Site positions (MQ identified - PSP)",
-        "Site positions": "Site positions (PSP)",
-        "PSP Kinases": "Kinases (PSP)",
-        "PSP_ON_FUNCTION": "Effects on Modified Protein (PSP)",
-        "PSP_ON_PROCESS": "Effects on Biological Processes (PSP)",
-        "PSP_ON_PROT_INTERACT": "Induce Interaction with protein (PSP)",
-        "PSP_ON_OTHER_INTERACT": "Induce Interaction with other (PSP)",
-        "PSP_NOTES": "PSP NOTES",
-        "PSP_LT_LIT": "Low throughput studies (PSP)",
-        "PSP_MS_LIT": "High throughput studies (PSP)",
-        "PSP_MS_CST": "CST studies (PSP)",
-    }
-    annotation_columns["fp"] = {
-        f"Identification metadata {patient.split('pat_')[1]}": "Identification metadata",
-        patient: "Intensity",
-        **TOPAS_SCORE_COLUMNS,
-    }
-    return annotation_columns
 
 
 def create_patient_report(
     report_file: Union[str, Path],
     patient: str,
     patient_data: Dict,
-    metrics_dfs: Dict[str, Dict[str, pd.DataFrame]],
+    annotation_dfs: Dict[str, pd.DataFrame],
     topas_annotation_df: pd.DataFrame,
 ) -> None:
-    annotation_columns = get_annotation_columns(patient)
     annotation_columns_topas = {
         "rank_" + patient: "Rank",
-        "zscore_" + patient: "Z-score",
         "occurrence": "Occurrence",
+        "zscore_" + patient: "Z-score",
         **TOPAS_SCORE_COLUMNS,
         **TOPAS_SUBSCORE_COLUMNS,
+        "batch_rank_" + patient: "Batch Rank",
+        "batch_occurrence_" + patient: "Batch Occurrence",
     }
 
     # # Create a Pandas Excel writer using XlsxWriter as the engine
     with pd.ExcelWriter(report_file, engine="xlsxwriter") as writer:
         # Create TOPAS score worksheets
         for score_type in ["TOPAS scores", "TOPAS subscores"]:
-            create_score_worksheet(
-                score_type, patient_data, writer, score_type, annotation_columns_topas
+            create_topas_worksheet(
+                score_type, patient_data, writer, annotation_columns_topas
             )
 
         # Create proteome worksheets
-        for data_type, dfs in metrics_dfs.items():
+        for data_type in ["fp", "pp"]:
             data_type_long = "Proteome"
             create_worksheet = create_fp_worksheet
             if data_type == "pp":
@@ -494,218 +412,47 @@ def create_patient_report(
             # create_biomarker_worksheet(biomarkers, patient, dfs['metadata'], writer)
             create_worksheet(
                 data_type_long,
-                dfs["metadata"],
-                patient_data,
+                annotation_dfs[data_type],
+                patient_data[data_type],
                 writer,
-                annotation_columns[data_type],
+                ANNOTATION_COLUMNS[data_type],
             )
 
         # Create Kinase and Protein phosphorylation scoring worksheets
-        create_wp2_worksheet(
+        for sheet_name in [
             "Substrate phosphorylation score",
-            patient_data,
-            writer,
-            annotation_columns_topas,
-            topas_annotation_df,
-        )
-        create_wp2_worksheet(
             "Protein phosphorylation score",
-            patient_data,
-            writer,
-            annotation_columns_topas,
-            topas_annotation_df,
-        )
-
-
-# TODO: finish implementation of this function instead
-# def new_add_scores_to_patient_data(patient_data: Dict[str, Dict[str, pd.DataFrame]],
-#                                 patient: str,
-#                                 topas_scores: Dict[str, Dict[str, pd.DataFrame]],
-#                                 batch_topas_scores: Dict[str, pd.DataFrame],
-#                                 topas_subscores: Dict[str, Dict[str, pd.DataFrame]],
-#                                 batch_topas_subscores: Dict[str, pd.DataFrame],
-#                                 kinase_scores: Dict[str, Dict[str, pd.DataFrame]],
-#                                 batch_kinase_scores: Dict[str, pd.DataFrame],
-#                                 protein_scores: Dict[str, Dict[str, pd.DataFrame]],
-#                                 batch_protein_scores: Dict[str, pd.DataFrame],
-#                                 batch_phospho_scores: Dict[str, pd.DataFrame],
-#                                 batch: int) -> Dict[str, pd.DataFrame]:
-
-#     # Create a dictionary mapping each scoring type to its respective data
-#     scoring_data = {
-#         'TOPAS scores': (topas_scores, topas_scores['measures'].values(), None),
-#         'Batch_TOPAS': (batch_topas_scores, batch_topas_scores['measures'][batch].values(), 'ranks'),
-#         'TOPAS subscores': (topas_subscores, topas_subscores['measures'].values(), None),
-#         'Batch_TOPAS_sub': (batch_topas_subscores, batch_topas_subscores['measures'][batch].values(), 'ranks'),
-#         'Kinase': (kinase_scores, kinase_scores['measures'].values(), 'targets'),
-#         'Batch_Kinase': (batch_kinase_scores, batch_kinase_scores['measures'][batch].values(), 'ranks'),
-#         'Protein': (protein_scores, protein_scores['measures'].values(), 'targets'),
-#         'Batch_Protein': (batch_protein_scores, batch_protein_scores['measures'][batch].values(), 'ranks'),
-#         'Batch_Phospho': (batch_phospho_scores, batch_phospho_scores['measures'][batch].values(), 'ranks')
-#     }
-
-#     for scoring, (score_data, measures, target_key) in scoring_data.items():
-#         # Check if the scoring type has the "scores" key and process accordingly
-#         if 'scores' in score_data:
-#             patient_data[scoring] = score_data['scores'].loc[:, patient].rename(f'{scoring} score')
-#             patient_data[scoring].index.name = scoring
-
-#         # Handle kinase or protein targets if applicable
-#         if scoring == 'Kinase' or scoring == 'Protein':
-#             patient_data[scoring] = pd.concat([
-#                 patient_data[scoring],
-#                 score_data['targets'].loc[:, f'targets_{patient.split("pat_")[1]}'].rename('Targets')
-#             ], axis=1)
-
-#         # Handle measures (ranks, zscores, occurrences) and concatenate them
-#         rank, _, zscore, _, occurrence = measures
-#         if zscore is not None:
-#             patient_data[f'{scoring}_measures'] = pd.concat([
-#                 rank.loc[:, f'rank_{patient}'],
-#                 zscore.loc[:, f'zscore_{patient}'],
-#                 occurrence
-#             ], axis=1)
-#         else:
-#             patient_data[f'{scoring}_measures'] = pd.concat([
-#                 rank.loc[:, f'rank_{patient}'],
-#                 occurrence
-#             ], axis=1)
-#         patient_data[f'{scoring}_measures'].index.name = scoring
-
-#         # Handle significance if available
-#         if 'significance' in score_data:
-#             patient_data[f'{scoring}_significance'] = score_data['significance'].loc[:, patient].rename('Significance')
-#             patient_data[f'{scoring}_significance'].index.name = scoring
-
-#     return patient_data
+        ]:
+            create_wp2_worksheet(
+                sheet_name,
+                patient_data,
+                writer,
+                annotation_columns_topas,
+                topas_annotation_df,
+            )
 
 
 # move further up in flow here
-def add_scores_to_patient_data(
-    patient_data: Dict[str, Dict[str, pd.DataFrame]],
+def create_patient_topas_score_data(
     patient: str,
     topas_scores: Dict[str, Dict[str, pd.DataFrame]],
-    batch_topas_scores: Dict[str, pd.DataFrame],
     topas_subscores: Dict[str, Dict[str, pd.DataFrame]],
-    batch_topas_subscores: Dict[str, pd.DataFrame],
     kinase_scores: Dict[str, Dict[str, pd.DataFrame]],
-    batch_kinase_scores: Dict[str, pd.DataFrame],
     protein_scores: Dict[str, Dict[str, pd.DataFrame]],
-    batch_protein_scores: Dict[str, pd.DataFrame],
-    batch_phospho_scores: Dict[str, pd.DataFrame],
-    batch: int,
 ) -> Dict[str, pd.DataFrame]:
-    topas_rank, _, topas_zscore, _, topas_occurrence = topas_scores["measures"].values()
-    batch_topas_rank, _, batch_topas_zscore, _, batch_topas_occurrence = (
-        batch_topas_scores["measures"][batch]["ranks"],
-        None,
-        None,
-        None,
-        batch_topas_scores["measures"][batch]["occurrence"],
-    )
-    topas_subscores_rank, _, topas_subscores_zscore, _, topas_subscores_occurrence = (
-        topas_subscores["measures"].values()
-    )
-    (
-        batch_topas_subscores_rank,
-        _,
-        batch_topas_subscores_zscore,
-        _,
-        batch_topas_subscores_occurrence,
-    ) = (
-        batch_topas_subscores["measures"][batch]["ranks"],
-        None,
-        None,
-        None,
-        batch_topas_subscores["measures"][batch]["occurrence"],
-    )
-    kinase_rank, _, kinase_zscore, _, kinase_occurrence = kinase_scores[
-        "measures"
-    ].values()
-    batch_kinase_rank, _, batch_kinase_zscore, _, batch_kinase_occurrence = (
-        batch_kinase_scores["measures"][batch]["ranks"],
-        None,
-        None,
-        None,
-        batch_kinase_scores["measures"][batch]["occurrence"],
-    )
-    protein_rank, _, protein_zscore, _, protein_occurrence = protein_scores[
-        "measures"
-    ].values()
-    batch_protein_rank, _, batch_protein_zscore, _, batch_protein_occurrence = (
-        batch_protein_scores["measures"][batch]["ranks"],
-        None,
-        None,
-        None,
-        batch_protein_scores["measures"][batch]["occurrence"],
-    )
-    batch_phospho_rank, _, batch_phospho_zscore, _, batch_phospho_occurrence = (
-        batch_phospho_scores["measures"][batch]["ranks"],
-        None,
-        None,
-        None,
-        batch_phospho_scores["measures"][batch]["occurrence"],
-    )
+    scoring_types = {
+        "TOPAS scores": topas_scores,
+        "TOPAS subscores": topas_subscores,
+        "Substrate phosphorylation score": kinase_scores,
+        "Protein phosphorylation score": protein_scores,
+    }
 
-    scoring_types = [
-        "TOPAS scores",
-        "Batch TOPAS scores",
-        "TOPAS subscores",
-        "Batch TOPAS subscores",
-        "Substrate phosphorylation score",
-        "Batch Substrate phosphorylation score",
-        "Protein phosphorylation score",
-        "Batch Protein phosphorylation score",
-        "Batch Phospho",
-    ]
-    scoring_ranks = [
-        topas_rank,
-        batch_topas_rank,
-        topas_subscores_rank,
-        batch_topas_subscores_rank,
-        kinase_rank,
-        batch_kinase_rank,
-        protein_rank,
-        batch_protein_rank,
-        batch_phospho_rank,
-    ]
-    scoring_zscores = [
-        topas_zscore,
-        batch_topas_zscore,
-        topas_subscores_zscore,
-        batch_topas_subscores_zscore,
-        kinase_zscore,
-        batch_kinase_zscore,
-        protein_zscore,
-        batch_protein_zscore,
-        batch_phospho_zscore,
-    ]
-    scoring_occurrences = [
-        topas_occurrence,
-        batch_topas_occurrence,
-        topas_subscores_occurrence,
-        batch_topas_subscores_occurrence,
-        kinase_occurrence,
-        batch_kinase_occurrence,
-        protein_occurrence,
-        batch_protein_occurrence,
-        batch_phospho_occurrence,
-    ]
-    scoring_dfs = [
-        topas_scores,
-        topas_scores,
-        topas_subscores,
-        topas_subscores,
-        kinase_scores,
-        kinase_scores,
-        protein_scores,
-        protein_scores,
-        batch_phospho_scores,
-    ]
-
-    for i, scoring in enumerate(scoring_types):
-        if "scores" in scoring_dfs[i].keys():
-            patient_data[scoring] = scoring_dfs[i]["scores"].loc[:, patient]
+    patient_data = {}
+    for scoring, scoring_dfs in scoring_types.items():
+        patient_data[scoring] = scoring_dfs["scores"].loc[:, patient]
+        patient_data[scoring + "_significance"] = (
+            scoring_dfs["significance"].loc[:, patient].rename("Significance")
+        )
 
         if scoring == "Substrate phosphorylation score":
             patient_data[scoring] = pd.concat(
@@ -718,25 +465,18 @@ def add_scores_to_patient_data(
                 axis=1,
             )
 
-        if scoring_zscores[i] is not None:
-            patient_data[scoring + "_measures"] = pd.concat(
-                [
-                    scoring_ranks[i].loc[:, "rank_" + patient],
-                    scoring_zscores[i].loc[:, "zscore_" + patient],
-                    scoring_occurrences[i],
+        patient_data[scoring + "_measures"] = pd.concat(
+            [
+                scoring_dfs["measures"]["rank"].loc[:, "rank_" + patient],
+                scoring_dfs["measures"]["z-score"].loc[:, "zscore_" + patient],
+                scoring_dfs["measures"]["occurrence"],
+                scoring_dfs["measures"]["batch_rank"].loc[:, "batch_rank_" + patient],
+                scoring_dfs["measures"]["batch_occurrence"].loc[
+                    :, "batch_occurrence_" + patient
                 ],
-                axis=1,
-            )
-        else:
-            patient_data[scoring + "_measures"] = pd.concat(
-                [scoring_ranks[i].loc[:, "rank_" + patient], scoring_occurrences[i]],
-                axis=1,
-            )
-
-        if scoring != "Batch Phospho":
-            patient_data[scoring + "_significance"] = (
-                scoring_dfs[i]["significance"].loc[:, patient].rename("Significance")
-            )
+            ],
+            axis=1,
+        )
 
     return patient_data
 
@@ -744,7 +484,7 @@ def add_scores_to_patient_data(
 def create_fp_worksheet(
     sheet_name: str,
     fp: pd.DataFrame,
-    measures: Dict[str, Dict],
+    df: pd.DataFrame,
     writer: pd.ExcelWriter,
     fp_annotation_columns: Dict[str, str],
 ) -> None:
@@ -757,8 +497,6 @@ def create_fp_worksheet(
     :param fp_annotation_columns:
 
     """
-    df = measures["fp"]
-
     annotations = fp[fp_annotation_columns.keys()]
     annotations = annotations.reindex(fp_annotation_columns.keys(), axis=1)
     annotations = annotations.rename(fp_annotation_columns, axis="columns")
@@ -776,31 +514,25 @@ def create_fp_worksheet(
     worksheet.set_column("B:C", 12, format_no_dec)  # rank and occurrence
     worksheet.set_column("D:E", 12, format_two_dec)  # fold change and z-score
     worksheet.set_column("F:F", 12, format_p_value)  # p-value
-    worksheet.set_column("G:G", 25)  # ident metadata num of peptides
-    worksheet.set_column("H:H", 12, format_two_dec)  # intensity
+    worksheet.set_column("G:G", 12, format_two_dec)  # intensity
+    worksheet.set_column("H:H", 25)  # ident metadata num of peptides
     worksheet.set_column("I:J", 15)  # topas annot and poi annot
 
 
 def create_pp_worksheet(
     sheet_name: str,
     pp: pd.DataFrame,
-    measures: Dict[str, Dict],
+    df: pd.DataFrame,
     writer: pd.ExcelWriter,
     pp_annotation_columns: Dict[str, str],
 ) -> None:
-
-    df = measures["pp"]
-    phospho_in_batch = measures["Batch Phospho_measures"]
     annotations = pp[pp_annotation_columns.keys()]
-    annotations = annotations.reindex(pp_annotation_columns.keys(), axis=1)
+    annotations = annotations.reindex(
+        pp_annotation_columns.keys(), axis=1
+    )  # force correct column order
     annotations = annotations.rename(pp_annotation_columns, axis="columns")
 
-    phospho_in_batch = phospho_in_batch.loc[
-        :, phospho_in_batch.columns.str.contains("rank")
-    ]
-    phospho_in_batch.columns = ["Batch Rank"]
-
-    df = pd.concat([df, phospho_in_batch, annotations], axis=1)
+    df = pd.concat([df, annotations], axis=1)
     df = df.reset_index().set_index("Modified sequence")
 
     # move Gene names and Proteins annot to start of df
@@ -842,12 +574,6 @@ def create_wp2_worksheet(
         )
     )
     measures = dfs[sheet_name + "_measures"][valid_columns]
-    valid_batch_columns = list(
-        set(extra_annotation_columns.keys()).intersection(
-            dfs["Batch " + sheet_name + "_measures"].columns
-        )
-    )
-    batch_measures = dfs["Batch " + sheet_name + "_measures"][valid_batch_columns]
     significance_score = dfs[sheet_name + "_significance"]
     if sheet_name == "Substrate phosphorylation score":
         significance_score = significance_score.reset_index(
@@ -891,10 +617,6 @@ def create_wp2_worksheet(
     # rename the metric columns and TOPAS score
     measures = measures.rename(extra_annotation_columns, axis="columns")
 
-    batch_measures = batch_measures.rename(
-        extra_annotation_columns, axis="columns"
-    ).add_prefix("Batch ")
-
     if sheet_name == "Protein phosphorylation score":
         wp2_score = dfs[sheet_name]
         df_subset = [
@@ -909,8 +631,6 @@ def create_wp2_worksheet(
         ]
     else:
         wp2_score = dfs[sheet_name].reset_index(level="No. of total targets")
-        batch_measures = batch_measures.reset_index(level="No. of total targets")
-        batch_measures = batch_measures.drop("No. of total targets", axis=1)
         df_subset = [
             "No. of total targets",
             "Score",
@@ -933,7 +653,7 @@ def create_wp2_worksheet(
             name="Score"
         )  # Convert Series to DataFrame with column name
 
-    df = pd.concat([wp2_score, measures, significance_score, batch_measures], axis=1)
+    df = pd.concat([wp2_score, measures, significance_score], axis=1)
     df.index.name = (
         "Kinase" if sheet_name == "Substrate phosphorylation score" else "Protein"
     )
@@ -969,85 +689,45 @@ def create_wp2_worksheet(
         worksheet.set_column("I:J", 17, format_no_dec)  # rank+occurrence in batch
 
 
-def create_score_worksheet(
+def create_topas_worksheet(
     sheet_name: str,
     dfs: Dict[str, pd.DataFrame],
     writer: pd.ExcelWriter,
-    topas_column: str,
     extra_annotation_columns: Dict[str, str],
 ) -> None:
-    valid_columns = list(
-        set(extra_annotation_columns.keys()).intersection(
-            dfs[f"{sheet_name}_measures"].columns
-        )
-    )
+    dfs[sheet_name] = dfs[sheet_name].to_frame(name="Score")
+
+    valid_columns = [
+        col
+        for col in extra_annotation_columns.keys()
+        if col in dfs[f"{sheet_name}_measures"].columns
+    ]
     measures = dfs[sheet_name + "_measures"][valid_columns]
-    valid_batch_columns = list(
-        set(extra_annotation_columns.keys()).intersection(
-            dfs["Batch " + sheet_name + "_measures"].columns
-        )
-    )
-    batch_measures = dfs["Batch " + sheet_name + "_measures"][valid_batch_columns]
+    measures = measures.rename(extra_annotation_columns, axis="columns")
     significance_score = dfs[sheet_name + "_significance"]
 
-    # rename the metric columns
-    measures = measures.rename(extra_annotation_columns, axis="columns")
-    batch_measures = batch_measures.rename(
-        extra_annotation_columns, axis="columns"
-    ).add_prefix(
-        "Batch "
-    )  # .drop('Batch_Z-score', axis=1)
-    # Prepare score df by splitting TOPAS name into TOPAS score, TOPAS subscore and level of score
-    if sheet_name == "TOPAS subscores":
-        dfs[sheet_name] = pd.DataFrame(
-            {
-                "Kinase": dfs[sheet_name]
-                .index.to_series()
-                .apply(lambda x: x.split(" - ")[0]),
-                "TOPAS score level": dfs[sheet_name]
-                .index.to_series()
-                .apply(lambda x: x.split(" - ")[1]),
-                "Data level": dfs[sheet_name]
-                .index.to_series()
-                .apply(lambda x: x.split(" - ")[2]),
-                "Score": dfs[sheet_name].values,
-            }
-        )
-        data_to_concatenate = [
-            dfs[sheet_name],
-            measures,
-            significance_score,
-            batch_measures,
-        ]
-    else:
-        dfs[sheet_name] = dfs[sheet_name].to_frame(name="Score")
-        data_to_concatenate = [
-            dfs[sheet_name],
-            measures,
-            significance_score,
-            batch_measures,
-        ]
-
     # combine with patient data
-    df = pd.concat(data_to_concatenate, axis=1)
+    df = pd.concat([dfs[sheet_name], measures, significance_score], axis=1)
 
-    df.index.name = "Kinase"
-    use_index = True
     if sheet_name == "TOPAS subscores":
-        use_index = False
+        # split TOPAS_subscore_level into TOPAS score, TOPAS subscore and level of score
+        df.index = df.index.str.split(" - ", expand=True)
+        df.index.names = ["Kinase", "TOPAS score level", "Data level"]
+    else:
+        df.index.name = "Kinase"
 
     # Get the xlsxwriter workbook and worksheet objects
-    worksheet, workbook = create_workbook(df, writer, sheet_name, use_index)
+    worksheet, workbook = create_workbook(df, writer, sheet_name)
 
     # Add cell formats
     format_no_dec = workbook.add_format({"num_format": "#,##0"})
     format_two_dec = workbook.add_format({"num_format": "#,##0.00"})
-    if topas_column == "TOPAS scores":
+    if sheet_name == "TOPAS scores":
         worksheet.set_column("A:A", 20)  # topas kinase
         worksheet.set_column("B:B", 15, format_two_dec)  # topas score
         worksheet.set_column("C:C", 12, format_no_dec)  # rank
-        worksheet.set_column("D:D", 12, format_two_dec)  # z-score
-        worksheet.set_column("E:E", 15, format_no_dec)  # occurrence
+        worksheet.set_column("D:D", 15, format_no_dec)  # occurrence
+        worksheet.set_column("E:E", 12, format_two_dec)  # z-score
         worksheet.set_column(
             "F:H", 15, format_no_dec
         )  # significance+zscore rank in batch+occurrence in batch
@@ -1059,16 +739,19 @@ def create_score_worksheet(
         worksheet.set_column("C:C", 25)  # level
         worksheet.set_column("D:D", 15, format_two_dec)  # topas subscore
         worksheet.set_column("E:E", 12, format_no_dec)  # rank
-        worksheet.set_column("F:F", 12, format_two_dec)  # z-score
-        worksheet.set_column("G:H", 15, format_no_dec)  # occurrence+significance
+        worksheet.set_column("F:F", 15, format_no_dec)  # occurrence
+        worksheet.set_column("G:G", 12, format_two_dec)  # z-score
+        worksheet.set_column("H:H", 15, format_no_dec)  # significance
         worksheet.set_column(
             "I:J", 15, format_no_dec
         )  # rank in batch+occurrence in batch
 
 
-def create_workbook(patient_data, writer, sheet_name, use_index: bool = True):
+def create_workbook(
+    patient_data: pd.DataFrame, writer, sheet_name: str, use_index: bool = True
+):
     patient_data.to_excel(
-        writer, sheet_name=sheet_name, index=use_index
+        writer, sheet_name=sheet_name, index=use_index, merge_cells=False
     )  # this is the slow part...
     workbook, worksheet = writer.book, writer.sheets[sheet_name]
     return worksheet, workbook

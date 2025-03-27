@@ -84,7 +84,7 @@ def read_topas_scores(
                 f"Cannot open TOPAS scores file, check if you have it open in Excel. {topas_scores_file_path}"
             )
 
-        return topas_scores_df
+        return topas_scores_df.T
 
     raise FileNotFoundError("No TOPAS score file found")
 
@@ -110,11 +110,9 @@ def read_topas_subscores(results_folder: Union[str, Path]) -> pd.DataFrame:
             raise FileNotFoundError(
                 f"TOPAS subscore file not found. {topas_subscore_file}"
             )
-        # get rid of total basket score column, sample name and sarcoma subtype
-        # TODO: make this not dependent on lower and bigger case!
         df = df.drop(
             df.loc[
-                :, df.columns.str.contains("total_basket_score|Sample|subtype|Subtype")
+                :, df.columns.str.contains("total_basket_score")
             ],
             axis=1,
         )

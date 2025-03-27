@@ -24,7 +24,7 @@ class TestReadTopasScores:
 
         expected_result = pd.DataFrame(
             {"Score": [1, 2]}, index=pd.Series(["A", "B"], name="Sample")
-        )
+        ).T
 
         pd.testing.assert_frame_equal(result, expected_result)
 
@@ -45,8 +45,6 @@ class TestReadTopasSubscores:
             {
                 "index": [1, 2],
                 "total_basket_score": [0.5, 0.6],
-                "Sample": ["sample1", "sample2"],
-                "subtype": ["type1", "type2"],
                 "score1": [0.1, 0.2],
                 "score2": [0.3, 0.4],
             }
