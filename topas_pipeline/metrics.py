@@ -62,8 +62,8 @@ def compute_metrics(
 def add_topas_annotations(
     measure_df: pd.DataFrame, annot_df: pd.DataFrame
 ) -> pd.DataFrame:
-    topas_score_col = list(clinical_tools.TOPAS_SCORE_COLUMNS.keys())[0]
-    topas_subscore_col = list(clinical_tools.TOPAS_SUBSCORE_COLUMNS.keys())[0]
+    topas_score_col = clinical_tools.TOPAS_SCORE_COLUMN
+    topas_subscore_col = clinical_tools.TOPAS_SUBSCORE_COLUMN
     measure_df = measure_df.join(
         annot_df.loc[
             :,

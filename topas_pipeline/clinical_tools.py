@@ -12,22 +12,31 @@ from . import config
 
 logger = logging.getLogger(__name__)
 
+# # Old annotation file format column names
+# TOPAS_SCORE_COLUMN = "basket"
+# TOPAS_SCORE_COLUMNS = {
+#     TOPAS_SCORE_COLUMN: "TOPAS annot",
+# }
+# TOPAS_SUBSCORE_COLUMN = "sub_basket"
+
+TOPAS_SCORE_COLUMN = "TOPAS_score"
 TOPAS_SCORE_COLUMNS = {
-    "TOPAS_score": "TOPAS annot",
+    TOPAS_SCORE_COLUMN: "TOPAS annot",
     "POI_category": "POI category",
 }
+TOPAS_SUBSCORE_COLUMN = "TOPAS_subscore"
 TOPAS_SUBSCORE_COLUMNS = {
-    "TOPAS_subscore": "TOPAS sublevel annot",
+    TOPAS_SUBSCORE_COLUMN: "TOPAS sublevel annot",
 }
 
-
-# # Old annotation file format column names
-# TOPAS_SCORE_COLUMNS = {
-#     "basket": "TOPAS annot",
-# }
-# TOPAS_SUBSCORE_COLUMNS = {
-#     "sub_basket": "TOPAS sublevel annot",
-# }
+VALID_TOPAS_LEVELS = {
+    "fp": ["expression", "kinase activity"],
+    "pp": [
+        "phosphorylation",
+        "important phosphorylation",
+        "kinase activity",
+    ],
+}
 
 
 def add_phospho_annotations(
@@ -151,7 +160,6 @@ def add_topas_annotations(
     # Some dataframes might have empty cells so let's exchange them with nans
     df = df.replace(r"^\s*$", np.nan, regex=True)
     topas_annotation_df = read_topas_annotations(annot_file)
-    annot_dict = create_identifier_to_topas_dict(topas_annotation_df, data_type)
 
     if "fp" in data_type:
         gene_df = df.index.to_frame()
@@ -159,6 +167,7 @@ def add_topas_annotations(
         gene_df = df[["Gene names"]].fillna("")
 
     if "POI" in annot_type:
+        annot_dict = create_identifier_to_topas_dict(topas_annotation_df, "POI")
         df[annot_type] = gene_df.apply(
             map_identifier_list_to_annot_types,
             annot_dict=annot_dict,
@@ -167,6 +176,7 @@ def add_topas_annotations(
             axis=1,
         )
     else:
+        annot_dict = create_identifier_to_topas_dict(topas_annotation_df, data_type)
         df[[annot_type, f"{annot_type}_weights"]] = gene_df.apply(
             map_identifier_list_to_annot_types,
             annot_dict=annot_dict,
@@ -196,33 +206,32 @@ def map_identifier_list_to_annot_types(
 
     annotations = []
     for identifier in identifier_list.iloc[0].split(";"):
+        if identifier not in annot_dict:
+            continue
 
-        # TODO: instead of else if statements do small functions?
-        if identifier in annot_dict:
+        # should we have two dictionaries or should we split the dictionary output in case there is more than one group?
+        annot_type_in_column = TOPAS_SCORE_COLUMN
+        if "POI" in annot_type:
+            annot_type_in_column = TOPAS_SUBSCORE_COLUMN
 
-            # should we have two dictionaries or should we split the dictionary output in case there is more than one group?
-            annot_type_in_column = list(TOPAS_SCORE_COLUMNS.keys())[0]
-            if "POI" in annot_type:
-                annot_type_in_column = list(TOPAS_SUBSCORE_COLUMNS.keys())[0]
+        groups = annot_dict[identifier]["GROUP"].split(";")
+        annot_group = annot_dict[identifier][annot_type_in_column].split(";")
+        annot_weight = annot_dict[identifier]["weight"].split(";")
 
-            groups = annot_dict[identifier]["GROUP"].split(";")
-            annot_group = annot_dict[identifier][annot_type_in_column].split(";")
-            annot_weight = annot_dict[identifier]["weight"].split(";")
+        for i, group in enumerate(groups):
+            # for POI only attempt dict when group is OTHER
+            if group == "OTHER" and "POI" in annot_type:
+                annotations.append(annot_group[i])
 
-            for i, group in enumerate(groups):
-                # for POI only attempt dict when group is OTHER
-                if group == "OTHER" and "POI" in annot_type:
-                    annotations.append(annot_group[i])
+            # for TOPAS score annotations only attempt dict when group is not OTHER
+            elif group != "OTHER" and "POI" not in annot_type:
 
-                # for TOPAS score annotations only attempt dict when group is not OTHER
-                elif group != "OTHER" and "POI" not in annot_type:
-
-                    if with_weights:
-                        annotations.append([annot_group[i], annot_weight[i]])
-                    else:
-                        annotations.append(annot_group[i])
+                if with_weights:
+                    annotations.append([annot_group[i], annot_weight[i]])
                 else:
-                    continue
+                    annotations.append(annot_group[i])
+            else:
+                continue
 
     if "POI" in annot_type:
         return ";".join(annotations)
@@ -250,24 +259,20 @@ def create_identifier_to_topas_dict(
     data_type: Union[str, None] = "fp",
     identifier_type: str = "gene",
 ) -> Dict[str, str]:
-    """
-    collect all the topas names per gene in a dictionary of {'gene_name': 'topas1;topas2;...'}
+    """Collect all the TOPAS annotations per gene in a dictionary of {'gene_name': 'topas1;topas2;...'}
+
+    Args:
+        topas_annotation_df (pd.DataFrame): dataframe with TOPAS gene/p-peptide annotations
+        data_type (Union[str, None], optional): One of "fp", "pp" and "POI". Defaults to "fp".
+        identifier_type (str, optional): _description_. Defaults to "gene".
+
+    Returns:
+        Dict[str, str]: _description_
     """
     if "fp" in data_type or "pp" in data_type:
-        # TODO: check that this does not lead to scoring kinase activity in TOPAS expression subscores
-        if "fp" in data_type:
-            accepted_type = ["expression", "kinase activity"]
-        elif "pp" in data_type:
-            accepted_type = [
-                "phosphorylation",
-                "important phosphorylation",
-                "kinase activity",
-            ]
         topas_annotation_df = topas_annotation_df[
-            topas_annotation_df["GROUP"] != "OTHER"
-        ]
-        topas_annotation_df = topas_annotation_df[
-            topas_annotation_df["LEVEL"].isin(accepted_type)
+            (topas_annotation_df["GROUP"] != "OTHER")
+            & (topas_annotation_df["LEVEL"].isin(VALID_TOPAS_LEVELS[data_type]))
         ]
     else:  # other proteins of interest (POI)
         topas_annotation_df = topas_annotation_df[

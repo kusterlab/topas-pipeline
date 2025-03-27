@@ -21,6 +21,8 @@ from . import TOPAS_protein_phosphorylation_scoring as protein_phoshorylation_sc
 
 logger = logging.getLogger(__name__)
 
+TOPAS_SCORE_COLUMN = clinical_tools.TOPAS_SCORE_COLUMN
+TOPAS_SUBSCORE_COLUMN = clinical_tools.TOPAS_SUBSCORE_COLUMN
 TOPAS_SCORE_COLUMNS = clinical_tools.TOPAS_SCORE_COLUMNS
 TOPAS_SUBSCORE_COLUMNS = clinical_tools.TOPAS_SUBSCORE_COLUMNS
 
@@ -193,8 +195,8 @@ def get_unique_topas_names(topas_names: Union[List, str, float]) -> str:
 
 
 def merge_topas_score_and_subscore_names(row: pd.Series) -> str:
-    topas_score_col = list(TOPAS_SCORE_COLUMNS.keys())[0]
-    topas_subscore_col = list(TOPAS_SUBSCORE_COLUMNS.keys())[0]
+    topas_score_col = TOPAS_SCORE_COLUMN
+    topas_subscore_col = TOPAS_SUBSCORE_COLUMN
     topas_subscore_names = row[topas_subscore_col]
     if not pd.isnull(row[topas_subscore_col]):
         topas_subscore_list = row[topas_subscore_col].split(";")

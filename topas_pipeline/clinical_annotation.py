@@ -39,8 +39,6 @@ def add_clinical_annotations_data_type(
     :param clinic_proc_config: paths to file used for annotating to phospho and TOPAS scpres
     :param data_type: 'fp' for full proteome, 'pp' for phospho proteome
     """
-    # TODO: check if data files with ref if so use these as with_ref otherwise use normal as with_ref
-
     if os.path.exists(os.path.join(results_folder, f"annot_{data_type}.csv")):
         logger.info(
             f"Clinical processing {data_type} skipped - found files already preprocessed"

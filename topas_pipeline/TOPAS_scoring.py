@@ -11,6 +11,7 @@ from typing import List, Union
 from . import metrics
 from . import utils
 from . import clinical_annotation
+from . import clinical_tools
 from . import identification_metadata as id_meta
 from . import sample_metadata
 
@@ -428,8 +429,8 @@ def get_number_ident_annot_per_sample(
         )
         tmt_channels = dfs[data_type].filter(regex="pat_").columns.tolist()
         dfs[data_type + ".num_annotated"] = (
-            dfs[data_type][tmt_channels + ["TOPAS_score"]]
-            .set_index("TOPAS_score")
+            dfs[data_type][tmt_channels + [clinical_tools.TOPAS_SCORE_COLUMN]]
+            .set_index(clinical_tools.TOPAS_SCORE_COLUMN)
             .apply(count_topas_annotations)
         )
 
