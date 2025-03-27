@@ -229,100 +229,73 @@ def calculate_peptide_occurrence(pp_df: pd.DataFrame):
     return pp_df
 
 
-def topas_score_preprocess(results_folder, discard_isoforms=True):
-
-    # TODO: make a wrapper/decorator that checks if exists and if not run this function (use when this function is run from other modules)
-
+def topas_score_preprocess(results_folder: str, discard_isoforms: bool = True):
     filepath = os.path.join(results_folder, "topas_score_preprocessed.tsv")
 
     if os.path.exists(filepath):
         logger.info(f"Reading previously generated file: {filepath}")
         return pd.read_csv(filepath, sep="\t")
 
-    patients_proteins = pd.read_csv(
-        os.path.join(results_folder, "annot_pp.csv"), index_col=0
+    annotations_df = pd.read_csv(
+        os.path.join(results_folder, "annot_pp.csv"),
+        index_col=0,
+        usecols=[
+            "Modified sequence",
+            "Gene names",
+            "Site positions",
+            "Site positions identified (MQ)",
+            "PSP Kinases",
+        ],
     )
-    patients_proteins = patients_proteins.drop(
-        patients_proteins.filter(regex="pat_|ref_").columns, axis=1
+    annotations_df = annotations_df.rename(
+        columns={
+            "Site positions": "All site positions",
+            "Site positions identified (MQ)": "Site positions",
+        }
     )
 
-    patients_zscores = pd.read_csv(
+    patients_zscores_df = pd.read_csv(
         os.path.join(results_folder, "phospho_measures_z.tsv"),
         keep_default_na=False,
         sep="\t",
     )
-    patients_zscores = patients_zscores.rename(
-        columns={
-            colname: colname.replace("zscore_", "")
-            for colname in patients_zscores.columns
-        }
+    patients_zscores_df.columns = patients_zscores_df.columns.str.removeprefix(
+        "zscore_"
     )
-
-    patient_columns = patients_zscores.filter(regex="pat_").columns.tolist()
-    patients_zscores = patients_zscores.loc[
+    patient_columns = patients_zscores_df.filter(regex="pat_").columns.tolist()
+    patients_zscores_df = patients_zscores_df.loc[
         :, ["Gene names", "Modified sequence"] + patient_columns
     ]
 
-    drop_cols = [
-        "PSP_URL",
-        "PSP_URL_extra",
-        "TOPAS_score",
-        "TOPAS_score_weights",
-        "TOPAS_subscore",
-        "TOPAS_subscore_weights",
-        "basket",
-        "basket_weights",
-        "sub_basket",
-        "sub_basket_weights",
-        "other",
-        "other_weights",
-        "rtk",
-        "rtk_weights",
-        "drug",
-        "drug_weights",
-        "Proteins",
-    ]
-    patients_proteins = patients_proteins.drop(columns=drop_cols, errors="ignore")
-    metadata_cols = patients_proteins.filter(
-        regex="^Identification metadata "
-    ).columns.tolist()
-    patients_proteins = patients_proteins.drop(columns=metadata_cols, errors="ignore")
-
-    patients = pd.merge(
-        left=patients_zscores,
-        right=patients_proteins,
+    patients_zscores_df = pd.merge(
+        left=patients_zscores_df,
+        right=annotations_df,
         on=["Modified sequence", "Gene names"],
         how="inner",
         validate="one_to_one",
     )
-    patients.set_index("Modified sequence", inplace=True)
+    patients_zscores_df = patients_zscores_df.set_index("Modified sequence")
 
-    # for debugging: if using preprocessed_pp instead of annot_pp, annotate the p-sites here
-    # clinical_tools.add_phospho_annotations(patients, pspFastaFile, pspKinaseSubstrateFile, pspAnnotationFile, pspRegulatoryFile)
+    patients_zscores_df = calculate_peptide_occurrence(patients_zscores_df)
 
-    patients = calculate_peptide_occurrence(patients)  # better name?
-
-    patients.rename(
-        columns={
-            "Site positions": "All site positions",
-            "Site positions identified (MQ)": "Site positions",
-        },
-        inplace=True,
-    )
-
-    patients = patients[patients["Site positions"].str.len() > 0]
-
-    patients["Site positions"] = patients["Site positions"].str.split(";")
-    patients = patients.explode("Site positions")
+    patients_zscores_df = patients_zscores_df[
+        patients_zscores_df["Site positions"].str.len() > 0
+    ]
+    patients_zscores_df["Site positions"] = patients_zscores_df[
+        "Site positions"
+    ].str.split(";")
+    patients_zscores_df = patients_zscores_df.explode("Site positions")
     if discard_isoforms:
-        # TODO: comment with regex example / documentation or use function for this
-        patients = patients[
-            ~patients["Site positions"].str.contains(r"^(?:[^\W_]+-\d+_[STY]\d+)$")
+        # discards rows with isoform numbers in their Site position strings, e.g. P12345-2_S123
+        patients_zscores_df = patients_zscores_df[
+            ~patients_zscores_df["Site positions"].str.contains(
+                r"^(?:[^\W_]+-\d+_[STY]\d+)$"
+            )
         ]
 
-    patients = patients.reset_index()
-    patients.to_csv(filepath, sep="\t", float_format="%.4g")
-    return patients
+    patients_zscores_df = patients_zscores_df.reset_index()
+    patients_zscores_df.to_csv(filepath, sep="\t", float_format="%.4g")
+    return patients_zscores_df
 
 
 def read_preprocessed_df(location: str):

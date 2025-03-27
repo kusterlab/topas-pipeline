@@ -18,13 +18,9 @@ class TestReadTopasScores:
         mocker.patch("pandas.read_csv", return_value=sample_df)
 
         results_folder = "some/folder"
-        data_type = "None"
-        main_topas_only = True
         z_scored = False
 
-        result = TOPAS_scoring.read_topas_scores(
-            results_folder, data_type, main_topas_only, z_scored
-        )
+        result = TOPAS_scoring.read_topas_scores(results_folder, z_scored)
 
         expected_result = pd.DataFrame(
             {"Score": [1, 2]}, index=pd.Series(["A", "B"], name="Sample")
@@ -191,13 +187,13 @@ class TestLoadKinaseScores:
 
 class TestGetNumberIdentAnnotPerSample:
     def test_reads_csv_files_correctly(self, mocker):
-        # Mocking pd.read_csv to return a sample DataFrame
+        # Mocking pd.read_csv to return a sample annot_df DataFrame
         mock_df = pd.DataFrame(
             {
                 "Gene names": ["gene1", "gene2"],
                 "pat_1": [1, 2],
                 "pat_2": [3, 4],
-                "TOPAS_SCORE": ["A", "B"],
+                "TOPAS_score": ["A", "B"],
             }
         )
         mocker.patch("pandas.read_csv", return_value=mock_df)
@@ -301,20 +297,16 @@ class TestComputeTopasScores:
 
         # Define inputs
         results_folder = "results"
-        debug = False
         metadata_file = "metadata.csv"
         topas_file = "topas_scores.csv"
-        data_types = ["type1"]
         topas_results_folder = "topas_results"
 
         # Call the function
         TOPAS_scoring.compute_TOPAS_scores(
-            results_folder,
-            debug,
-            metadata_file,
-            topas_file,
-            data_types,
-            topas_results_folder,
+            results_folder=results_folder,
+            metadata_file=metadata_file,
+            topas_annotation_file=topas_file,
+            topas_results_folder=topas_results_folder,
         )
 
         # first [0]: first call
@@ -324,7 +316,9 @@ class TestComputeTopasScores:
 
         expected_result = pd.DataFrame(
             {"topas1": [0.5, 0.6, 0.7]},
-            index=pd.Series(["pat_Sample1", "pat_Sample2", "pat_Sample3"]),
+            index=pd.Series(
+                ["pat_Sample1", "pat_Sample2", "pat_Sample3"], name="index"
+            ),
         )
 
         pd.testing.assert_frame_equal(result, expected_result)
@@ -333,7 +327,9 @@ class TestComputeTopasScores:
 
         expected_result_zscored = pd.DataFrame(
             {"topas1": [-2.121320343559642, 0.0, 2.121320343559642]},
-            index=pd.Series(["pat_Sample1", "pat_Sample2", "pat_Sample3"]),
+            index=pd.Series(
+                ["pat_Sample1", "pat_Sample2", "pat_Sample3"], name="index"
+            ),
         )
 
         pd.testing.assert_frame_equal(result_zscored, expected_result_zscored)

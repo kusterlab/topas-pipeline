@@ -138,9 +138,8 @@ class TestTopasScorePreprocess:
                 "Modified sequence": ["Seq1", "Seq2"],
                 "Site positions": ["1", "2"],
                 "Site positions identified (MQ)": ["1;2", "2"],
-                "Other": ["Data1", "Data2"],
             }
-        )
+        ).set_index('Modified sequence')
         sample_patients_zscores = pd.DataFrame(
             {
                 "Gene names": ["Gene1", "Gene2"],
@@ -170,7 +169,6 @@ class TestTopasScorePreprocess:
                 "pat_2": [0.3, 0.3, 0.4],
                 "All site positions": ["1", "1", "2"],
                 "Site positions": ["1", "2", "2"],
-                "Other": ["Data1", "Data1", "Data2"],
                 "Peptide count": [2, 2, 2],
                 "Peptide occurrence": ["2/2", "2/2", "2/2"],
             }

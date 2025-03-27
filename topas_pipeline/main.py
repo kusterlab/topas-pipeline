@@ -105,8 +105,6 @@ def main(argv):
         # 5) compute TOPAS scores (<1 minute)
         TOPAS_scoring.compute_TOPAS_scores(
             results_folder=configs.results_folder,
-            debug=configs.preprocessing.debug,
-            data_types=configs.data_types,
             topas_annotation_file=configs.clinic_proc.prot_baskets,
             metadata_file=configs.metadata_annotation,
         )
