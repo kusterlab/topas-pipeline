@@ -101,7 +101,7 @@ class TestTopasAnnotation:
         import pandas as pd
 
         mocker.patch(
-            "topas_pipeline.TOPAS_annotation.read_topas_annotations",
+            "topas_pipeline.topas.annotation.read_topas_annotations",
             return_value=pd.DataFrame(
                 {
                     "TOPAS_score": ["topas1", "topas2"],

@@ -8,7 +8,7 @@ import numpy as np
 import psite_annotation as pa
 
 from . import config
-from . import TOPAS_annotation
+from .topas import annotation as topas_annotation
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +159,7 @@ def add_topas_annotations(
 
     # Some dataframes might have empty cells so let's exchange them with nans
     df = df.replace(r"^\s*$", np.nan, regex=True)
-    topas_annotation_df = TOPAS_annotation.read_topas_annotations(annot_file)
+    topas_annotation_df = topas_annotation.read_topas_annotations(annot_file)
 
     if "fp" in data_type:
         gene_df = df.index.to_frame()

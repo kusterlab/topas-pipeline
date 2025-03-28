@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from topas_pipeline import TOPAS_annotation
+from topas_pipeline.topas import annotation
 
 
 class TestReadTopasAnnotation:
@@ -24,7 +24,7 @@ class TestReadTopasAnnotation:
         )
         mocker.patch("pandas.read_excel", return_value=mock_excel_data)
 
-        result = TOPAS_annotation.read_topas_annotations("dummy_path.xlsx")
+        result = annotation.read_topas_annotations("dummy_path.xlsx")
 
         pd.testing.assert_frame_equal(
             result,
@@ -65,7 +65,7 @@ class TestTopasSheetSanityCheck:
         df = pd.DataFrame(data)
 
         try:
-            TOPAS_annotation.topas_sheet_sanity_check(df)
+            annotation.topas_sheet_sanity_check(df)
         except ValueError:
             pytest.fail("basket_sheet_sanity_check raised ValueError unexpectedly!")
 
@@ -87,7 +87,7 @@ class TestTopasSheetSanityCheck:
             ValueError,
             match=r"Unknown scoring rules: \['my_fancy_new_scoring_method'\]",
         ):
-            TOPAS_annotation.topas_sheet_sanity_check(df)
+            annotation.topas_sheet_sanity_check(df)
 
     def test_psite_only_highest_z_score_rule(self):
         data = {
@@ -100,4 +100,4 @@ class TestTopasSheetSanityCheck:
             ValueError,
             match="Invalid scoring rule for entry with modified sequence:",
         ):
-            TOPAS_annotation.topas_sheet_sanity_check(df)
+            annotation.topas_sheet_sanity_check(df)

@@ -223,7 +223,7 @@ class TestComputeTopasScores:
             ),
         )
         mocker.patch(
-            "topas_pipeline.TOPAS_annotation.read_topas_annotations",
+            "topas_pipeline.topas.annotation.read_topas_annotations",
             return_value=topas_annotation_df,
         )
         mocker.patch(
@@ -475,7 +475,7 @@ class TestExtractTopasMemberZScores:
     def test_extracts_z_scores_correctly(self, topas_annotation_df, mocker):
         # Mocking the dependencies
         mocker.patch(
-            "topas_pipeline.TOPAS_annotation.read_topas_annotations",
+            "topas_pipeline.topas.annotation.read_topas_annotations",
             return_value=topas_annotation_df,
         )
         mocker.patch(

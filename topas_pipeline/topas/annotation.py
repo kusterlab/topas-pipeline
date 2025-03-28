@@ -1,6 +1,6 @@
 import pandas as pd
 
-from . import utils
+from .. import utils
 
 
 def read_topas_annotations(topas_annotation_file: str) -> pd.DataFrame:
