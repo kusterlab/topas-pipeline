@@ -1,40 +1,39 @@
 import pandas as pd
-from pathlib import Path
-from topas_pipeline.TOPAS_kinase_scoring import kinase_scoring
+from topas_pipeline.topas.substrate_phosphorylation import kinase_scoring
 
 
 class TestKinaseScoring:
     def test_kinase_scoring_valid_inputs(self, mocker):
         # Mocking the logger
-        mock_logger = mocker.patch("topas_pipeline.TOPAS_kinase_scoring.logger.info")
+        mock_logger = mocker.patch("topas_pipeline.topas.substrate_phosphorylation.logger.info")
 
         # Mocking the scoring functions
         mocker.patch(
-            "topas_pipeline.TOPAS_kinase_scoring.scoring.calculate_psite_weights",
+            "topas_pipeline.topas.substrate_phosphorylation.scoring.calculate_psite_weights",
             return_value=pd.DataFrame(columns=["PSP Kinases"]),
         )
         mocker.patch(
-            "topas_pipeline.TOPAS_kinase_scoring.scoring.calculate_modified_sequence_weights",
+            "topas_pipeline.topas.substrate_phosphorylation.scoring.calculate_modified_sequence_weights",
             return_value=pd.DataFrame(),
         )
         mocker.patch(
-            "topas_pipeline.TOPAS_kinase_scoring.scoring.cap_zscores_and_weights",
+            "topas_pipeline.topas.substrate_phosphorylation.scoring.cap_zscores_and_weights",
             return_value=pd.DataFrame(),
         )
         mocker.patch(
-            "topas_pipeline.TOPAS_kinase_scoring.scoring.calculate_weighted_z_scores",
+            "topas_pipeline.topas.substrate_phosphorylation.scoring.calculate_weighted_z_scores",
             return_value=pd.DataFrame(),
         )
         mocker.patch(
-            "topas_pipeline.TOPAS_kinase_scoring.scoring.sum_weighted_z_scores",
+            "topas_pipeline.topas.substrate_phosphorylation.scoring.sum_weighted_z_scores",
             return_value=pd.DataFrame(),
         )
         mocker.patch(
-            "topas_pipeline.TOPAS_kinase_scoring.scoring.second_level_z_scoring",
+            "topas_pipeline.topas.substrate_phosphorylation.scoring.second_level_z_scoring",
             return_value=pd.DataFrame(columns=["PSP Kinases"]),
         )
         mocker.patch(
-            "topas_pipeline.TOPAS_kinase_scoring.scoring.get_target_space",
+            "topas_pipeline.topas.substrate_phosphorylation.scoring.get_target_space",
             return_value=pd.DataFrame(columns=["PSP Kinases", "No. of total targets"]),
         )
 
