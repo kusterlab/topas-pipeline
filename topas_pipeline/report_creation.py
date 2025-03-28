@@ -15,6 +15,7 @@ from . import utils as utils
 from . import metrics as metrics
 from . import clinical_annotation
 from . import clinical_tools
+from . import TOPAS_annotation
 from . import TOPAS_scoring
 from . import TOPAS_kinase_scoring as kinase_scoring
 from . import TOPAS_protein_phosphorylation_scoring as protein_phoshorylation_scoring
@@ -74,7 +75,7 @@ def create_report(
             print("Input not of type int or string")
         samples_list = samples_for_report
 
-    topas_annotation_df = clinical_tools.read_topas_annotations(annot_file)
+    topas_annotation_df = TOPAS_annotation.read_topas_annotations(annot_file)
 
     # Load sample annotation file
     sample_annotation_df = sa.load_sample_annotation(

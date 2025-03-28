@@ -7,8 +7,8 @@ import pandas as pd
 import numpy as np
 import psite_annotation as pa
 
-from . import utils
 from . import config
+from . import TOPAS_annotation
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +159,7 @@ def add_topas_annotations(
 
     # Some dataframes might have empty cells so let's exchange them with nans
     df = df.replace(r"^\s*$", np.nan, regex=True)
-    topas_annotation_df = read_topas_annotations(annot_file)
+    topas_annotation_df = TOPAS_annotation.read_topas_annotations(annot_file)
 
     if "fp" in data_type:
         gene_df = df.index.to_frame()
@@ -200,16 +200,12 @@ def map_identifier_list_to_annot_types(
     matching the first identifier with annotations and weights
     Input identifier list has to be pd.Series and if method used via apply it has to be of type dataframe
     """
-    # TODO: Refactor this function!
-    # TODO: throw error if no annot_dict given
-    # TODO: make less hardcoded and optimize
-
+    # TODO: Create unit tests and refactor this function!
     annotations = []
     for identifier in identifier_list.iloc[0].split(";"):
         if identifier not in annot_dict:
             continue
 
-        # should we have two dictionaries or should we split the dictionary output in case there is more than one group?
         annot_type_in_column = TOPAS_SCORE_COLUMN
         if "POI" in annot_type:
             annot_type_in_column = TOPAS_SUBSCORE_COLUMN
@@ -219,19 +215,16 @@ def map_identifier_list_to_annot_types(
         annot_weight = annot_dict[identifier]["weight"].split(";")
 
         for i, group in enumerate(groups):
-            # for POI only attempt dict when group is OTHER
+            # for POI only add to dict when group is OTHER
             if group == "OTHER" and "POI" in annot_type:
                 annotations.append(annot_group[i])
 
-            # for TOPAS score annotations only attempt dict when group is not OTHER
+            # for TOPAS score annotations only add to dict when group is not OTHER
             elif group != "OTHER" and "POI" not in annot_type:
-
                 if with_weights:
                     annotations.append([annot_group[i], annot_weight[i]])
                 else:
                     annotations.append(annot_group[i])
-            else:
-                continue
 
     if "POI" in annot_type:
         return ";".join(annotations)
@@ -284,29 +277,6 @@ def create_identifier_to_topas_dict(
     )
     annot_dict = topas_annotation_df.to_dict("index")
     return annot_dict
-
-
-def read_topas_annotations(topas_annotation_file: str) -> pd.DataFrame:
-    topas_annotation_df = pd.read_excel(topas_annotation_file)
-    topas_annotation_df = utils.whitespace_remover(topas_annotation_df)
-
-    topas_annotation_df["topas_subscore_level"] = (
-        topas_annotation_df["TOPAS_SUBSCORE"] + " - " + topas_annotation_df["LEVEL"]
-    )
-    # empty cell in WEIGHT column means weight = 1
-    topas_annotation_df["WEIGHT"] = topas_annotation_df["WEIGHT"].fillna(1)
-
-    topas_annotation_df = topas_annotation_df.rename(
-        {
-            "TOPAS_SCORE": "TOPAS_score",
-            "TOPAS_SUBSCORE": "TOPAS_subscore",
-            "WEIGHT": "weight",
-            "GENE NAME": "gene",
-        },
-        axis=1,
-    )
-
-    return topas_annotation_df
 
 
 """

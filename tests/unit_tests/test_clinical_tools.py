@@ -101,7 +101,7 @@ class TestTopasAnnotation:
         import pandas as pd
 
         mocker.patch(
-            "topas_pipeline.clinical_tools.read_topas_annotations",
+            "topas_pipeline.TOPAS_annotation.read_topas_annotations",
             return_value=pd.DataFrame(
                 {
                     "TOPAS_score": ["topas1", "topas2"],
@@ -189,36 +189,3 @@ class TestCreateIdentifierToBasketDict:
         assert result == expected_output
 
 
-class TestReadTopasAnnotation:
-    def test_reads_and_processes_valid_excel_file(self, mocker):
-        mock_excel_data = pd.DataFrame(
-            {
-                "TOPAS_SCORE": ["topas1  ", "topas2"],
-                "TOPAS_SUBSCORE": ["sub1", "sub2"],
-                "GROUP": ["(R)TK", "(R)TK"],
-                "LEVEL": ["expression  ", "kinase activity"],
-                "WEIGHT": [0.5, 0.8],
-                "GENE NAME": ["gene1", "gene2  "],
-            }
-        )
-        mocker.patch("pandas.read_excel", return_value=mock_excel_data)
-
-        result = ct.read_topas_annotations("dummy_path.xlsx")
-
-        pd.testing.assert_frame_equal(
-            result,
-            pd.DataFrame(
-                {
-                    "TOPAS_score": ["topas1", "topas2"],
-                    "TOPAS_subscore": ["sub1", "sub2"],
-                    "GROUP": ["(R)TK", "(R)TK"],
-                    "LEVEL": ["expression", "kinase activity"],
-                    "weight": [0.5, 0.8],
-                    "gene": ["gene1", "gene2"],
-                    "topas_subscore_level": [
-                        "sub1 - expression",
-                        "sub2 - kinase activity",
-                    ],
-                }
-            ),
-        )

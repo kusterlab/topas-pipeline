@@ -211,7 +211,7 @@ class TestGetNumberIdentAnnotPerSample:
 
 class TestComputeTopasScores:
     # Computes TOPAS scores correctly given valid input files and paths
-    def test_compute_topas_scores_valid_inputs(self, mocker):
+    def test_compute_topas_scores_valid_inputs(self, topas_annotation_df, mocker):
         # Mocking dependencies
         mocker.patch(
             "topas_pipeline.TOPAS_scoring.sample_metadata.load",
@@ -223,18 +223,8 @@ class TestComputeTopasScores:
             ),
         )
         mocker.patch(
-            "topas_pipeline.TOPAS_scoring.read_topas_annotation_file",
-            return_value=pd.DataFrame(
-                {
-                    "TOPAS_SCORE": ["topas1", "topas2"],
-                    "TOPAS_SUBSCORE": ["subtopas1", "subtopas2"],
-                    "GENE NAME": ["Gene1", "Gene2"],
-                    "WEIGHT": [1, np.nan],
-                    "GROUP": ["group1", "OTHER"],
-                    "SCORING RULE": ["highest z-score", "highest z-score"],
-                    "TOPAS_subscore_level": ["level1", "level1"],
-                }
-            ),
+            "topas_pipeline.TOPAS_annotation.read_topas_annotations",
+            return_value=topas_annotation_df,
         )
         mocker.patch(
             "topas_pipeline.TOPAS_scoring.load_z_scores_fp",
@@ -407,101 +397,13 @@ class TestCountSignificantTopasScores:
         pd.testing.assert_frame_equal(result, expected_df)
 
 
-class TestTopasSheetSanityCheck:
-    def test_valid_scoring_rules(self):
-        data = {
-            "SCORING RULE": [
-                "highest z-score",
-                "highest z-score (p-site)",
-                "highest protein phosphorylation score (2nd level z-score, fh)",
-                "highest kinase score (2nd level z-score, fh)",
-                "summed z-score",
-            ],
-            "MODIFIED SEQUENCE": [None, None, None, None, None],
-        }
-        df = pd.DataFrame(data)
-
-        try:
-            TOPAS_scoring.topas_sheet_sanity_check(df)
-        except ValueError:
-            pytest.fail("basket_sheet_sanity_check raised ValueError unexpectedly!")
-
-    def test_unknown_scoring_rules(self):
-        data = {
-            "SCORING RULE": [
-                "highest z-score",
-                "highest z-score (p-site)",
-                "highest protein phosphorylation score (2nd level z-score, fh)",
-                "highest kinase score (2nd level z-score, fh)",
-                "summed z-score",
-                "my_fancy_new_scoring_method",
-            ],
-            "MODIFIED SEQUENCE": [None, None, None, None, None, None],
-        }
-        df = pd.DataFrame(data)
-
-        with pytest.raises(
-            ValueError,
-            match=r"Unknown scoring rules: \['my_fancy_new_scoring_method'\]",
-        ):
-            TOPAS_scoring.topas_sheet_sanity_check(df)
-
-    def test_psite_only_highest_z_score_rule(self):
-        data = {
-            "SCORING RULE": ["highest z-score", "highest z-score (p-site)"],
-            "MODIFIED SEQUENCE": ["seq1", "seq2"],
-        }
-        df = pd.DataFrame(data)
-
-        with pytest.raises(
-            ValueError,
-            match="Invalid scoring rule for entry with modified sequence:",
-        ):
-            TOPAS_scoring.topas_sheet_sanity_check(df)
-
-
-class TestReadTopasFile:
-    # Successfully reads an Excel file into a DataFrame
-    def test_reads_excel_file_into_dataframe(self, mocker):
-        # Mocking the pd.read_excel function
-        mock_read_excel = mocker.patch("pandas.read_excel")
-        mock_df = pd.DataFrame(
-            {
-                "TOPAS_SCORE": ["EGFR", "ALK"],
-                "TOPAS_SUBSCORE": ["EGFR", "ALK"],
-                "SCORING RULE": ["highest z-score", "highest z-score (p-site)"],
-                "MODIFIED SEQUENCE": [np.nan, "seq2"],
-                "LEVEL": ["expression", "kinase activity"],
-                "WEIGHT": [0.5, np.nan],
-            }
-        )
-        mock_read_excel.return_value = mock_df
-
-        excel_file = "my_excel_file.xlsx"
-        result = TOPAS_scoring.read_topas_annotation_file(excel_file)
-
-        expected_result = pd.DataFrame(
-            {
-                "TOPAS_SCORE": ["EGFR", "ALK"],
-                "TOPAS_SUBSCORE": ["EGFR", "ALK"],
-                "SCORING RULE": ["highest z-score", "highest z-score (p-site)"],
-                "MODIFIED SEQUENCE": [np.nan, "seq2"],
-                "LEVEL": ["expression", "kinase activity"],
-                "WEIGHT": [0.5, 1.0],
-                "TOPAS_subscore_level": ["EGFR - expression", "ALK - kinase activity"],
-            }
-        )
-
-        pd.testing.assert_frame_equal(result, expected_result)
-
-
 class TestGetSummedZscore:
     # Correctly calculates summed z-scores for non-ligand cases
     def test_summed_zscore_non_ligand(self, mocker):
         z_score_data = {"sample1": [1.5, -3.2, 4.5], "sample2": [-2.5, 3.0, -4.1]}
         topas_subscore_data = {
             "GENES": ["Gene4", "Gene1", "Gene2"],
-            "WEIGHT": [0.5, 1.0, 2.0],
+            "weight": [0.5, 1.0, 2.0],
         }
         mocker.patch("pandas.DataFrame.to_csv")
 
@@ -570,21 +472,11 @@ class TestSaveTopasScoresLongFormat:
 
 
 class TestExtractTopasMemberZScores:
-    def test_extracts_z_scores_correctly(self, mocker):
+    def test_extracts_z_scores_correctly(self, topas_annotation_df, mocker):
         # Mocking the dependencies
         mocker.patch(
-            "topas_pipeline.TOPAS_scoring.read_topas_annotation_file",
-            return_value=pd.DataFrame(
-                {
-                    "TOPAS_score": ["topas1", "topas2"],
-                    "TOPAS_subscore": ["subtopas1", "subtopas2"],
-                    "GENE NAME": ["Gene1", "Gene2"],
-                    "WEIGHT": [1, np.nan],
-                    "GROUP": ["group1", "OTHER"],
-                    "SCORING RULE": ["highest z-score", "highest z-score"],
-                    "TOPAS_subscore_level": ["level1", "level1"],
-                }
-            ),
+            "topas_pipeline.TOPAS_annotation.read_topas_annotations",
+            return_value=topas_annotation_df,
         )
         mocker.patch(
             "topas_pipeline.TOPAS_scoring.load_z_scores_fp",
@@ -651,3 +543,18 @@ class TestExtractTopasMemberZScores:
         )
         expected_result_gene2_level1.columns.name = "Gene names"
         pd.testing.assert_frame_equal(result_gene2_level1, expected_result_gene2_level1)
+
+
+@pytest.fixture
+def topas_annotation_df():
+    return pd.DataFrame(
+        {
+            "TOPAS_score": ["topas1", "topas2"],
+            "TOPAS_subscore": ["subtopas1", "subtopas2"],
+            "gene": ["Gene1", "Gene2"],
+            "weight": [1, np.nan],
+            "GROUP": ["group1", "OTHER"],
+            "SCORING RULE": ["highest z-score", "highest z-score"],
+            "TOPAS_subscore_level": ["level1", "level1"],
+        }
+    )
