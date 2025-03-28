@@ -9,8 +9,6 @@ from pathlib import Path
 from typing import Tuple, Dict, List, Union
 from job_pool import JobPool
 
-import topas_pipeline.topas.topas
-
 from . import config
 from . import sample_annotation as sa
 from . import utils as utils
@@ -21,6 +19,7 @@ from .topas import annotation as topas_annotation
 from .topas import phosphorylation
 from .topas import substrate_phosphorylation
 from .topas import protein_phosphorylation
+from .topas import topas
 
 logger = logging.getLogger(__name__)
 
@@ -109,9 +108,6 @@ def create_report(
         read_and_compute_scores(results_folder)
     )
 
-    # TODO: it would make a lot of sense to move these calculations to it's own module and have a report writing only module which can be reused on portal
-    # Questio is HOW to make it fast and efficient (takes a lot of memory to read all the data now. Do we need to read and close one file at a time?)
-
     logger.info("Calculate within batch ranks")
     topas_scores["measures"] |= compute_in_batch_rank(
         topas_scores["scores"], sample_to_batch_dict
@@ -159,26 +155,24 @@ def create_report(
 
 
 def read_and_compute_scores(results_folder: Union[str, Path]) -> Tuple:
-    # TODO: optimize reading and filtering of score files
-    topas_scores, topas_subscores, kinase_scores, protein_scores = (
-        dict(),
-        dict(),
+    kinase_scores, protein_scores = (
         dict(),
         dict(),
     )
-    topas_scores["scores"] = topas_pipeline.topas.topas.read_topas_scores(results_folder)
-    topas_subscores["scores"] = phosphorylation.read_topas_subscores(results_folder)
+    topas_scores = {"scores": topas.read_topas_scores(results_folder)}
+    topas_subscores = {"scores": phosphorylation.read_topas_subscores(results_folder)}
+    kinase_scores = {
+        "scores": substrate_phosphorylation.read_kinase_scoring(results_folder)
+    }
+    protein_scores = {
+        "scores": protein_phosphorylation.read_protein_scoring(results_folder)
+    }
 
-    kinase_scores["scores"] = substrate_phosphorylation.read_kinase_scoring(results_folder)
     kinase_scores["targets"] = kinase_scores["scores"].filter(regex=r"^targets_")
     kinase_scores["scores"] = kinase_scores["scores"].loc[
         :, ~kinase_scores["scores"].columns.str.startswith("targets_")
     ]
     kinase_scores["scores"] = kinase_scores["scores"].filter(regex="pat_")
-
-    protein_scores["scores"] = protein_phosphorylation.read_protein_scoring(
-        results_folder
-    )
     protein_scores["scores"] = protein_scores["scores"].filter(regex="pat_")
 
     for score_dict in [topas_scores, topas_subscores, kinase_scores, protein_scores]:

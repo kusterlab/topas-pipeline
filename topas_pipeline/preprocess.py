@@ -64,7 +64,9 @@ def preprocess_raw_data_type(
     :param normalize_to_reference: boolean for whether or not to normalize intensities relative to the reference channels (e.g. if MS1 chromatography peaks are bad)
     """
     if not preprocessing_config.run_preprocessing:
-        logger.info(f"run_preprocessing flag is set to False, skipping preprocessing for {data_type}")
+        logger.info(
+            f"run_preprocessing flag is set to False, skipping preprocessing for {data_type}"
+        )
         return
 
     # check if file is there - if so skip this
@@ -164,23 +166,6 @@ def preprocess_raw_data_type(
         index=False,
         float_format="%.6g",
     )
-
-
-def get_prefix_renaming_dict(df, patient_columns):
-    # TODO: replace this function with a cleaner solution
-    rename_dict = {}
-    patient_columns_prefix = df.loc[:, df.columns.isin(patient_columns)].add_prefix(
-        "pat_"
-    )
-    for key, value in zip(patient_columns, patient_columns_prefix):
-        expected_value = "pat_" + key
-        if value == expected_value:
-            rename_dict[key] = value
-        else:
-            raise ValueError(
-                f"Invalid mapping: {key} should map to {expected_value}, but got {value} instead."
-            )
-    return rename_dict
 
 
 def load_sample_data(

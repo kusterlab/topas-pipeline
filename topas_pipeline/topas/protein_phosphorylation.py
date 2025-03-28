@@ -85,7 +85,7 @@ def protein_phospho_scoring(results_folder, preprocessed_protein_df):
     ):
         os.makedirs(protein_folder)
 
-    # TODO: Why are you not using the functions of psite_scoring_functions you moron?
+    # TODO: replace with the functions of psite_scoring_functions
     protein_df = preprocessed_protein_df.copy()
     patcols = [col for col in protein_df.columns if "pat_" in col]
     protein_df[patcols] = protein_df[patcols].astype(float).clip(upper=4, lower=-4)

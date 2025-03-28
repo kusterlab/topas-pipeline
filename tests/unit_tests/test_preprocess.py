@@ -63,9 +63,6 @@ class TestPreprocessRawDataType:
             "topas_pipeline.preprocess.prep.rename_columns_with_sample_ids",
             return_value=pd.DataFrame(columns=["Gene names"]),
         )
-        mocker.patch(
-            "topas_pipeline.preprocess.get_prefix_renaming_dict", return_value={}
-        )
         mocker.patch("pandas.DataFrame.to_csv")
 
         preprocess_config = config.Preprocessing(
@@ -92,30 +89,6 @@ class TestPreprocessRawDataType:
 
         # Assert that the logger was called with the start message
         mock_logger.info.assert_any_call("Preprocessing fp starts")
-
-
-class TestGetPrefixRenamingDict:
-    # Correctly renames columns with 'pat_' prefix when all patient_columns are present in df
-    def test_correct_renaming(self):
-        df = pd.DataFrame({"id": [1, 2], "name": ["Alice", "Bob"], "age": [25, 30]})
-        patient_columns = ["id", "name"]
-        expected_result = {"id": "pat_id", "name": "pat_name"}
-
-        result = preprocess.get_prefix_renaming_dict(df, patient_columns)
-
-        assert result == expected_result
-
-        # Raises ValueError when a patient_column does not map correctly to its expected prefixed value
-
-    def test_invalid_mapping_raises_value_error(self):
-        df = pd.DataFrame({"id": [1, 2], "name": ["Alice", "Bob"], "age": [25, 30]})
-        patient_columns = ["id", "name", "name", "age"]
-
-        with pytest.raises(
-            ValueError,
-            match="Invalid mapping: name should map to pat_name, but got pat_age instead.",
-        ):
-            preprocess.get_prefix_renaming_dict(df, patient_columns)
 
 
 class TestLoadSampleData:

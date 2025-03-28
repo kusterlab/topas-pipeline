@@ -246,7 +246,6 @@ def get_correction_factor_files(
         update_correction_factor_file_mapping(
             missing_experiments, correction_file_mapping_file, mq_queue_file
         )
-        # TODO: following caused error due to missing last input (now added for test?)
         return get_correction_factor_files(
             experiments,
             correction_file_mapping_file,

@@ -229,10 +229,11 @@ def get_metrics(df: pd.DataFrame) -> Dict[str, pd.DataFrame]:
 
 
 def get_data_type_long(data_type: str):
-    # TODO: raise error for unknown data type instead of defaulting to full_proteome
     if data_type.startswith("pp"):
         return "phospho"
-    return "full_proteome"
+    elif data_type.startswith("fp"):
+        return "full_proteome"
+    raise ValueError(f"Unknown data type {data_type}")
 
 
 def check_measures_computed(

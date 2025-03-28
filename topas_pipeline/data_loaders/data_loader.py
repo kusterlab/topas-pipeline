@@ -52,8 +52,6 @@ class DataLoader:
 
         merged_ms1_df = merge_ms1_columns(df)
 
-        # TODO: Find better solution for selecting peptides for median centering.
-        #       Currently, Sarcoma_Batch20-22 have a z-score bias because they have fewer of the "common" peptides than other batches.
         medians = (
             merged_ms1_df[
                 merged_ms1_df.count(axis=1) > 0.7 * len(merged_ms1_df.columns)
