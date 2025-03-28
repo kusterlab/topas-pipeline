@@ -7,9 +7,8 @@ import logging
 
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 
-import topas_pipeline.config as config
+from .. import config
 import topas_pipeline.TOPAS_scoring_functions as scoring
 
 # hacky way to get the package logger instead of just __main__ when running as a module

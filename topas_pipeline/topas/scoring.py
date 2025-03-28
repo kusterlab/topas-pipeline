@@ -8,13 +8,13 @@ import pandas as pd
 from pathlib import Path
 from typing import List, Union
 
-from . import metrics
-from . import utils
-from . import clinical_annotation
-from . import clinical_tools
-from . import identification_metadata as id_meta
-from . import sample_metadata
-from .topas import annotation as topas_annotation
+from .. import metrics
+from .. import utils
+from .. import clinical_annotation
+from .. import clinical_tools
+from .. import identification_metadata as id_meta
+from .. import sample_metadata
+from . import annotation as topas_annotation
 
 # hacky way to get the package logger instead of just __main__ when running as a module
 logger = logging.getLogger(__package__ + "." + __file__)
@@ -727,7 +727,7 @@ def extract_topas_member_z_scores(
 if __name__ == "__main__":
     import argparse
 
-    from . import config
+    from .. import config
 
     parser = argparse.ArgumentParser()
     parser.add_argument(

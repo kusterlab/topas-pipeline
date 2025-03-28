@@ -1,9 +1,6 @@
-import os
-
 import pandas as pd
-import numpy as np
 
-import topas_pipeline.TOPAS_protein_phosphorylation_scoring as phospho_scoring
+from topas_pipeline.topas import protein_phosphorylation
 
 
 class TestProteinPhosphoScoring:
@@ -19,7 +16,7 @@ class TestProteinPhosphoScoring:
         mocker.patch("os.path.exists", return_value=False)
         mocker.patch("pandas.DataFrame.to_csv")
         mock_makedirs = mocker.patch("os.makedirs")
-        phospho_scoring.protein_phospho_scoring(
+        protein_phosphorylation.protein_phospho_scoring(
             "dummy_results_folder", preprocessed_protein_df
         )
 
@@ -47,7 +44,7 @@ class TestProteinScorePreprocess:
         mocker.patch("pandas.DataFrame.to_csv")
 
         results_folder = "/path/to/results"
-        result = phospho_scoring.protein_score_preprocess(results_folder)
+        result = protein_phosphorylation.protein_score_preprocess(results_folder)
 
         expected_result = pd.DataFrame(
             {
@@ -81,6 +78,6 @@ class TestReadProteinScoring:
             {"pat_1": [1, 2], "pat_2": [3, 4]}, index=["Gene1", "Gene2"]
         )
 
-        result_df = phospho_scoring.read_protein_scoring(results_folder)
+        result_df = protein_phosphorylation.read_protein_scoring(results_folder)
 
         pd.testing.assert_frame_equal(result_df, expected_df)

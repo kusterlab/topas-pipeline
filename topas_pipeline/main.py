@@ -13,8 +13,8 @@ from . import preprocess
 from . import clinical_annotation
 from . import report_creation
 from . import metrics
-from . import TOPAS_psite_scoring
-from . import TOPAS_scoring
+from .topas import phosphorylation
+from .topas import scoring
 from . import portal_updater
 
 logger = logging.getLogger(__name__)
@@ -94,7 +94,7 @@ def main(argv):
 
         start_time = time.time()
         # 4) Run WP2 scoring (<1 minute)
-        TOPAS_psite_scoring.psite_scoring(
+        phosphorylation.psite_scoring(
             results_folder=configs.results_folder,
             extra_kinase_annot=configs.clinic_proc.extra_kinase_annot,
             data_types=configs.data_types,
@@ -103,7 +103,7 @@ def main(argv):
 
         start_time = time.time()
         # 5) compute TOPAS scores (<1 minute)
-        TOPAS_scoring.compute_TOPAS_scores(
+        scoring.compute_TOPAS_scores(
             results_folder=configs.results_folder,
             topas_annotation_file=configs.clinic_proc.prot_baskets,
             metadata_file=configs.metadata_annotation,

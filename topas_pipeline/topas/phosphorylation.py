@@ -5,9 +5,9 @@ import argparse
 from pathlib import Path
 from typing import List, Union
 
-from . import config
-from .topas import substrate_phosphorylation
-from topas_pipeline.TOPAS_protein_phosphorylation_scoring import protein_phospho_scoring
+from .. import config
+from . import substrate_phosphorylation
+from . import protein_phosphorylation
 import topas_pipeline.TOPAS_scoring_functions as scoring
 
 
@@ -35,12 +35,11 @@ def psite_scoring(
 
     kinase_results_folder = os.path.join(results_folder, "kinase_results")
 
-    # TODO: fix this, this is not good coding practice...
     extra_kinase_annot_bool = False
     if len(str(extra_kinase_annot)) > 0:
         extra_kinase_annot_bool = True
     substrate_phosphorylation.kinase_scoring(kinase_results_folder, preprocessed_df, extra_kinase_annot_bool)
-    protein_phospho_scoring(results_folder, preprocessed_df)
+    protein_phosphorylation.protein_phospho_scoring(results_folder, preprocessed_df)
 
 
 if __name__ == "__main__":

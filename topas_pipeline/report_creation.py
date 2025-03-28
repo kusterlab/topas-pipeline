@@ -16,9 +16,9 @@ from . import metrics as metrics
 from . import clinical_annotation
 from . import clinical_tools
 from .topas import annotation as topas_annotation
-from . import TOPAS_scoring
+from .topas import scoring
 from .topas import substrate_phosphorylation
-from . import TOPAS_protein_phosphorylation_scoring as protein_phoshorylation_scoring
+from .topas import protein_phosphorylation
 
 logger = logging.getLogger(__name__)
 
@@ -164,8 +164,8 @@ def read_and_compute_scores(results_folder: Union[str, Path]) -> Tuple:
         dict(),
         dict(),
     )
-    topas_scores["scores"] = TOPAS_scoring.read_topas_scores(results_folder)
-    topas_subscores["scores"] = TOPAS_scoring.read_topas_subscores(results_folder)
+    topas_scores["scores"] = scoring.read_topas_scores(results_folder)
+    topas_subscores["scores"] = scoring.read_topas_subscores(results_folder)
 
     kinase_scores["scores"] = substrate_phosphorylation.read_kinase_scoring(results_folder)
     kinase_scores["targets"] = kinase_scores["scores"].filter(regex=r"^targets_")
@@ -174,7 +174,7 @@ def read_and_compute_scores(results_folder: Union[str, Path]) -> Tuple:
     ]
     kinase_scores["scores"] = kinase_scores["scores"].filter(regex="pat_")
 
-    protein_scores["scores"] = protein_phoshorylation_scoring.read_protein_scoring(
+    protein_scores["scores"] = protein_phosphorylation.read_protein_scoring(
         results_folder
     )
     protein_scores["scores"] = protein_scores["scores"].filter(regex="pat_")
