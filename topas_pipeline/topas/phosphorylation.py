@@ -5,6 +5,9 @@ import argparse
 from pathlib import Path
 from typing import List, Union
 
+
+import pandas as pd
+
 from .. import config
 from . import substrate_phosphorylation
 from . import protein_phosphorylation
@@ -52,3 +55,45 @@ if __name__ == "__main__":
 
     configs = config.load(args.config)
     psite_scoring(configs.results_folder, configs.data_types)
+
+
+def get_paths_to_topas_subscore_files(results_folder):
+    files = [
+        filename
+        for filename in os.listdir(results_folder)
+        if filename.startswith("subbasket_scores")
+    ]
+    return files
+
+
+def read_topas_subscores(results_folder: Union[str, Path]) -> pd.DataFrame:
+    """
+    Read TOPAS subscore results for report creation
+    Requires one of [basket_scores_4th_gen.tsv|basket_scores.tsv]
+    """
+    topas_subscore_files = get_paths_to_topas_subscore_files(results_folder)
+    # read in df and combine
+    list_dfs = []
+    for file in topas_subscore_files:
+        topas_subscore_file = os.path.join(results_folder, file)
+        if os.path.exists(topas_subscore_file):
+            try:
+                df = pd.read_csv(topas_subscore_file, sep="\t", index_col="index")
+            except PermissionError:
+                raise PermissionError(
+                    f"Cannot open TOPAS subscores file, check if you have it open in Excel. {topas_subscore_file}"
+                )
+        else:
+            raise FileNotFoundError(
+                f"TOPAS subscore file not found. {topas_subscore_file}"
+            )
+        df = df.drop(
+            df.loc[
+                :, df.columns.str.contains("total_basket_score")
+            ],
+            axis=1,
+        )
+        list_dfs.append(df.transpose())
+    list_dfs = [df.loc[:, ~df.columns.duplicated(keep="first")] for df in list_dfs]
+    topas_subscores_df = pd.concat(list_dfs)
+    return topas_subscores_df

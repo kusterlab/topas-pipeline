@@ -14,7 +14,7 @@ from . import clinical_annotation
 from . import report_creation
 from . import metrics
 from .topas import phosphorylation
-from .topas import scoring
+from .topas import topas
 from . import portal_updater
 
 logger = logging.getLogger(__name__)
@@ -103,7 +103,7 @@ def main(argv):
 
         start_time = time.time()
         # 5) compute TOPAS scores (<1 minute)
-        scoring.compute_TOPAS_scores(
+        topas.compute_topas_scores(
             results_folder=configs.results_folder,
             topas_annotation_file=configs.clinic_proc.prot_baskets,
             metadata_file=configs.metadata_annotation,

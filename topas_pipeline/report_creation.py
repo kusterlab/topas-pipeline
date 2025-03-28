@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Tuple, Dict, List, Union
 from job_pool import JobPool
 
+import topas_pipeline.topas.topas
+
 from . import config
 from . import sample_annotation as sa
 from . import utils as utils
@@ -16,7 +18,7 @@ from . import metrics as metrics
 from . import clinical_annotation
 from . import clinical_tools
 from .topas import annotation as topas_annotation
-from .topas import scoring
+from .topas import phosphorylation
 from .topas import substrate_phosphorylation
 from .topas import protein_phosphorylation
 
@@ -164,8 +166,8 @@ def read_and_compute_scores(results_folder: Union[str, Path]) -> Tuple:
         dict(),
         dict(),
     )
-    topas_scores["scores"] = scoring.read_topas_scores(results_folder)
-    topas_subscores["scores"] = scoring.read_topas_subscores(results_folder)
+    topas_scores["scores"] = topas_pipeline.topas.topas.read_topas_scores(results_folder)
+    topas_subscores["scores"] = phosphorylation.read_topas_subscores(results_folder)
 
     kinase_scores["scores"] = substrate_phosphorylation.read_kinase_scoring(results_folder)
     kinase_scores["targets"] = kinase_scores["scores"].filter(regex=r"^targets_")
