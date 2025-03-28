@@ -11,7 +11,7 @@ import pandas as pd
 from .. import config
 from . import substrate_phosphorylation
 from . import protein_phosphorylation
-import topas_pipeline.TOPAS_scoring_functions as scoring
+import topas_pipeline.topas.scoring as scoring
 
 
 # hacky way to get the package logger instead of just __main__ when running as a module

@@ -6,8 +6,6 @@ from typing import Union
 
 import pandas as pd
 
-from topas_pipeline.topas.scoring import map_index_to_df
-
 from .. import metrics, sample_metadata
 from . import annotation as topas_annotation
 from . import scoring
@@ -164,6 +162,24 @@ def save_rtk_scores_w_metadata(
         topas_scores_df.index.name = "Sample name"
     topas_scores_df = topas_scores_df.fillna(0)
     topas_scores_df.to_csv(out_file, sep="\t", float_format="%.4g")
+
+
+def map_index_to_df(df1, df2):
+    # Step 1: Remove prefix "pre_" from the index of df1, if it exists
+    df1_index = df1.index.str.replace("^pat_", "", regex=True)
+
+    # Step 2: Use the cleaned index to merge df1 with df2 on 'sample' and 'batch'
+    merged_df = df1.copy()
+    merged_df.index = df1_index  # Replace index in df1 with cleaned index
+
+    # Perform the mapping: merge df1 and df2 on the index and 'batch'
+    result_df = merged_df.merge(
+        df2[["Sample name", "code_oncotree"]],
+        left_on=[merged_df.index],
+        right_on=["Sample name"],
+        how="left",
+    )
+    return result_df
 
 
 def save_topas_scores(topas_scores_df: pd.DataFrame, out_file: str):

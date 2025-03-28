@@ -8,8 +8,9 @@ import logging
 import numpy as np
 import pandas as pd
 
+import topas_pipeline.topas.scoring
+
 from .. import config
-import topas_pipeline.TOPAS_scoring_functions as scoring
 
 # hacky way to get the package logger instead of just __main__ when running as a module
 logger = logging.getLogger(__package__ + "." + Path(__file__).stem)
@@ -61,7 +62,7 @@ def protein_score_preprocess(results_folder):
 
     patients.set_index("Modified sequence", inplace=True)
     patients = patients.dropna(subset="Gene names")
-    patients = scoring.calculate_peptide_occurrence(patients)
+    patients = topas_pipeline.topas.scoring.calculate_peptide_occurrence(patients)
     patients["Gene names"] = patients["Gene names"].str.split(";")
     patients = patients.explode("Gene names")
     patients.to_csv(filepath, sep="\t", float_format="%.4g")
@@ -110,7 +111,7 @@ def protein_phospho_scoring(results_folder, preprocessed_protein_df):
     logger.info("  2nd level z-scoring, adding target space and writing results")
 
     # what is happening here?
-    protein_scores = scoring.second_level_z_scoring(score_dataframe, "Gene names")
+    protein_scores = topas_pipeline.topas.scoring.second_level_z_scoring(score_dataframe, "Gene names")
     protein_scores = score_dataframe
     protein_scores.to_csv(
         os.path.join(results_folder, "protein_results", "protein_scores.tsv"),

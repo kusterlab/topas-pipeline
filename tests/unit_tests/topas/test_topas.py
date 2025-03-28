@@ -66,13 +66,6 @@ class TestComputeTopasScores:
                 index=pd.Series(["Kinase1", "Kinase2"], name="PSP Kinases"),
             ),
         )
-        mocker.patch(
-            "topas_pipeline.topas.scoring.get_number_ident_annot_per_sample",
-            return_value=pd.DataFrame(
-                {"fp.num_identified": [2, 2], "fp.num_annotated": [2, 2]},
-                index=pd.Series(["pat_Sample1", "pat_Sample2"]),
-            ),
-        )
         mock_save_topas_scores = mocker.patch(
             "topas_pipeline.topas.topas.save_topas_scores"
         )
