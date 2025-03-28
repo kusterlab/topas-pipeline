@@ -551,10 +551,10 @@ def topas_annotation_df():
         {
             "TOPAS_score": ["topas1", "topas2"],
             "TOPAS_subscore": ["subtopas1", "subtopas2"],
-            "gene": ["Gene1", "Gene2"],
+            "Gene names": ["Gene1", "Gene2"],
             "weight": [1, np.nan],
-            "GROUP": ["group1", "OTHER"],
-            "SCORING RULE": ["highest z-score", "highest z-score"],
+            "group": ["group1", "OTHER"],
+            "Scoring rule": ["highest z-score", "highest z-score"],
             "TOPAS_subscore_level": ["level1", "level1"],
         }
     )

@@ -32,15 +32,15 @@ class TestReadTopasAnnotation:
                 {
                     "TOPAS_score": ["topas1", "topas2"],
                     "TOPAS_subscore": ["sub1", "sub2"],
-                    "SCORING RULE": [
+                    "Scoring rule": [
                         "highest z-score",
                         "highest kinase score (2nd level z-score, fh)",
                     ],
-                    "GROUP": ["(R)TK", "(R)TK"],
-                    "LEVEL": ["expression", "kinase activity"],
+                    "group": ["(R)TK", "(R)TK"],
+                    "level": ["expression", "kinase activity"],
                     "weight": [0.5, 0.8],
-                    "gene": ["gene1", "gene2"],
-                    "MODIFIED SEQUENCE": [np.nan, np.nan],
+                    "Gene names": ["gene1", "gene2"],
+                    "Modified sequence": [np.nan, np.nan],
                     "TOPAS_subscore_level": [
                         "sub1 - expression",
                         "sub2 - kinase activity",
@@ -53,14 +53,14 @@ class TestReadTopasAnnotation:
 class TestTopasSheetSanityCheck:
     def test_valid_scoring_rules(self):
         data = {
-            "SCORING RULE": [
+            "Scoring rule": [
                 "highest z-score",
                 "highest z-score (p-site)",
                 "highest protein phosphorylation score (2nd level z-score, fh)",
                 "highest kinase score (2nd level z-score, fh)",
                 "summed z-score",
             ],
-            "MODIFIED SEQUENCE": [None, None, None, None, None],
+            "Modified sequence": [None, None, None, None, None],
         }
         df = pd.DataFrame(data)
 
@@ -71,7 +71,7 @@ class TestTopasSheetSanityCheck:
 
     def test_unknown_scoring_rules(self):
         data = {
-            "SCORING RULE": [
+            "Scoring rule": [
                 "highest z-score",
                 "highest z-score (p-site)",
                 "highest protein phosphorylation score (2nd level z-score, fh)",
@@ -79,7 +79,7 @@ class TestTopasSheetSanityCheck:
                 "summed z-score",
                 "my_fancy_new_scoring_method",
             ],
-            "MODIFIED SEQUENCE": [None, None, None, None, None, None],
+            "Modified sequence": [None, None, None, None, None, None],
         }
         df = pd.DataFrame(data)
 
@@ -91,8 +91,8 @@ class TestTopasSheetSanityCheck:
 
     def test_psite_only_highest_z_score_rule(self):
         data = {
-            "SCORING RULE": ["highest z-score", "highest z-score (p-site)"],
-            "MODIFIED SEQUENCE": ["seq1", "seq2"],
+            "Scoring rule": ["highest z-score", "highest z-score (p-site)"],
+            "Modified sequence": ["seq1", "seq2"],
         }
         df = pd.DataFrame(data)
 

@@ -15,10 +15,14 @@ def read_topas_annotations(topas_annotation_file: str) -> pd.DataFrame:
 
     topas_annotation_df = topas_annotation_df.rename(
         {
+            "GROUP": "group",
+            "LEVEL": "level",
             "TOPAS_SCORE": "TOPAS_score",
             "TOPAS_SUBSCORE": "TOPAS_subscore",
+            "SCORING RULE": "Scoring rule",
             "WEIGHT": "weight",
-            "GENE NAME": "gene",
+            "GENE NAME": "Gene names",
+            "MODIFIED SEQUENCE": "Modified sequence",
         },
         axis=1,
     )
@@ -34,7 +38,7 @@ def topas_sheet_sanity_check(topas_annotation_df: pd.DataFrame) -> None:
 
     TODO: add check that there are no protein groups in the gene names column, e.g. Gene1;Gene2
     """
-    scoring_rules_found = set(topas_annotation_df["SCORING RULE"].str.lower().unique())
+    scoring_rules_found = set(topas_annotation_df["Scoring rule"].str.lower().unique())
     valid_scoring_rules = {
         "highest z-score",
         "highest z-score (p-site)",
@@ -48,8 +52,8 @@ def topas_sheet_sanity_check(topas_annotation_df: pd.DataFrame) -> None:
 
     # validate that scoring rule is "highest z-score (p-site)" if modified sequence column is not empty
     scoring_rules_found = set(
-        topas_annotation_df[~topas_annotation_df["MODIFIED SEQUENCE"].isnull()][
-            "SCORING RULE"
+        topas_annotation_df[~topas_annotation_df["Modified sequence"].isnull()][
+            "Scoring rule"
         ]
         .str.lower()
         .unique()

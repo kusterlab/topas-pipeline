@@ -106,11 +106,11 @@ class TestTopasAnnotation:
                 {
                     "TOPAS_score": ["topas1", "topas2"],
                     "TOPAS_subscore": ["subtopas1", "subtopas2"],
-                    "gene": ["GeneA", "GeneB"],
+                    "Gene names": ["GeneA", "GeneB"],
                     "weight": [1, np.nan],
-                    "GROUP": ["(R)TK", "OTHER"],
-                    "SCORING RULE": ["highest z-score", "highest z-score"],
-                    "LEVEL": ["expression", "expression"],
+                    "group": ["(R)TK", "OTHER"],
+                    "Scoring rule": ["highest z-score", "highest z-score"],
+                    "level": ["expression", "expression"],
                 }
             ),
         )
@@ -134,57 +134,57 @@ class TestTopasAnnotation:
 class TestCreateIdentifierToBasketDict:
     def test_process_fp_data_type(self):
         data = {
-            "gene": ["gene1", "gene2", "gene1"],
-            "LEVEL": ["expression", "kinase activity", "expression"],
-            "GROUP": ["(R)TK", "(R)TK", "(R)TK"],
+            "Gene names": ["gene1", "gene2", "gene1"],
+            "level": ["expression", "kinase activity", "expression"],
+            "group": ["(R)TK", "(R)TK", "(R)TK"],
             "TOPAS_score": ["topas1", "topas2", "topas3"],
         }
         df = pd.DataFrame(data)
         expected_output = {
             "gene1": {
-                "GROUP": "(R)TK;(R)TK",
-                "LEVEL": "expression;expression",
+                "group": "(R)TK;(R)TK",
+                "level": "expression;expression",
                 "TOPAS_score": "topas1;topas3",
             },
             "gene2": {
-                "GROUP": "(R)TK",
-                "LEVEL": "kinase activity",
+                "group": "(R)TK",
+                "level": "kinase activity",
                 "TOPAS_score": "topas2",
             },
         }
 
         result = ct.create_identifier_to_topas_dict(
-            df, data_type="fp", identifier_type="gene"
+            df, data_type="fp", identifier_type="Gene names"
         )
         assert result == expected_output
 
     def test_process_pp_data_type(self):
         data = {
-            "gene": ["gene1", "gene2", "gene1"],
-            "GROUP": ["(R)TK", "(R)TK", "(R)TK"],
-            "LEVEL": [
+            "Gene names": ["gene1", "gene2", "gene1"],
+            "group": ["(R)TK", "(R)TK", "(R)TK"],
+            "level": [
                 "phosphorylation",
                 "kinase activity",
                 "important phosphorylation",
             ],
-            "TOPAS_SCORE": ["topas1", "topas2", "topas3"],
+            "TOPAS_score": ["topas1", "topas2", "topas3"],
         }
         df = pd.DataFrame(data)
         expected_output = {
             "gene1": {
-                "GROUP": "(R)TK;(R)TK",
-                "LEVEL": "important phosphorylation;phosphorylation",
-                "TOPAS_SCORE": "topas1;topas3",
+                "group": "(R)TK;(R)TK",
+                "level": "important phosphorylation;phosphorylation",
+                "TOPAS_score": "topas1;topas3",
             },
             "gene2": {
-                "GROUP": "(R)TK",
-                "LEVEL": "kinase activity",
-                "TOPAS_SCORE": "topas2",
+                "group": "(R)TK",
+                "level": "kinase activity",
+                "TOPAS_score": "topas2",
             },
         }
 
         result = ct.create_identifier_to_topas_dict(
-            df, data_type="pp", identifier_type="gene"
+            df, data_type="pp", identifier_type="Gene names"
         )
         assert result == expected_output
 

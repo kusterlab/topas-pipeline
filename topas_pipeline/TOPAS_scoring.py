@@ -217,7 +217,7 @@ def compute_TOPAS_scores(
         return
 
     topas_annotation_df = TOPAS_annotation.read_topas_annotations(topas_annotation_file)
-    topas_annotation_df = topas_annotation_df[topas_annotation_df["GROUP"] != "OTHER"]
+    topas_annotation_df = topas_annotation_df[topas_annotation_df["group"] != "OTHER"]
 
     z_scores_fp_df = load_z_scores_fp(results_folder)
     z_scores_pp_df = load_z_scores_pp(results_folder)
@@ -310,13 +310,13 @@ def get_topas_subscore_calculator(
     def calculate_topas_subscore(
         topas_subscore_annotation_df: pd.DataFrame, is_ligand: bool
     ):
-        scoring_rule = topas_subscore_annotation_df["SCORING RULE"].iloc[0].lower()
+        scoring_rule = topas_subscore_annotation_df["Scoring rule"].iloc[0].lower()
         if scoring_rule == "highest z-score":
             topas_subscore = get_weighted_max(
                 z_scores_fp_df,
                 topas_subscore_annotation_df,
                 "Gene names",
-                "gene",
+                "Gene names",
                 is_ligand,
             )
         elif scoring_rule == "highest z-score (p-site)":
@@ -324,7 +324,7 @@ def get_topas_subscore_calculator(
                 z_scores_pp_df,
                 topas_subscore_annotation_df,
                 "Modified sequence",
-                "MODIFIED SEQUENCE",
+                "Modified sequence",
                 is_ligand,
             )
         elif (
@@ -335,7 +335,7 @@ def get_topas_subscore_calculator(
                 protein_phosphorylation_df,
                 topas_subscore_annotation_df,
                 "Gene names",
-                "gene",
+                "Gene names",
                 is_ligand,
             )
         elif scoring_rule == "highest kinase score (2nd level z-score, fh)":
@@ -343,7 +343,7 @@ def get_topas_subscore_calculator(
                 kinase_scores_df,
                 topas_subscore_annotation_df,
                 "PSP Kinases",
-                "gene",
+                "Gene names",
                 is_ligand,
             )
         elif scoring_rule == "summed z-score":
@@ -351,7 +351,7 @@ def get_topas_subscore_calculator(
                 z_scores_fp_df,
                 topas_subscore_annotation_df,
                 "Gene names",
-                "gene",
+                "Gene names",
                 is_ligand,
             )
         else:
@@ -560,12 +560,10 @@ def get_weighted_z_scores(
     z_score_df is a pandas dataframe with z_scores as columns and genes/modified sequences as rows
     topas_subscore_df is a pandas dataframe with genes with weights as rows
     z_score_index_col is the column name with the identifier in z_score_df, e.g. "Gene names" or "Modified sequence"
-    topas_subscore_index_col is the column name with the identifier in subbasket_df, e.g. "gene" or "Modified sequence"
+    topas_subscore_index_col is the column name with the identifier in subbasket_df, e.g. "Gene names" or "Modified sequence"
     """
-    # only keep samples and z_score_index_col columns
-    z_scores = z_score_df.astype(
-        float
-    )  # make sure all z-scores are floats and not objects
+    # make sure all z-scores are floats and not objects
+    z_scores = z_score_df.astype(float)  
     z_scores = z_scores.reset_index()
 
     # deal with protein groups; in the z-score dataframe protein groups exists,
@@ -581,6 +579,7 @@ def get_weighted_z_scores(
         topas_subscore_df[[topas_subscore_index_col, "weight"]],
         left_on=z_score_index_col_exploded,
         right_on=topas_subscore_index_col,
+        suffixes=(None, "_topas"),
     )
     if set(topas_subscore_df[topas_subscore_index_col]) != set(
         z_scores[z_score_index_col_exploded]
@@ -588,6 +587,10 @@ def get_weighted_z_scores(
         logger.warning(
             f"Could not find all identifiers: {set(topas_subscore_df[topas_subscore_index_col]) - set(z_scores[z_score_index_col_exploded])}"
         )
+    
+    # if the index columns are the same a suffix is added in the merge
+    if z_score_index_col == topas_subscore_index_col:
+        topas_subscore_index_col += "_topas"
 
     # merge proteins from the same protein group into a single row
     z_scores = z_scores.groupby(z_score_index_col).agg("first").reset_index()
@@ -665,17 +668,17 @@ def extract_topas_member_z_scores(
         for topas_subscore_name, topas_subscore_df in topas_score_df.groupby(
             "TOPAS_subscore_level"
         ):
-            scoring_rule = topas_subscore_df["SCORING RULE"].iloc[0].lower()
+            scoring_rule = topas_subscore_df["Scoring rule"].iloc[0].lower()
             if scoring_rule == "highest z-score":
                 topas_subscore_z_scores = get_weighted_z_scores(
-                    z_scores_fp_df, topas_subscore_df, "Gene names", "gene"
+                    z_scores_fp_df, topas_subscore_df, "Gene names", "Gene names"
                 )
             elif scoring_rule == "highest z-score (p-site)":
                 topas_subscore_z_scores = get_weighted_z_scores(
                     z_scores_pp_df,
                     topas_subscore_df,
                     "Modified sequence",
-                    "MODIFIED SEQUENCE",
+                    "Modified sequence",
                 )
             elif (
                 scoring_rule
@@ -685,15 +688,15 @@ def extract_topas_member_z_scores(
                     protein_phosphorylation_df,
                     topas_subscore_df,
                     "Gene names",
-                    "gene",
+                    "Gene names",
                 )
             elif scoring_rule == "highest kinase score (2nd level z-score, fh)":
                 topas_subscore_z_scores = get_weighted_z_scores(
-                    kinase_scores_df, topas_subscore_df, "PSP Kinases", "gene"
+                    kinase_scores_df, topas_subscore_df, "PSP Kinases", "Gene names"
                 )
             elif scoring_rule == "summed z-score":
                 topas_subscore_z_scores = get_weighted_z_scores(
-                    z_scores_fp_df, topas_subscore_df, "Gene names", "gene"
+                    z_scores_fp_df, topas_subscore_df, "Gene names", "Gene names"
                 )
             else:
                 raise ValueError(f"Unknown scoring rule {scoring_rule}")

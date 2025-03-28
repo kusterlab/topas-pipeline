@@ -296,7 +296,7 @@ class TestPreprocessPp:
         # Mocking the necessary functions with the correct import paths
         mock_remap_genes = mocker.patch(
             "topas_pipeline.picked_group.remap_gene_names",
-            return_value=pd.DataFrame({"gene": ["gene1", "gene2"]}),
+            return_value=pd.DataFrame({"Gene names": ["gene1", "gene2"]}),
         )
         mock_create_metadata_columns = mocker.patch(
             "topas_pipeline.identification_metadata.create_metadata_columns",
@@ -355,7 +355,7 @@ class TestPreprocessPp:
         # Mocking the necessary functions with the correct import paths
         mock_remap_genes = mocker.patch(
             "topas_pipeline.picked_group.remap_gene_names",
-            return_value=pd.DataFrame({"gene": ["gene1", "gene2"]}),
+            return_value=pd.DataFrame({"Gene names": ["gene1", "gene2"]}),
         )
         mock_create_metadata_columns = mocker.patch(
             "topas_pipeline.identification_metadata.create_metadata_columns",

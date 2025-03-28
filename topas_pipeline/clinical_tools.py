@@ -210,7 +210,7 @@ def map_identifier_list_to_annot_types(
         if "POI" in annot_type:
             annot_type_in_column = TOPAS_SUBSCORE_COLUMN
 
-        groups = annot_dict[identifier]["GROUP"].split(";")
+        groups = annot_dict[identifier]["group"].split(";")
         annot_group = annot_dict[identifier][annot_type_in_column].split(";")
         annot_weight = annot_dict[identifier]["weight"].split(";")
 
@@ -250,26 +250,26 @@ def map_identifier_list_to_annot_types(
 def create_identifier_to_topas_dict(
     topas_annotation_df: pd.DataFrame,
     data_type: Union[str, None] = "fp",
-    identifier_type: str = "gene",
+    identifier_type: str = "Gene names",
 ) -> Dict[str, str]:
     """Collect all the TOPAS annotations per gene in a dictionary of {'gene_name': 'topas1;topas2;...'}
 
     Args:
         topas_annotation_df (pd.DataFrame): dataframe with TOPAS gene/p-peptide annotations
         data_type (Union[str, None], optional): One of "fp", "pp" and "POI". Defaults to "fp".
-        identifier_type (str, optional): _description_. Defaults to "gene".
+        identifier_type (str, optional): _description_. Defaults to "Gene names".
 
     Returns:
         Dict[str, str]: _description_
     """
     if "fp" in data_type or "pp" in data_type:
         topas_annotation_df = topas_annotation_df[
-            (topas_annotation_df["GROUP"] != "OTHER")
-            & (topas_annotation_df["LEVEL"].isin(VALID_TOPAS_LEVELS[data_type]))
+            (topas_annotation_df["group"] != "OTHER")
+            & (topas_annotation_df["level"].isin(VALID_TOPAS_LEVELS[data_type]))
         ]
     else:  # other proteins of interest (POI)
         topas_annotation_df = topas_annotation_df[
-            topas_annotation_df["GROUP"] == "OTHER"
+            topas_annotation_df["group"] == "OTHER"
         ]
 
     topas_annotation_df = topas_annotation_df.groupby([identifier_type]).agg(
