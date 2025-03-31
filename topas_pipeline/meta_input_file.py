@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import pandas as pd
 
@@ -12,15 +12,15 @@ def write_meta_input_file(
     meta_input_file: Path,
     mq_txt_folders: List[str],
     simsi_raw_folders: List[str],
-    tmt_correction_files: List[str],
+    tmt_correction_files: Optional[List[str]],
 ):
-    meta_input_file_df = pd.DataFrame(
-        {
-            "mq_txt_folder": mq_txt_folders,
-            "raw_folder": simsi_raw_folders,
-            "tmt_correction_file": tmt_correction_files,
-        }
-    )
+    meta_input_file_dict = {
+        "mq_txt_folder": mq_txt_folders,
+        "raw_folder": simsi_raw_folders,
+    }
+    if tmt_correction_files is not None:
+        meta_input_file_dict["tmt_correction_file"] = tmt_correction_files
+    meta_input_file_df = pd.DataFrame(meta_input_file_dict)
 
     meta_input_file_df.to_csv(meta_input_file, sep="\t", index=False)
 

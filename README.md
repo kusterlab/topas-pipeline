@@ -31,10 +31,10 @@ Input parameters:
 
 | Parameter | Required | Description | Example | Default |
 | --- | --- | --- | --- | --- |
-| results_folder | **yes** | Path to the folder where results will be written. | `"results/example_run"` | |
-| sample_annotation | **yes** | Path to the sample annotation file (CSV). | `"example/annotation.csv"` | |
-| metadata_annotation | **yes** | Path to the metadata annotation file (Excel). | `"example/METADATA_UCEC.xlsx"` | |
-| raw_file_folders | **yes** | List of raw file folders for proteomics and phosphoproteomics data. | `["example/raw_fp", "example/raw_pp"]` | |
+| results_folder | **yes** | Path to the folder where results will be written. | `"results/example_run"` | N/A |
+| sample_annotation | **yes** | Path to the sample annotation file (CSV). | `"example/annotation.csv"` | N/A |
+| metadata_annotation | **yes** | Path to the metadata annotation file (Excel). | `"example/METADATA_UCEC.xlsx"` | N/A |
+| raw_file_folders | **yes** | List of raw file folders for proteomics and phosphoproteomics data. | `["example/raw_fp", "example/raw_pp"]` | N/A |
 | data_types | | List of data types to process: "fp" for proteome and "pp" for phosphoproteome. | `["fp", "pp"]` | `["fp", "pp"]` |
 | slack_webhook_url | | URL for the Slack webhook. | `""` | `""` |
 | **simsi** |  |  |  |  |
@@ -45,6 +45,7 @@ Input parameters:
 | tmt_requantify | | Boolean indicating whether to requantify TMT data. | `false` | `false` |
 | maximum_pep | | Maximum posterior error probability in percent for peptide ID propagation. | `1` | `1` |
 | num_threads | | Number of threads to use for SIMSI-Transfer. | `8` | `8` |
+| correction_factor_mapping_file | | Path to file mapping experiment names to correction factor files (TSV). | `"example/correction_factor_mapping_file.tsv` | `""` |
 | **preprocessing** |  |  |  |  |
 | raw_data_location | **yes** | Path to the folder containing MaxQuant search result folders. | `"example/CPTAC_searches"` | N/A |
 | fasta_file | **yes** | Path to the FASTA file for protein sequences. | `"example/uniprot_human.fasta"` | N/A |

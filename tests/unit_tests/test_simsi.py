@@ -295,29 +295,19 @@ class TestCopyWithSubprocess:
 
 
 class TestGetCorrectionFactorFiles:
-    def test_get_correction_factor_files(
-        self, correction_file_mapping_file, queue_file
-    ):
+    def test_get_correction_factor_files(self, correction_file_mapping_file):
         assert simsi.get_correction_factor_files(
-            ["Batch2_PP_MASTER"], correction_file_mapping_file, queue_file, Path(".")
-        ) == ["UF291262_UE277617.txt"]
-
-    def test_get_correction_factor_files_from_queue_file(
-        self, correction_file_mapping_file, queue_file
-    ):
-        assert simsi.get_correction_factor_files(
-            ["Batch3_PP_MASTER"], correction_file_mapping_file, queue_file, Path(".")
+            ["Batch2_PP_MASTER"], correction_file_mapping_file
         ) == ["UF291262_UE277617.txt"]
 
     def test_get_correction_factor_files_missing(
-        self, correction_file_mapping_file, queue_file
+        self,
+        correction_file_mapping_file,
     ):
         with pytest.raises(ValueError, match=r".*Batch34_PP_MASTER.*"):
             simsi.get_correction_factor_files(
                 ["Batch34_PP_MASTER"],
                 correction_file_mapping_file,
-                queue_file,
-                Path("."),
             )
 
 
@@ -464,6 +454,7 @@ class TestCreateMetaInputFile:
         data_type = "typeA"
         simsi_folder = "simsi_folder"
         meta_input_file = Path("meta_input_file.txt")
+        correction_file_mapping_file = ""
 
         mocker.patch(
             "pandas.read_csv",
@@ -483,7 +474,11 @@ class TestCreateMetaInputFile:
         mocker.patch("topas_pipeline.simsi.mi.write_meta_input_file")
 
         simsi.create_meta_input_file(
-            summary_files, data_type, simsi_folder, meta_input_file
+            summary_files,
+            data_type,
+            simsi_folder,
+            meta_input_file,
+            correction_file_mapping_file,
         )
 
         pd.read_csv.assert_any_call("summary1.txt", sep="\t")
@@ -492,7 +487,7 @@ class TestCreateMetaInputFile:
             meta_input_file,
             [Path("summary1.txt").parent, Path("summary2.txt").parent],
             ["folder1", "folder2"],
-            ["file1", "file2"],
+            None,
         )
 
 
@@ -600,22 +595,6 @@ class TestCopyRawFiles:
             simsi.copy_raw_files(
                 raw_file_folders, summary_files, data_type, simsi_folder
             )
-
-
-@pytest.fixture
-def queue_file(tmp_path):
-    tmp_path.mkdir(exist_ok=True)
-    queue_file = tmp_path / "queue.csv"
-    queue_file_content = """drug, MQ version, pre payload, post payload, threads, experiment, fasta file, raw folder, phospho, protease, mqpar, tmt corr factors, peptide fdr, protein fdr
-Batch23_PP_INFORM,1.6.12.0,cpAndGenerateMQpar,cleanPostSearchAndQCTopasPP,12,Patients,uniprot_proteome_up000005640_03112020.fasta,y/lumos_2/raw/,1,Trypsin/P,mqpar_base_1.6.12.0.xml,VA296455_UJ279751.txt,0.01,1
-Batch22_PP_INFORM,1.6.12.0,cpAndGenerateMQpar,cleanPostSearchAndQCTopasPP,12,Patients,uniprot_proteome_up000005640_03112020.fasta,y/lumos_2/raw/,1,Trypsin/P,mqpar_base_1.6.12.0.xml,VA296455_UJ279751.txt,0.01,1
-Batch1_PP_INFORM_MASTER,1.6.12.0,cpAndGenerateMQpar,cleanPostSearchAndQCTopasPP,12,Patients,uniprot_proteome_up000005640_03112020.fasta,y/lumos_2/raw/,1,Trypsin/P,mqpar_base_1.6.12.0.xml,UF291262_UE277617.txt,0.01,1
-Batch2_PP_MASTER,1.6.12.0,cpAndGenerateMQpar,cleanPostSearchAndQCTopasPP,12,Patients,uniprot_proteome_up000005640_03112020.fasta,y/lumos_2/raw/,1,Trypsin/P,mqpar_base_1.6.12.0.xml,UF291262_UE277617.txt,0.01,1
-Batch3_PP_MASTER,1.6.12.0,cpAndGenerateMQpar,cleanPostSearchAndQCTopasPP,12,Patients,uniprot_proteome_up000005640_03112020.fasta,y/lumos_2/raw/,1,Trypsin/P,mqpar_base_1.6.12.0.xml,UF291262_UE277617.txt,0.01,1"""
-
-    with open(queue_file, "w") as f:
-        f.write(queue_file_content)
-    return queue_file
 
 
 @pytest.fixture

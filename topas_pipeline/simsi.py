@@ -50,7 +50,7 @@ def main(argv):
 
     os.makedirs(configs.results_folder, exist_ok=True)
 
-    with open(f'{configs.results_folder}/configs.json', "w") as jsonFile:
+    with open(f"{configs.results_folder}/configs.json", "w") as jsonFile:
         jsonFile.write(configs.asjson())
 
     run_simsi(
@@ -93,7 +93,7 @@ def run_simsi_data_type(
     if not simsi_config.run_simsi:
         logger.info(f"run_simsi flag is set to False, skipping SIMSI for {data_type}")
         return
-    
+
     init_file_logger(results_folder, f"SIMSI_log_{data_type}.txt")
 
     logger.info(f"SIMSI started")
@@ -102,11 +102,19 @@ def run_simsi_data_type(
         search_result_folder, data_type, sample_annotation_file
     )
 
-    copy_raw_files(raw_file_folders, summary_files, data_type, simsi_config.simsi_folder)
+    copy_raw_files(
+        raw_file_folders, summary_files, data_type, simsi_config.simsi_folder
+    )
     meta_input_file = mi.get_meta_input_file_path(results_folder, data_type)
 
     # manually create meta input files
-    create_meta_input_file(summary_files, data_type, simsi_config.simsi_folder, meta_input_file)
+    create_meta_input_file(
+        summary_files,
+        data_type,
+        simsi_config.simsi_folder,
+        meta_input_file,
+        simsi_config.correction_factor_mapping_file,
+    )
 
     meta_input_df = pd.read_csv(meta_input_file, sep="\t")
 
@@ -231,9 +239,7 @@ def find_matching_summaries_folder(simsi_cache_folder: Path, meta_input_file: Pa
 def get_correction_factor_files(
     experiments: List[str],
     correction_file_mapping_file: Path,
-    mq_queue_file: Path,
-    correction_file_folder: Path,
-):
+) -> List[str]:
     # has two columns: experiment, correction_factor_file
     correction_file_mapping_df = pd.read_csv(
         str(correction_file_mapping_file), sep="\t", index_col="experiment"
@@ -241,56 +247,14 @@ def get_correction_factor_files(
     correction_files = map_experiments_to_files(
         experiments, correction_file_mapping_df, "correction_factor_file"
     )
+
     if None in correction_files:
         missing_experiments = get_missing_experiments(experiments, correction_files)
-        update_correction_factor_file_mapping(
-            missing_experiments, correction_file_mapping_file, mq_queue_file
-        )
-        return get_correction_factor_files(
-            experiments,
-            correction_file_mapping_file,
-            mq_queue_file,
-            correction_file_folder,
-        )
-
-    return [str(correction_file_folder / f) for f in correction_files]
-
-
-def update_correction_factor_file_mapping(
-    missing_experiments: List[str],
-    correction_file_mapping_file: Path,
-    mq_queue_file: Path,
-) -> None:
-    # has many columns, including: drug (=experiment), ' tmt corr factors' (=correction_factor_file)
-    queue_df = pd.read_csv(str(mq_queue_file), index_col="drug")
-    correction_files_new = map_experiments_to_files(
-        missing_experiments, queue_df, " tmt corr factors"
-    )
-
-    if None in correction_files_new:
-        missing_experiments_new = get_missing_experiments(
-            missing_experiments, correction_files_new
-        )
         raise ValueError(
-            f"Could not find experiments {missing_experiments_new} in Queue file"
+            f"No correction factor file specified for experiments: {missing_experiments}"
         )
 
-    correction_file_mapping_df = pd.read_csv(
-        str(correction_file_mapping_file), sep="\t"
-    )
-    correction_file_mapping_df_new = pd.DataFrame(
-        {
-            "experiment": missing_experiments,
-            "correction_factor_file": correction_files_new,
-        }
-    )
-    correction_file_mapping_df = pd.concat(
-        [correction_file_mapping_df, correction_file_mapping_df_new]
-    )
-
-    correction_file_mapping_df.to_csv(
-        str(correction_file_mapping_file), sep="\t", index=False
-    )
+    return correction_files
 
 
 def get_missing_experiments(experiments: List[str], correction_files: List[str]):
@@ -302,10 +266,10 @@ def get_missing_experiments(experiments: List[str], correction_files: List[str])
 
 
 def map_experiments_to_files(
-    experiments: List[str], experiment_mapping_df: pd.DataFrame, key: str
+    experiments: List[str], correction_file_mapping_df: pd.DataFrame, key: str
 ):
-    experiment_mapping_df = drop_duplicate_indices(experiment_mapping_df)
-    experiment_mapping = experiment_mapping_df.to_dict("index")
+    correction_file_mapping_df = drop_duplicate_indices(correction_file_mapping_df)
+    experiment_mapping = correction_file_mapping_df.to_dict("index")
     return [
         experiment_mapping.get(experiment, {key: None})[key]
         for experiment in experiments
@@ -423,7 +387,11 @@ def run_simsi_single(
 
 
 def create_meta_input_file(
-    summary_files: List[str], data_type: str, simsi_folder: str, meta_input_file: Path
+    summary_files: List[str],
+    data_type: str,
+    simsi_folder: str,
+    meta_input_file: Path,
+    correction_file_mapping_file: str,
 ):
     mq_txt_folders = [Path(f).parent for f in summary_files]
     experiments = []
@@ -436,15 +404,11 @@ def create_meta_input_file(
         for experiment in experiments
     ]
 
-    correction_file_mapping_file = Path(simsi_folder) / "correction_factor_files.tsv"
-    # TODO: find better way to specify these paths
-    mq_queue_file = Path(simsi_folder).parent / "Queue" / "queue.csv"
-    correction_file_folder = (
-        Path(simsi_folder).parent / "Queue" / "Maxquant" / "TMT_correction_factors"
-    )
-    tmt_correction_files = get_correction_factor_files(
-        experiments, correction_file_mapping_file, mq_queue_file, correction_file_folder
-    )
+    tmt_correction_files = None
+    if len(correction_file_mapping_file) > 0:
+        tmt_correction_files = get_correction_factor_files(
+            experiments, correction_file_mapping_file
+        )
 
     mi.write_meta_input_file(
         meta_input_file, mq_txt_folders, simsi_raw_folders, tmt_correction_files

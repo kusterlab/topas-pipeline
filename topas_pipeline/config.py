@@ -16,6 +16,7 @@ class Simsi:
     tmt_requantify: bool = False
     maximum_pep: int = 1
     num_threads: int = 8
+    correction_factor_mapping_file: str = ""
 
 
 @dataclass
