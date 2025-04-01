@@ -1,4 +1,3 @@
-# %%
 import os
 import sys
 from pathlib import Path
@@ -8,34 +7,11 @@ import logging
 import numpy as np
 import pandas as pd
 
-import topas_pipeline.topas.scoring
-
 from .. import config
+from . import scoring
 
 # hacky way to get the package logger instead of just __main__ when running as a module
 logger = logging.getLogger(__package__ + "." + Path(__file__).stem)
-
-pd.set_option("display.max_columns", None)
-pd.set_option("display.width", None)
-
-
-def read_protein_scoring(results_folder: str):
-    if os.path.exists(
-        os.path.join(results_folder, "protein_results", "protein_scores.tsv")
-    ):
-        try:
-            protein_scores = os.path.join(
-                results_folder, "protein_results", "protein_scores.tsv"
-            )
-            protein_scores_df = pd.read_csv(
-                protein_scores, index_col="Gene names", sep="\t"
-            )
-            protein_scores_df = protein_scores_df.filter(regex="pat_")
-        except PermissionError:
-            raise PermissionError(
-                f"Cannot open protein phosphorylation scores file, check if you have it open in Excel. {protein_scores}"
-            )
-    return protein_scores_df
 
 
 def protein_score_preprocess(results_folder):
@@ -62,7 +38,7 @@ def protein_score_preprocess(results_folder):
 
     patients.set_index("Modified sequence", inplace=True)
     patients = patients.dropna(subset="Gene names")
-    patients = topas_pipeline.topas.scoring.calculate_peptide_occurrence(patients)
+    patients = scoring.calculate_peptide_occurrence(patients)
     patients["Gene names"] = patients["Gene names"].str.split(";")
     patients = patients.explode("Gene names")
     patients.to_csv(filepath, sep="\t", float_format="%.4g")
@@ -111,7 +87,7 @@ def protein_phospho_scoring(results_folder, preprocessed_protein_df):
     logger.info("  2nd level z-scoring, adding target space and writing results")
 
     # what is happening here?
-    protein_scores = topas_pipeline.topas.scoring.second_level_z_scoring(score_dataframe, "Gene names")
+    protein_scores = scoring.second_level_z_scoring(score_dataframe, "Gene names")
     protein_scores = score_dataframe
     protein_scores.to_csv(
         os.path.join(results_folder, "protein_results", "protein_scores.tsv"),

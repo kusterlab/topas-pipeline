@@ -78,9 +78,12 @@ class TestLoadProteinPhosphorylation:
                 "pat_Sample2": [0.6, 0.9, 1.2],
             }
         ).set_index("Gene names")
+        mock_path_exists = mocker.patch("os.path.exists", return_value=True)
 
         results_folder = "test_folder"
-        result = scoring.load_protein_phosphorylation(results_folder)
+        result = scoring.load_protein_phosphorylation(
+            results_folder, remove_multi_gene_groups=True
+        )
 
         # Assertions
         mock_read_csv.assert_called_once_with(
@@ -88,6 +91,7 @@ class TestLoadProteinPhosphorylation:
             sep="\t",
             index_col="Gene names",
         )
+        mock_path_exists.assert_called_once()
 
         expected_result = pd.DataFrame(
             {"pat_Sample1": [0.5, 0.8], "pat_Sample2": [0.6, 0.9]},
@@ -107,16 +111,18 @@ class TestLoadKinaseScores:
                 "pat_Sample2": [0.6, 0.9],
             }
         ).set_index("PSP Kinases")
+        mock_path_exists = mocker.patch("os.path.exists", return_value=True)
 
         results_folder = "test_folder"
-        result = scoring.load_kinase_scores(results_folder)
+        result = scoring.load_substrate_phosphorylation(results_folder)
 
         # Assertions
         mock_read_csv.assert_called_once_with(
             os.path.join(results_folder, "kinase_results/kinase_scores.tsv"),
             sep="\t",
-            index_col="PSP Kinases",
+            index_col=["PSP Kinases"],
         )
+        mock_path_exists.assert_called_once()
 
         expected_result = pd.DataFrame(
             {"pat_Sample1": [0.5, 0.8], "pat_Sample2": [0.6, 0.9]},
@@ -192,7 +198,7 @@ class TestExtractTopasMemberZScores:
             ),
         )
         mocker.patch(
-            "topas_pipeline.topas.scoring.load_kinase_scores",
+            "topas_pipeline.topas.scoring.load_substrate_phosphorylation",
             return_value=pd.DataFrame(
                 {
                     "pat_Sample1": [0.5, 0.8],
@@ -322,7 +328,9 @@ class TestSecondLevelZScoring:
             "pat_patient_2": [7, 5, 9],
         }
         df = pd.DataFrame(data)
-        result = topas_pipeline.topas.scoring.second_level_z_scoring(df, by_column="kinase")
+        result = topas_pipeline.topas.scoring.second_level_z_scoring(
+            df, by_column="kinase"
+        )
 
         expected_result = pd.DataFrame(
             {
@@ -375,7 +383,7 @@ class TestTopasScorePreprocess:
                 "Site positions": ["1", "2"],
                 "Site positions identified (MQ)": ["1;2", "2"],
             }
-        ).set_index('Modified sequence')
+        ).set_index("Modified sequence")
         sample_patients_zscores = pd.DataFrame(
             {
                 "Gene names": ["Gene1", "Gene2"],
@@ -421,7 +429,9 @@ class TestCalculatePerPatientTargets:
             "pat_2": [5, 6, 7, 8],
         }
         df = pd.DataFrame(data)
-        result = topas_pipeline.topas.scoring.calculate_per_patient_targets(df, "kinase")
+        result = topas_pipeline.topas.scoring.calculate_per_patient_targets(
+            df, "kinase"
+        )
 
         expected_data = {"kinase": ["A", "B"], "targets_1": [2, 2], "targets_2": [2, 2]}
         expected_df = pd.DataFrame(expected_data)

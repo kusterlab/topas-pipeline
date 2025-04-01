@@ -162,18 +162,16 @@ def read_and_compute_scores(results_folder: Union[str, Path]) -> Tuple:
     topas_scores = {"scores": topas.read_topas_scores(results_folder)}
     topas_subscores = {"scores": phosphorylation.read_topas_subscores(results_folder)}
     kinase_scores = {
-        "scores": substrate_phosphorylation.read_kinase_scoring(results_folder)
+        "scores": topas.scoring.load_substrate_phosphorylation(
+            results_folder, add_total_targets_to_index=True
+        ),
+        "targets": topas.scoring.load_substrate_phosphorylation_num_targets(
+            results_folder, add_total_targets_to_index=True
+        )
     }
     protein_scores = {
-        "scores": protein_phosphorylation.read_protein_scoring(results_folder)
+        "scores": topas.scoring.load_protein_phosphorylation(results_folder)
     }
-
-    kinase_scores["targets"] = kinase_scores["scores"].filter(regex=r"^targets_")
-    kinase_scores["scores"] = kinase_scores["scores"].loc[
-        :, ~kinase_scores["scores"].columns.str.startswith("targets_")
-    ]
-    kinase_scores["scores"] = kinase_scores["scores"].filter(regex="pat_")
-    protein_scores["scores"] = protein_scores["scores"].filter(regex="pat_")
 
     for score_dict in [topas_scores, topas_subscores, kinase_scores, protein_scores]:
         score_dict["measures"] = metrics.get_metrics(score_dict["scores"])

@@ -1,3 +1,4 @@
+import os
 import re
 import sys
 from pathlib import Path
@@ -98,18 +99,37 @@ def get_ref_channels(df: pd.DataFrame, ref_channel_df: pd.DataFrame):
     )
 
 
-def keep_only_sample_columns(
-    df: pd.DataFrame, patient_regex: str = None
-) -> pd.DataFrame:
-    if not patient_regex:
-        return df.filter(regex=rf"(pat_)|(Reporter intensity corrected)")
-    else:
-        return df.filter(
-            regex=rf"({patient_regex})|(Reporter intensity corrected)|(^P\d{6}$)"
-        )
+def keep_only_sample_columns(df: pd.DataFrame) -> pd.DataFrame:
+    return df.filter(regex=r"^(pat_)|(Reporter intensity corrected)")
 
 
 def explode_on_separated_string(df: pd.DataFrame, index_col: str, sep: str = ";"):
     index_col_exploded = f"{index_col}_exploded"
     df[index_col_exploded] = df[index_col].str.split(sep)
     return df.explode(index_col_exploded), index_col_exploded
+
+
+def validate_file_access(func):
+    """
+    Decorator to check if the file exists and can be opened.
+    
+    Usage:
+
+        @validate_file_access
+        def your_function(path, ...):
+            <code>
+    """
+
+    def wrapper(path: str, *args, **kwargs):
+        if not os.path.exists(path):
+            raise FileNotFoundError(f'{path} does not exist')
+        
+        try:
+            df = func(path, *args, **kwargs)
+            return df
+        except PermissionError as err:
+            raise PermissionError(
+                f"{type(err).__name__}: {err} in reading the file {path}. Check if it is opened somewhere"
+            )
+        
+    return wrapper

@@ -1,5 +1,5 @@
 {
-    "results_folder": "results/2025.03.26_example_run",
+    "results_folder": "results/2025.04.01_example_run",
     "sample_annotation": "example/cptac_annotation_subset.csv",
     "metadata_annotation": "example/METADATA_UCEC.xlsx",
     "raw_file_folders": [

@@ -59,25 +59,3 @@ class TestProteinScorePreprocess:
         )
 
         pd.testing.assert_frame_equal(result, expected_result, check_dtype=False)
-
-
-class TestReadProteinScoring:
-    # Reads the protein_scores.tsv file correctly when it exists in the specified folder
-    def test_reads_protein_scores_file_correctly(self, mocker):
-        mocker.patch("os.path.exists", return_value=True)
-        mocker.patch(
-            "pandas.read_csv",
-            return_value=pd.DataFrame(
-                {"other_col": [1, 2], "pat_1": [1, 2], "pat_2": [3, 4]},
-                index=["Gene1", "Gene2"],
-            ),
-        )
-
-        results_folder = "/path/to/results"
-        expected_df = pd.DataFrame(
-            {"pat_1": [1, 2], "pat_2": [3, 4]}, index=["Gene1", "Gene2"]
-        )
-
-        result_df = protein_phosphorylation.read_protein_scoring(results_folder)
-
-        pd.testing.assert_frame_equal(result_df, expected_df)

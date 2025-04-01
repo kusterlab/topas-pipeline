@@ -1,7 +1,9 @@
 import pandas as pd
 
-folder1 = "results/2025.03.14_example_run"
-folder2 = "results/2025.03.26_example_run"
+# python tests/integration_tests/compare_tables.py
+
+folder1 = "results/2025.04.01_example_run"
+folder2 = "results/2025.04.01_example_run_2"
 
 file_names = [
     "basket_scores_4th_gen.tsv",

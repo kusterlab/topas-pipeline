@@ -49,35 +49,76 @@ def load_z_scores_pp(results_folder):
     return z_scores_pp_df
 
 
-# TODO: merge with read_protein_scoring function in TOPAS_protein_phosphorylation_scoring.py
-def load_protein_phosphorylation(results_folder):
+@utils.validate_file_access
+def load_protein_phosphorylation(
+    results_folder,
+    kinase_results_folder: str = "protein_results",
+    remove_multi_gene_groups: bool = False,
+):
+    protein_scores_file = os.path.join(
+        results_folder, kinase_results_folder, "protein_scores.tsv"
+    )
     protein_phosphorylation_df = pd.read_csv(
-        os.path.join(results_folder, "protein_results/protein_scores.tsv"),
+        protein_scores_file,
         sep="\t",
         index_col="Gene names",
     )
+
     protein_phosphorylation_df = utils.keep_only_sample_columns(
         protein_phosphorylation_df
     )
-    # remove phosphoprotein groups which are a result of shared peptides
-    protein_phosphorylation_df = protein_phosphorylation_df.loc[
-        ~protein_phosphorylation_df.index.str.contains(";")
-    ]
+
+    if remove_multi_gene_groups:
+        # remove phosphoprotein groups which are a result of shared peptides
+        protein_phosphorylation_df = protein_phosphorylation_df.loc[
+            ~protein_phosphorylation_df.index.str.contains(";")
+        ]
     return protein_phosphorylation_df
 
 
-# TODO: merge with read_kinase_scoring function in topas.substrate_phosphorylation.py
-def load_kinase_scores(results_folder, kinase_results_folder: str = "kinase_results"):
+@utils.validate_file_access
+def load_substrate_phosphorylation(
+    results_folder,
+    kinase_results_folder: str = "kinase_results",
+    add_total_targets_to_index: bool = False,
+):
     kinase_score_file = os.path.join(
         results_folder, kinase_results_folder, "kinase_scores.tsv"
     )
+    index_col = ["PSP Kinases"]
+    # TODO: this can probably be removed when refactoring report_creation.py
+    if add_total_targets_to_index:
+        index_col.append("No. of total targets")
 
     kinase_scores_df = pd.read_csv(
         kinase_score_file,
         sep="\t",
-        index_col="PSP Kinases",
+        index_col=index_col,
     )
+
     kinase_scores_df = utils.keep_only_sample_columns(kinase_scores_df)
+    return kinase_scores_df
+
+
+@utils.validate_file_access
+def load_substrate_phosphorylation_num_targets(
+    results_folder,
+    kinase_results_folder: str = "kinase_results",
+    add_total_targets_to_index: bool = False,
+):
+    kinase_score_file = os.path.join(
+        results_folder, kinase_results_folder, "kinase_scores.tsv"
+    )
+    index_col = ["PSP Kinases"]
+    if add_total_targets_to_index:
+        index_col.append("No. of total targets")
+    kinase_scores_df = pd.read_csv(
+        kinase_score_file,
+        sep="\t",
+        index_col=index_col,
+    )
+
+    kinase_scores_df = kinase_scores_df.filter(regex=r"^targets_")
     return kinase_scores_df
 
 
@@ -287,8 +328,10 @@ def extract_topas_member_z_scores(
 
     z_scores_fp_df = load_z_scores_fp(results_folder)
     z_scores_pp_df = load_z_scores_pp(results_folder)
-    protein_phosphorylation_df = load_protein_phosphorylation(results_folder)
-    kinase_scores_df = load_kinase_scores(results_folder)
+    protein_phosphorylation_df = load_protein_phosphorylation(
+        results_folder, remove_multi_gene_groups=True
+    )
+    kinase_scores_df = load_substrate_phosphorylation(results_folder)
 
     topas_annotation_df["weight"] = 1
 

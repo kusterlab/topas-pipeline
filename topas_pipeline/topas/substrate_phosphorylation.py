@@ -7,33 +7,10 @@ from typing import Union
 
 import pandas as pd
 
-import topas_pipeline.config as config
-import topas_pipeline.topas.scoring
+from .. import config
+from . import scoring
 
 logger = logging.getLogger(__name__)
-
-pd.set_option("display.max_columns", None)
-pd.set_option("display.width", None)
-
-
-def read_kinase_scoring(
-    results_folder: Union[str, Path], kinase_results_folder="kinase_results"
-):
-    kinase_score_file = os.path.join(
-        results_folder, kinase_results_folder, "kinase_scores.tsv"
-    )
-
-    try:
-        kinase_scores_df = pd.read_csv(
-            kinase_score_file,
-            index_col=["PSP Kinases", "No. of total targets"],
-            sep="\t",
-        )
-    except PermissionError:
-        raise PermissionError(
-            f"Cannot open kinase scores file, check if you have it open in Excel. {kinase_score_file}"
-        )
-    return kinase_scores_df
 
 
 def explode_psites_by_kinases(patient_df):
@@ -89,7 +66,7 @@ def compute_custom_kinase_scores(
     extra_kinase_annot_bool: bool,
     force: bool = False,
 ) -> None:
-    preprocessed_df = topas_pipeline.topas.scoring.topas_score_preprocess(result_folder_path)
+    preprocessed_df = scoring.topas_score_preprocess(result_folder_path)
     preprocessed_df = preprocessed_df.drop(columns=["Unnamed: 0"])
     preprocessed_df = preprocessed_df.set_index("Modified sequence")
 
@@ -123,7 +100,7 @@ def kinase_scoring(
         os.makedirs(kinase_results_output_folder)
 
     logger.info("  Calculate p-site weights")
-    kinase_df = topas_pipeline.topas.scoring.calculate_psite_weights(preprocessed_df)
+    kinase_df = scoring.calculate_psite_weights(preprocessed_df)
 
     kinase_df = explode_psites_by_kinases(kinase_df)
     kinase_df.to_csv(
@@ -136,15 +113,15 @@ def kinase_scoring(
     )
 
     logger.info("  Calculate modified sequence weights")
-    kinase_summed_weights = topas_pipeline.topas.scoring.calculate_modified_sequence_weights(
+    kinase_summed_weights = scoring.calculate_modified_sequence_weights(
         kinase_df, "PSP Kinases"
     )
 
     # TODO: Export here; table with uncapped weights and uncapped zscores
-    kinase_capped_values = topas_pipeline.topas.scoring.cap_zscores_and_weights(kinase_summed_weights)
+    kinase_capped_values = scoring.cap_zscores_and_weights(kinase_summed_weights)
 
     logger.info("  Calculate weighted z-scores")
-    kinase_scored_peptides = topas_pipeline.topas.scoring.calculate_weighted_z_scores(kinase_capped_values)
+    kinase_scored_peptides = scoring.calculate_weighted_z_scores(kinase_capped_values)
     kinase_scored_peptides.to_csv(
         os.path.join(kinase_results_output_folder, "scored_peptides.tsv"),
         sep="\t",
@@ -154,13 +131,13 @@ def kinase_scoring(
 
     # TODO: get rid of this by using kinase names such as ERK_high_conf instead
     if extra_kinase_annot_bool:
-        kinase_summed_weights_high_conf = topas_pipeline.topas.scoring.calculate_modified_sequence_weights(
+        kinase_summed_weights_high_conf = scoring.calculate_modified_sequence_weights(
             kinase_df, "Kinase_high_conf"
         )
-        kinase_capped_values_high_conf = topas_pipeline.topas.scoring.cap_zscores_and_weights(
+        kinase_capped_values_high_conf = scoring.cap_zscores_and_weights(
             kinase_summed_weights_high_conf
         )
-        kinase_scored_peptides_high_conf = topas_pipeline.topas.scoring.calculate_weighted_z_scores(
+        kinase_scored_peptides_high_conf = scoring.calculate_weighted_z_scores(
             kinase_capped_values_high_conf
         )
         kinase_scored_peptides_high_conf.to_csv(
@@ -171,17 +148,17 @@ def kinase_scoring(
         )
 
     logger.info("  Calculate kinase scores")
-    kinase_first_level_scores = topas_pipeline.topas.scoring.sum_weighted_z_scores(
+    kinase_first_level_scores = scoring.sum_weighted_z_scores(
         kinase_scored_peptides, by="PSP Kinases"
     )
 
     # scoring.plot_histograms_to_check_normality(kinase_first_level_scores)
 
     logger.info("  2nd level z-scoring, adding target space and writing results")
-    kinase_scores = topas_pipeline.topas.scoring.second_level_z_scoring(
+    kinase_scores = scoring.second_level_z_scoring(
         kinase_first_level_scores, "PSP Kinases"
     )
-    kinase_spaces = topas_pipeline.topas.scoring.get_target_space(
+    kinase_spaces = scoring.get_target_space(
         annotated_peptides_df=kinase_df,
         scored_peptides_df=kinase_scored_peptides,
         grouping_by="PSP Kinases",
@@ -197,13 +174,13 @@ def kinase_scoring(
     )
 
     if extra_kinase_annot_bool:
-        kinase_first_level_scores_high_conf = topas_pipeline.topas.scoring.sum_weighted_z_scores(
+        kinase_first_level_scores_high_conf = scoring.sum_weighted_z_scores(
             kinase_scored_peptides_high_conf, by="Kinase_high_conf"
         )
-        kinase_scores_high_conf = topas_pipeline.topas.scoring.second_level_z_scoring(
+        kinase_scores_high_conf = scoring.second_level_z_scoring(
             kinase_first_level_scores_high_conf, "Kinase_high_conf"
         )
-        kinase_spaces_high_conf = topas_pipeline.topas.scoring.get_target_space(
+        kinase_spaces_high_conf = scoring.get_target_space(
             annotated_peptides_df=kinase_df,
             scored_peptides_df=kinase_scored_peptides_high_conf,
             grouping_by="Kinase_high_conf",
@@ -224,7 +201,9 @@ def kinase_scoring(
         )
         # merge original kinase scores with high_conf and save
         kinase_scores = pd.concat([kinase_scores, kinase_scores_high_conf], axis=0)
-        kinase_scores.index = kinase_scores.index.set_names(["PSP Kinases", "No. of total targets"])
+        kinase_scores.index = kinase_scores.index.set_names(
+            ["PSP Kinases", "No. of total targets"]
+        )
         kinase_scores.to_csv(
             os.path.join(kinase_results_output_folder, "kinase_scores.tsv"),
             sep="\t",
@@ -245,7 +224,7 @@ if __name__ == "__main__":
     args = parser.parse_args(sys.argv[1:])
     configs = config.load(args.config)
 
-    preprocessed_df = topas_pipeline.topas.scoring.topas_score_preprocess(configs.results_folder)
+    preprocessed_df = scoring.topas_score_preprocess(configs.results_folder)
 
     kinase_results_output_folder = os.path.join(
         configs.results_folder, args.kinase_results_folder

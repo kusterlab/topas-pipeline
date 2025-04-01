@@ -56,7 +56,7 @@ class TestComputeTopasScores:
             ),
         )
         mocker.patch(
-            "topas_pipeline.topas.scoring.load_kinase_scores",
+            "topas_pipeline.topas.scoring.load_substrate_phosphorylation",
             return_value=pd.DataFrame(
                 {
                     "pat_Sample1": [0.5, 0.8],
