@@ -19,6 +19,7 @@ endif
 DOCKER_CMD ?= docker run -i ${USE_TTY} \
 					-v "$(DATA)":/root/data/ \
 					-v /media:/media/ \
+					-v /etc/localtime:/etc/localtime:ro \
 					--memory=$(MEMORY_LIMIT) \
 					--cpus=$(CPU_LIMIT) \
 
