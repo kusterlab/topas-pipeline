@@ -41,7 +41,10 @@ class TestMain:
                         "run_simsi": True,
                     },
                     "data_types": [],
-                    "slack_webhook_url": "dummy_url",
+                    "slack": {
+                        "webhook_url": "dummy_url",
+                        "channel": "#dummy_channel",
+                    }
                 }
             ),
         )
@@ -84,8 +87,11 @@ class TestMain:
                         "run_simsi": False,
                     },
                     "data_types": [],
-                    "slack_webhook_url": "dummy_url",
-                }
+                    "slack": {
+                        "webhook_url": "dummy_url",
+                        "channel": "#dummy_channel",
+                    }
+                }                
             ),
         )
         mocker.patch("topas_pipeline.simsi.run_simsi")

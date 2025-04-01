@@ -2,3 +2,4 @@ htmlcov
 notebooks
 .git
 .pytest_cache
+results

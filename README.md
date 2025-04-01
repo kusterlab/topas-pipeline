@@ -36,7 +36,6 @@ Input parameters:
 | metadata_annotation | **yes** | Path to the metadata annotation file (Excel). | `"example/METADATA_UCEC.xlsx"` | N/A |
 | raw_file_folders | **yes** | List of raw file folders for proteomics and phosphoproteomics data. | `["example/raw_fp", "example/raw_pp"]` | N/A |
 | data_types | | List of data types to process: "fp" for proteome and "pp" for phosphoproteome. | `["fp", "pp"]` | `["fp", "pp"]` |
-| slack_webhook_url | | URL for the Slack webhook. | `""` | `""` |
 | **simsi** |  |  |  |  |
 | run_simsi | | Boolean indicating whether to run SIMSI analysis. | `true` | `true` |
 | simsi_folder | **yes** | Path to the folder for writing SIMSI-Transfer results. | `"results/SIMSI"` | N/A |
@@ -69,7 +68,9 @@ Input parameters:
 | cohort | | Specifies the cohort name that should be updated in the TOPAS portal. | `""` | `""` |
 | url | | URL of the TOPAS portal. | `""` | `""` |
 | config | | Configuration file for the TOPAS portal. | `""` | `""` |
-
+| **slack** |  |  |  |  |
+| webhook_url | | URL for the Slack webhook. | `"https://hooks.slack.com/services/xxx/yyy/zzz"` | `""` |
+| channel | | Name of the slack channel to post pipeline updates. | `"#pipeline_channel"` | `""` |
 
 ### Install webhook for slack (optional)
 
@@ -81,8 +82,8 @@ your slack channel, follow these steps:
 3. Navigate to `Incoming webhooks` in the left menu.
 4. Set `Activate Incoming webhooks` to `On` if this was not already the case.
 5. Click on `Add New Webhook to Workspace` at the bottom of the page.
-6. Select the channel you want to post messages in.
-7. Copy the generated `Webhook URL` to your config file as the `slack_webhook_url` property.
+6. Select the channel you want to post messages in and add it to your config file as the `slack.channel` property (N.B. do not forget to include the `#` symbol before the channel name!).
+7. Copy the generated `Webhook URL` to your config file as the `slack.webhook_url` property.
 
 Source: https://api.slack.com/messaging/webhooks
 

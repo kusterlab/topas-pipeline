@@ -127,7 +127,7 @@ def main(argv):
         logger.info(message)
         logger.info(traceback.format_exc())
 
-    send_slack_message(message, configs.results_folder, configs.slack_webhook_url)
+    send_slack_message(message, configs.results_folder, configs.slack)
 
     t1 = time.time()
     total = t1 - t0
@@ -145,7 +145,7 @@ def main(argv):
         message = f"{type(e).__name__}: {e}"
         logger.info(message)
         logger.info(traceback.format_exc())
-        send_slack_message(message, configs.results_folder, configs.slack_webhook_url)
+        send_slack_message(message, configs.results_folder, configs.slack)
 
 
 if __name__ == "__main__":

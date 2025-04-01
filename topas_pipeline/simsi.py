@@ -60,7 +60,6 @@ def main(argv):
         raw_file_folders=configs.raw_file_folders,
         simsi_config=configs.simsi,
         data_types=configs.data_types,
-        slack_webhook_url=configs.slack_webhook_url,
     )
 
 

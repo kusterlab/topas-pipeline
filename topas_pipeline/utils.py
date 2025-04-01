@@ -11,6 +11,8 @@ from typing import List
 import pandas as pd
 import numpy as np
 
+from . import config
+
 
 def init_file_logger(results_folder, log_file_name):
     module_name = ".".join(__name__.split(".")[:-1])
@@ -21,20 +23,20 @@ def init_file_logger(results_folder, log_file_name):
     logging.getLogger(module_name).addHandler(file_logger)
 
 
-def send_slack_message(message: str, results_folder: str, webhook_url: str):
-    if webhook_url != "":
+def send_slack_message(message: str, results_folder: str, slack_config: config.Slack):
+    if slack_config.webhook_url != "":
         message = f"Results folder: {Path(results_folder).name}\n{message}"
 
         slack_data = {
             "username": "TOPAS pipeline",
             "icon_emoji": ":gem:",
-            "channel": "#topas_pipeline",
+            "channel": slack_config.channel,
             "attachments": [
                 {"fields": [{"title": "New Incoming Message", "value": message}]}
             ],
         }
         response = requests.post(
-            webhook_url,
+            slack_config.webhook_url,
             data=json.dumps(slack_data),
             headers={
                 "Content-Type": "application/json",

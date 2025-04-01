@@ -60,6 +60,12 @@ class Portal:
 
 
 @dataclass
+class Slack:
+    webhook_url: str = ""
+    channel: str = ""
+
+
+@dataclass
 class Config:
     results_folder: str
     sample_annotation: str
@@ -71,7 +77,7 @@ class Config:
     report: Report = Report()
     portal: Portal = Portal()
     data_types: List[str] = field(default_factory=lambda: ["fp", "pp"])
-    slack_webhook_url: str = ""
+    slack: Slack = Slack()
 
     def __post_init__(self):
         self.simsi = Simsi(**self.simsi)
@@ -81,6 +87,8 @@ class Config:
             self.report = Report(**self.report)
         if isinstance(self.portal, dict):
             self.portal = Portal(**self.portal)
+        if isinstance(self.slack, dict):
+            self.slack = Slack(**self.slack)
 
     def asdict(self):
         return asdict(self)
