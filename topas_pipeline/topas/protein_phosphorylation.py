@@ -14,37 +14,6 @@ from . import scoring
 logger = logging.getLogger(__package__ + "." + Path(__file__).stem)
 
 
-def protein_score_preprocess(results_folder):
-    filepath = os.path.join(results_folder, "protein_score_preprocessed.tsv")
-    if os.path.exists(filepath):
-        return pd.read_csv(filepath, sep="\t")
-
-    patients_zscores = pd.read_csv(
-        os.path.join(results_folder, "phospho_measures_z.tsv"),
-        keep_default_na=False,
-        sep="\t",
-    )
-    patients_zscores = patients_zscores.rename(
-        columns={
-            colname: colname.replace("zscore_", "pat_")
-            for colname in patients_zscores.columns.tolist()
-        }
-    )
-    patients_list = patients_zscores.filter(regex="pat_").columns.tolist()
-    patients_zscores = patients_zscores.loc[
-        :, ["Gene names", "Modified sequence", "Proteins"] + patients_list
-    ]
-    patients = patients_zscores
-
-    patients.set_index("Modified sequence", inplace=True)
-    patients = patients.dropna(subset="Gene names")
-    patients = scoring.calculate_peptide_occurrence(patients)
-    patients["Gene names"] = patients["Gene names"].str.split(";")
-    patients = patients.explode("Gene names")
-    patients.to_csv(filepath, sep="\t", float_format="%.4g")
-    return patients
-
-
 def protein_phospho_scoring(results_folder, preprocessed_protein_df):
     logger.info("Running protein phosphorylation scoring module")
 
@@ -61,10 +30,7 @@ def protein_phospho_scoring(results_folder, preprocessed_protein_df):
     ):
         os.makedirs(protein_folder)
 
-    # TODO: replace with the functions of psite_scoring_functions
-    protein_df = preprocessed_protein_df.copy()
-    patcols = [col for col in protein_df.columns if "pat_" in col]
-    protein_df[patcols] = protein_df[patcols].astype(float).clip(upper=4, lower=-4)
+    protein_df = scoring.cap_zscores_and_weights(preprocessed_protein_df)
 
     logger.info("  Calculate protein phosphorylation scores")
     score_dataframe = protein_df.groupby("Gene names")
@@ -78,11 +44,6 @@ def protein_phospho_scoring(results_folder, preprocessed_protein_df):
         )
     ).reset_index()
     score_dataframe = score_dataframe.replace(0, np.nan)
-
-    # score_dataframe = score_dataframe.rename(
-    #     columns={col: col.replace('pat_', '') for col in score_dataframe.columns})
-
-    # plot_histograms_to_check_normality(score_dataframe)
 
     logger.info("  2nd level z-scoring, adding target space and writing results")
 
@@ -117,5 +78,5 @@ if __name__ == "__main__":
     args = parser.parse_args(sys.argv[1:])
     configs = config.load(args.config)
 
-    preprocessed_protein_df = protein_score_preprocess(configs.results_folder)
-    protein_phospho_scoring(configs.results_folder, preprocessed_protein_df)
+    preprocessed_df = scoring.topas_score_preprocess(configs.results_folder)
+    protein_phospho_scoring(configs.results_folder, preprocessed_df)

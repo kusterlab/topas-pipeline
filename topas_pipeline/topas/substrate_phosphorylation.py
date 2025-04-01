@@ -129,24 +129,6 @@ def kinase_scoring(
         float_format="%.4g",
     )
 
-    # TODO: get rid of this by using kinase names such as ERK_high_conf instead
-    if extra_kinase_annot_bool:
-        kinase_summed_weights_high_conf = scoring.calculate_modified_sequence_weights(
-            kinase_df, "Kinase_high_conf"
-        )
-        kinase_capped_values_high_conf = scoring.cap_zscores_and_weights(
-            kinase_summed_weights_high_conf
-        )
-        kinase_scored_peptides_high_conf = scoring.calculate_weighted_z_scores(
-            kinase_capped_values_high_conf
-        )
-        kinase_scored_peptides_high_conf.to_csv(
-            os.path.join(kinase_results_output_folder, "scored_peptides_high_conf.tsv"),
-            sep="\t",
-            index=False,
-            float_format="%.4g",
-        )
-
     logger.info("  Calculate kinase scores")
     kinase_first_level_scores = scoring.sum_weighted_z_scores(
         kinase_scored_peptides, by="PSP Kinases"
@@ -172,43 +154,6 @@ def kinase_scoring(
         sep="\t",
         float_format="%.4g",
     )
-
-    if extra_kinase_annot_bool:
-        kinase_first_level_scores_high_conf = scoring.sum_weighted_z_scores(
-            kinase_scored_peptides_high_conf, by="Kinase_high_conf"
-        )
-        kinase_scores_high_conf = scoring.second_level_z_scoring(
-            kinase_first_level_scores_high_conf, "Kinase_high_conf"
-        )
-        kinase_spaces_high_conf = scoring.get_target_space(
-            annotated_peptides_df=kinase_df,
-            scored_peptides_df=kinase_scored_peptides_high_conf,
-            grouping_by="Kinase_high_conf",
-        )
-        kinase_scores_high_conf = pd.merge(
-            left=kinase_spaces_high_conf,
-            right=kinase_scores_high_conf,
-            on="Kinase_high_conf",
-            how="left",
-        ).sort_values(by="Kinase_high_conf")
-        kinase_scores_high_conf = kinase_scores_high_conf.set_index(
-            ["Kinase_high_conf", "No. of total targets"]
-        )
-        kinase_scores_high_conf.to_csv(
-            os.path.join(kinase_results_output_folder, "kinase_scores_high_conf.tsv"),
-            sep="\t",
-            float_format="%.4g",
-        )
-        # merge original kinase scores with high_conf and save
-        kinase_scores = pd.concat([kinase_scores, kinase_scores_high_conf], axis=0)
-        kinase_scores.index = kinase_scores.index.set_names(
-            ["PSP Kinases", "No. of total targets"]
-        )
-        kinase_scores.to_csv(
-            os.path.join(kinase_results_output_folder, "kinase_scores.tsv"),
-            sep="\t",
-            float_format="%.4g",
-        )
 
 
 if __name__ == "__main__":

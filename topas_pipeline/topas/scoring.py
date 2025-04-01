@@ -519,7 +519,7 @@ def calculate_modified_sequence_weights(
     return weight_dataframe
 
 
-def cap_zscores_and_weights(patient_dataframe):
+def cap_zscores_and_weights(patient_dataframe: pd.DataFrame) -> pd.DataFrame:
     """Cap all z-scores between -4 and 4 and all weights between 0 and 1.
 
     Args:
@@ -528,19 +528,42 @@ def cap_zscores_and_weights(patient_dataframe):
     Returns:
         dataframe with capped modified sequence weights and z-scores
     """
-    # Reuse for CJ pipeline FP and PP clipping?
     capped_dataframe = patient_dataframe.copy()
-    weightcols = [col for col in capped_dataframe.columns if "weight_" in col]
-    patcols = [col for col in capped_dataframe.columns if "pat_" in col]
-    capped_dataframe[weightcols] = (
-        capped_dataframe[weightcols].astype(float).clip(upper=1)
-    )
-    # capped_dataframe[weightcols] = capped_dataframe[weightcols].astype(float)
-    # TODO: Test if this capping step is required too
-    capped_dataframe[patcols] = (
-        capped_dataframe[patcols].astype(float).clip(upper=4, lower=-4)
-    )
+    capped_dataframe = cap_weights(capped_dataframe)
+    capped_dataframe = cap_zscores(capped_dataframe)
     return capped_dataframe
+
+
+def cap_weights(patient_dataframe: pd.DataFrame) -> pd.DataFrame:
+    """Cap all all weights between 0 and 1.
+
+    Args:
+        patient_dataframe: dataframe with modified sequence weights
+
+    Returns:
+        dataframe with capped modified sequence weights
+    """
+    weightcols = [col for col in patient_dataframe.columns if "weight_" in col]
+    patient_dataframe[weightcols] = (
+        patient_dataframe[weightcols].astype(float).clip(upper=1)
+    )
+    return patient_dataframe
+
+
+def cap_zscores(patient_dataframe: pd.DataFrame) -> pd.DataFrame:
+    """Cap all z-scores between -4 and 4
+
+    Args:
+        patient_dataframe: dataframe with modified sequence z-scores
+
+    Returns:
+        dataframe with capped modified sequence z-scores
+    """
+    patcols = [col for col in patient_dataframe.columns if "pat_" in col]
+    patient_dataframe[patcols] = (
+        patient_dataframe[patcols].astype(float).clip(upper=4, lower=-4)
+    )
+    return patient_dataframe
 
 
 def calculate_weighted_z_scores(df: pd.DataFrame):
@@ -625,8 +648,6 @@ def calculate_peptide_occurrence(pp_df: pd.DataFrame):
     pp_df = pp_df.replace("", np.nan)
     patient_list = pp_df.filter(regex="pat_").columns.tolist()
     pp_df = pp_df.astype({patient: "float32" for patient in patient_list})
-    # pp_df = pp_df.where(pp_df[patient_list] < 4, 4)
-    # pp_df = pp_df.where(pp_df[patient_list] > -4, -4)
     pp_df["Peptide count"] = pp_df[patient_list].notna().sum(axis=1)
     pp_df["Peptide occurrence"] = (
         pp_df["Peptide count"].astype(str) + "/" + str(len(patient_list))
@@ -634,24 +655,45 @@ def calculate_peptide_occurrence(pp_df: pd.DataFrame):
     return pp_df
 
 
-def topas_score_preprocess(results_folder: str, discard_isoforms: bool = True):
+def topas_score_preprocess(
+    results_folder: str,
+    extra_kinase_annot_bool: bool = False,
+    discard_isoforms: bool = True,
+):
     filepath = os.path.join(results_folder, "topas_score_preprocessed.tsv")
 
     if os.path.exists(filepath):
         logger.info(f"Reading previously generated file: {filepath}")
         return pd.read_csv(filepath, sep="\t")
 
+    usecols = [
+        "Modified sequence",
+        "Gene names",
+        "Site positions",
+        "Site positions identified (MQ)",
+        "PSP Kinases",
+    ]
+    if extra_kinase_annot_bool:
+        usecols.append("Kinase_high_conf")
+
     annotations_df = pd.read_csv(
         os.path.join(results_folder, "annot_pp.csv"),
         index_col=0,
-        usecols=[
-            "Modified sequence",
-            "Gene names",
-            "Site positions",
-            "Site positions identified (MQ)",
-            "PSP Kinases",
-        ],
+        usecols=usecols,
     )
+
+    if extra_kinase_annot_bool:
+        # combine comma separated strings of PSP Kinases and Kinase_high_conf
+        annotations_df["PSP Kinases"] = (
+            annotations_df["PSP Kinases"]
+            .fillna("")
+            .str.cat(annotations_df["Kinase_high_conf"].fillna(""), sep=";")
+        )
+        annotations_df["PSP Kinases"] = annotations_df["PSP Kinases"].str.strip(";")
+        annotations_df["PSP Kinases"] = annotations_df["PSP Kinases"].replace(
+            "", np.nan
+        )
+
     annotations_df = annotations_df.rename(
         columns={
             "Site positions": "All site positions",

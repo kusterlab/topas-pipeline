@@ -32,15 +32,14 @@ def psite_scoring(
         logger.info(f"Psite scoring skipped - no phospho data available")
         return
 
-    # we are removing prefix pat_? where and why? do we not maybe want to keep it.. yes when we do a proper report creation
-
-    preprocessed_df = scoring.topas_score_preprocess(results_folder)
-
-    kinase_results_folder = os.path.join(results_folder, "kinase_results")
-
     extra_kinase_annot_bool = False
     if len(str(extra_kinase_annot)) > 0:
         extra_kinase_annot_bool = True
+
+    preprocessed_df = scoring.topas_score_preprocess(results_folder, extra_kinase_annot_bool)
+
+    kinase_results_folder = os.path.join(results_folder, "kinase_results")
+
     substrate_phosphorylation.kinase_scoring(kinase_results_folder, preprocessed_df, extra_kinase_annot_bool)
     protein_phosphorylation.protein_phospho_scoring(results_folder, preprocessed_df)
 
