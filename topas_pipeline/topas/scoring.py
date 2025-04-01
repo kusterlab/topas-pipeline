@@ -52,11 +52,11 @@ def load_z_scores_pp(results_folder):
 @utils.validate_file_access
 def load_protein_phosphorylation(
     results_folder,
-    kinase_results_folder: str = "protein_results",
+    protein_results_folder: str = "protein_results",
     remove_multi_gene_groups: bool = False,
 ):
     protein_scores_file = os.path.join(
-        results_folder, kinase_results_folder, "protein_scores.tsv"
+        results_folder, protein_results_folder, "protein_scores.tsv"
     )
     protein_phosphorylation_df = pd.read_csv(
         protein_scores_file,

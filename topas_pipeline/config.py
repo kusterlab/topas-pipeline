@@ -3,6 +3,7 @@ from typing import List
 
 from dataclasses import dataclass, field, asdict
 
+# TODO: switch to pydantic dataclasses to enforce data types
 
 @dataclass
 class Simsi:
@@ -102,19 +103,6 @@ def load(json_file: str):
     config = Config(**config_data)
 
     return config
-
-
-# def merge_dicts(defaults, custom):
-#     for key, value in custom.items():
-#         if (
-#             isinstance(value, dict)
-#             and key in defaults
-#             and isinstance(defaults[key], dict)
-#         ):
-#             defaults[key] = merge_dicts(defaults[key], value)  # Recursive merge
-#         else:
-#             defaults[key] = value  # Overwrite default value
-#     return defaults
 
 
 # def validate_sample_annot(configs):
