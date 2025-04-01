@@ -657,7 +657,7 @@ def calculate_peptide_occurrence(pp_df: pd.DataFrame):
 
 def topas_score_preprocess(
     results_folder: str,
-    extra_kinase_annot_bool: bool = False,
+    concatenate_psp_and_extra_kinases: bool = False,
     discard_isoforms: bool = True,
 ):
     filepath = os.path.join(results_folder, "topas_score_preprocessed.tsv")
@@ -673,7 +673,7 @@ def topas_score_preprocess(
         "Site positions identified (MQ)",
         "PSP Kinases",
     ]
-    if extra_kinase_annot_bool:
+    if concatenate_psp_and_extra_kinases:
         usecols.append("Kinase_high_conf")
 
     annotations_df = pd.read_csv(
@@ -682,7 +682,7 @@ def topas_score_preprocess(
         usecols=usecols,
     )
 
-    if extra_kinase_annot_bool:
+    if concatenate_psp_and_extra_kinases:
         # combine comma separated strings of PSP Kinases and Kinase_high_conf
         annotations_df["PSP Kinases"] = (
             annotations_df["PSP Kinases"]

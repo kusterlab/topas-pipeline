@@ -48,8 +48,7 @@ class TestKinaseScoring:
         preprocessed_df = pd.DataFrame()
 
         # Call the function with valid inputs
-        # TODO: add test with extra_kinase_annot_bool=True
-        kinase_scoring("test_output_folder", preprocessed_df, extra_kinase_annot_bool=False)
+        kinase_scoring("test_output_folder", preprocessed_df)
 
         # Assertions to ensure the function runs without errors
         assert mock_logger.called

@@ -32,15 +32,17 @@ def psite_scoring(
         logger.info(f"Psite scoring skipped - no phospho data available")
         return
 
-    extra_kinase_annot_bool = False
+    concatenate_psp_and_extra_kinases = False
     if len(str(extra_kinase_annot)) > 0:
-        extra_kinase_annot_bool = True
+        concatenate_psp_and_extra_kinases = True
 
-    preprocessed_df = scoring.topas_score_preprocess(results_folder, extra_kinase_annot_bool)
+    preprocessed_df = scoring.topas_score_preprocess(
+        results_folder, concatenate_psp_and_extra_kinases
+    )
 
     kinase_results_folder = os.path.join(results_folder, "kinase_results")
 
-    substrate_phosphorylation.kinase_scoring(kinase_results_folder, preprocessed_df, extra_kinase_annot_bool)
+    substrate_phosphorylation.kinase_scoring(kinase_results_folder, preprocessed_df)
     protein_phosphorylation.protein_phospho_scoring(results_folder, preprocessed_df)
 
 
@@ -87,9 +89,7 @@ def read_topas_subscores(results_folder: Union[str, Path]) -> pd.DataFrame:
                 f"TOPAS subscore file not found. {topas_subscore_file}"
             )
         df = df.drop(
-            df.loc[
-                :, df.columns.str.contains("total_basket_score")
-            ],
+            df.loc[:, df.columns.str.contains("total_basket_score")],
             axis=1,
         )
         list_dfs.append(df.transpose())

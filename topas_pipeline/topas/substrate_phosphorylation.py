@@ -63,7 +63,6 @@ def compute_custom_kinase_scores(
     result_folder_path: str,
     kinase_results_output_folder: Union[str, Path],
     annotated_modified_sequences: dict[str, set[str]],
-    extra_kinase_annot_bool: bool,
     force: bool = False,
 ) -> None:
     preprocessed_df = scoring.topas_score_preprocess(result_folder_path)
@@ -78,14 +77,13 @@ def compute_custom_kinase_scores(
     preprocessed_df = preprocessed_df.reset_index()
 
     kinase_scoring(
-        kinase_results_output_folder, preprocessed_df, extra_kinase_annot_bool, force
+        kinase_results_output_folder, preprocessed_df, force
     )
 
 
 def kinase_scoring(
     kinase_results_output_folder: Union[str, Path],
     preprocessed_df: pd.DataFrame,
-    extra_kinase_annot_bool,
     force: bool = False,
 ):
     logger.info("Running kinase scoring module")

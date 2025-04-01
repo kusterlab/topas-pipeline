@@ -5,7 +5,6 @@ import pandas as pd
 import numpy as np
 
 from topas_pipeline.topas import scoring
-import topas_pipeline.topas.scoring
 
 
 class TestLoadZScoresFp:
@@ -259,7 +258,7 @@ class TestSumWeightedZScores:
         }
 
         df = pd.DataFrame(data)
-        result = topas_pipeline.topas.scoring.sum_weighted_z_scores(df, by="kinase")
+        result = scoring.sum_weighted_z_scores(df, by="kinase")
 
         expected_result = pd.DataFrame(
             {
@@ -283,7 +282,7 @@ class TestCalculateModifiedSequenceWeights:
             "annotation_column": ["A", "A", "B", "B", "A"],
         }
         df = pd.DataFrame(data)
-        result = topas_pipeline.topas.scoring.calculate_modified_sequence_weights(
+        result = scoring.calculate_modified_sequence_weights(
             df, "annotation_column"
         )
         expected_data = {
@@ -307,7 +306,7 @@ class TestCapZscoresAndWeights:
             "weight_2": [0.5, 1.5, 0.8, 1.2],
         }
         df = pd.DataFrame(data)
-        result = topas_pipeline.topas.scoring.cap_zscores_and_weights(df)
+        result = scoring.cap_zscores_and_weights(df)
 
         expected_result = pd.DataFrame(
             {
@@ -328,7 +327,7 @@ class TestSecondLevelZScoring:
             "pat_patient_2": [7, 5, 9],
         }
         df = pd.DataFrame(data)
-        result = topas_pipeline.topas.scoring.second_level_z_scoring(
+        result = scoring.second_level_z_scoring(
             df, by_column="kinase"
         )
 
@@ -357,7 +356,7 @@ class TestCalculatePeptideOccurrence:
         data = {"pat_1": [np.nan, 1.0, 2.0], "pat_2": [3.0, np.nan, 4.0]}
         df = pd.DataFrame(data)
 
-        result_df = topas_pipeline.topas.scoring.calculate_peptide_occurrence(df)
+        result_df = scoring.calculate_peptide_occurrence(df)
         expected_result_df = pd.DataFrame(
             {
                 "pat_1": [np.nan, 1.0, 2.0],
@@ -403,7 +402,7 @@ class TestTopasScorePreprocess:
         mocker.patch("pandas.DataFrame.to_csv")
 
         results_folder = "/path/to/results"
-        result = topas_pipeline.topas.scoring.topas_score_preprocess(results_folder)
+        result = scoring.topas_score_preprocess(results_folder)
 
         expected_result = pd.DataFrame(
             {
@@ -429,7 +428,7 @@ class TestCalculatePerPatientTargets:
             "pat_2": [5, 6, 7, 8],
         }
         df = pd.DataFrame(data)
-        result = topas_pipeline.topas.scoring.calculate_per_patient_targets(
+        result = scoring.calculate_per_patient_targets(
             df, "kinase"
         )
 
@@ -455,7 +454,7 @@ class TestGetTargetSpace:
             }
         )
 
-        result = topas_pipeline.topas.scoring.get_target_space(
+        result = scoring.get_target_space(
             annotated_peptides_df, "kinase", scored_peptides_df
         )
         expected = pd.DataFrame(
@@ -496,7 +495,7 @@ def test_calculate_local_peptide_weight():
     )
 
     # Call the function
-    result_df = topas_pipeline.topas.scoring.calculate_psite_weights(df)
+    result_df = scoring.calculate_psite_weights(df)
 
     # Assert that the result matches the expected output
     pd.testing.assert_frame_equal(result_df, expected_df, check_like=True)
@@ -530,7 +529,7 @@ def test_calculate_weighted_zscores():
     )
 
     # Call the function
-    result_df = topas_pipeline.topas.scoring.calculate_weighted_z_scores(df)
+    result_df = scoring.calculate_weighted_z_scores(df)
 
     # Assert that the result matches the expected output
     pd.testing.assert_frame_equal(result_df, expected_df, check_like=True)

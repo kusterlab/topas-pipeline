@@ -1,10 +1,7 @@
-import os
 import json
 from typing import List
 
 from dataclasses import dataclass, field, asdict
-
-from .sample_annotation import load_sample_annotation
 
 
 @dataclass
@@ -120,15 +117,15 @@ def load(json_file: str):
 #     return defaults
 
 
-def validate_sample_annot(configs):
-    # Check for sample + metadata annotation errors before starting pipeline, currently not used
-    # _ = prep.check_annot(configs.sample_annotation, configs.metadata_annotation, prep.in_metadata)
-    sample_annot_df = load_sample_annotation(configs.sample_annotation)
-    sample_annot_df.to_csv(
-        os.path.join(configs.results_folder, "sample_annotation.csv")
-    )
+# def validate_sample_annot(configs):
+#     # Check for sample + metadata annotation errors before starting pipeline, currently not used
+#     # _ = prep.check_annot(configs.sample_annotation, configs.metadata_annotation, prep.in_metadata)
+#     sample_annot_df = load_sample_annotation(configs.sample_annotation)
+#     sample_annot_df.to_csv(
+#         os.path.join(configs.results_folder, "sample_annotation.csv")
+#     )
 
-    # check_config(configs)
+#     # check_config(configs)
 
 
 # def check_config(configs):
