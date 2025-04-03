@@ -876,12 +876,12 @@ testing = ["Django", "attrs", "colorama", "docopt", "pytest (<9.0.0)"]
 
 [[package]]
 name = "job-pool"
-version = "0.3.1"
+version = "0.3.2"
 description = "Enhanced Job Pool for Python Multiprocessing"
 optional = false
 python-versions = "<4.0,>=3.8"
 files = [
-    {file = "job_pool-0.3.1-py3-none-any.whl", hash = "sha256:602dee6591e702c7d1b7df85406063fbe12686056a4c68b85b0ce01b9a469266"},
+    {file = "job_pool-0.3.2-py3-none-any.whl", hash = "sha256:faa547a328599b16f7fe80d1dc291a2b2fa8db1f2347317c82a39f1a867f6275"},
 ]
 
 [package.dependencies]
@@ -1580,18 +1580,18 @@ ptyprocess = ">=0.5"
 
 [[package]]
 name = "picked-group-fdr"
-version = "0.7.6"
+version = "0.8.1"
 description = "Scalable, accurate and sensitive protein group FDRs for large-scale mass spectrometry experiments"
 optional = false
 python-versions = "<3.12,>=3.8"
 files = [
-    {file = "picked_group_fdr-0.7.6-py3-none-any.whl", hash = "sha256:ec1928d6f9c09ec419733f65c9b441a1b930d4a0d1274cddb7423e016a8fe531"},
+    {file = "picked_group_fdr-0.8.1-py3-none-any.whl", hash = "sha256:2cf567fbda672c21946ec36cc5ccffc2d61a4663276af8be81f1c4c0306bf6d2"},
 ]
 
 [package.dependencies]
 Bottleneck = ">=1.3.5,<2.0.0"
 cython = ">=0.29.21"
-job-pool = ">=0.3.0"
+job-pool = ">=0.3.2"
 matplotlib = ">=3.3.1,<4.0.0"
 mokapot = ">=0.3"
 networkx = ">=2.4,<3.0"

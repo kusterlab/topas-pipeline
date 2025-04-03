@@ -24,30 +24,32 @@ def init_file_logger(results_folder, log_file_name):
 
 
 def send_slack_message(message: str, results_folder: str, slack_config: config.Slack):
-    if slack_config.webhook_url != "":
-        message = f"Results folder: {Path(results_folder).name}\n{message}"
+    if slack_config.webhook_url == "":
+        return
 
-        slack_data = {
-            "username": "TOPAS pipeline",
-            "icon_emoji": ":gem:",
-            "channel": slack_config.channel,
-            "attachments": [
-                {"fields": [{"title": "New Incoming Message", "value": message}]}
-            ],
-        }
-        response = requests.post(
-            slack_config.webhook_url,
-            data=json.dumps(slack_data),
-            headers={
-                "Content-Type": "application/json",
-                "Content-Length": str(sys.getsizeof(slack_data)),
-            },
+    message = f"Results folder: {Path(results_folder).name}\n{message}"
+
+    slack_data = {
+        "username": "TOPAS pipeline",
+        "icon_emoji": ":gem:",
+        "channel": slack_config.channel,
+        "attachments": [
+            {"fields": [{"title": "New Incoming Message", "value": message}]}
+        ],
+    }
+    response = requests.post(
+        slack_config.webhook_url,
+        data=json.dumps(slack_data),
+        headers={
+            "Content-Type": "application/json",
+            "Content-Length": str(sys.getsizeof(slack_data)),
+        },
+    )
+    if response.status_code != 200:
+        raise ValueError(
+            "Request to slack returned an error %s, the response is:\n%s"
+            % (response.status_code, response.text)
         )
-        if response.status_code != 200:
-            raise ValueError(
-                "Request to slack returned an error %s, the response is:\n%s"
-                % (response.status_code, response.text)
-            )
 
 
 def get_index_cols(data_type: str) -> List[str]:
@@ -114,7 +116,7 @@ def explode_on_separated_string(df: pd.DataFrame, index_col: str, sep: str = ";"
 def validate_file_access(func):
     """
     Decorator to check if the file exists and can be opened.
-    
+
     Usage:
 
         @validate_file_access
@@ -124,8 +126,8 @@ def validate_file_access(func):
 
     def wrapper(path: str, *args, **kwargs):
         if not os.path.exists(path):
-            raise FileNotFoundError(f'{path} does not exist')
-        
+            raise FileNotFoundError(f"{path} does not exist")
+
         try:
             df = func(path, *args, **kwargs)
             return df
@@ -133,5 +135,5 @@ def validate_file_access(func):
             raise PermissionError(
                 f"{type(err).__name__}: {err} in reading the file {path}. Check if it is opened somewhere"
             )
-        
+
     return wrapper

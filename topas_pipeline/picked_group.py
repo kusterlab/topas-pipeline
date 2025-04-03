@@ -233,10 +233,7 @@ def do_quant(
         c.append(proteinGroupResults, post_err_prob_cutoff=1.0)
 
     logger.info(f"Writing picked group results to file")
-    proteinGroupResults.write(
-        picked_fdr_file_with_quant,
-        format_extra_columns=writers.base._format_extra_columns,  # this argument can be removed for picked group >v0.7.6
-    )
+    proteinGroupResults.write(picked_fdr_file_with_quant)
 
     logger.info(
         f"Protein group results have been written to: {picked_fdr_file_with_quant}"
