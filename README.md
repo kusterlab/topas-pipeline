@@ -179,7 +179,7 @@ pytest ./tests/integration_tests/test_clinical_tools.py
 The pipeline creates a folder with multiple output files:
 
 | Output file | Description | Used on portal |
-| --- | --- | ---  |
+| --- | --- | :---:  |
 | config.json | Copy of the configuration file in JSON format used for this pipeline run as described above. |  |
 | sample_annot.tsv | Saved copy of current version of sample annotation/metadata given as input |   |
 | sample_annot_filtered.tsv | Subset of sample annotation/metadata after filtering out QC failed samples |   |
@@ -193,16 +193,18 @@ The pipeline creates a folder with multiple output files:
 | pickedGeneGroups_with_quant.txt | Groups from Picked Protein Group FDR (using gene-level) containing quant using MaxLFQ algorithm  |   |
 | preprocessed_{data_type}.csv | Data matrix with patients as columns and normalized abundances of proteins or phosphopeptides as rows |  |
 | preprocessed_{data_type}_with_ref.csv | Same as preprocessed_{data_type}.csv but also containing the QC channels |   |
-| annot_{data_type}.csv | Same as preprocessed_{data_type}.csv but with clinical annotations |   |
+| annot_{data_type}.csv | Same as preprocessed_{data_type}.csv but with clinical annotations |  X |
 | annot_{data_type}_with_ref.csv | Same as preprocessed_{data_type}_with_ref.csv but with clinical annotations |   |
 | {data_type}_measures_rank.tsv | Data matrix with patients as columns and in-cohort rank of proteins or phosphopeptides as rows |   |
 | {data_type}_measures_fc.tsv | Same as {data_type}_measures_rank.tsv but with fold changes  |   |
-| {data_type}_measures_z.tsv | Same as {data_type}_measures_rank.tsv but with z-scores |   |
+| {data_type}_measures_z.tsv | Same as {data_type}_measures_rank.tsv but with z-scores | X  |
 | {data_type}_measures_p.tsv | Same as {data_type}_measures_rank.tsv but with p-values derived from the z-scores |   |
-| basket_scores_4th_gen_zscored.tsv | Data matrix with patients as columns and TOPAS scores as rows |   |
-| subbasket_scores_{topas_rtk}.tsv | Data matrix with patients as columns and TOPAS subscores as rows for each TOPAS RTK |   |
+| basket_scores_4th.tsv | Data matrix with patients as rows and TOPAS scores as columns |  X |
+| basket_scores_4th_gen_zscored.tsv | Data matrix with patients as rows and Z-scored (across kinases) TOPAS scores as columns |  X |
+| subbasket_scores_{topas_rtk}.tsv | Data matrix with patients as rows and TOPAS subscores as columns for each TOPAS RTK |   |
 | kinase_results/kinase_scores.tsv | Data matrix with patients as columns and TOPAS substrate phosphorylation scores as rows |   |
-| protein_results/protein_scores.tsv | Data matrix with patients as columns and TOPAS protein phosphorylation scores as rows |   |
-| Reports/{patient_id}.xlsx | Patient-specific reports |   |
+| kinase_results/scored_peptides.tsv |  |   |
+| protein_results/protein_scores.tsv | Data matrix with patients as columns and TOPAS protein phosphorylation scores as rows | X  |
+| Reports/{patient_id}_proteomics_results.xlsx | Patient-specific reports | (X)  |
 | Pipeline_log.txt | Log messages printed by the pipeline |   |
 |  |  |   |

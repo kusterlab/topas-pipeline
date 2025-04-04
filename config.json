@@ -52,6 +52,9 @@
         "url": "",
         "config": ""
     },
-    "slack_webhook_url": ""
+    "slack": {
+        "webhook_url": "",
+        "channel": ""
+    }
 }
 
