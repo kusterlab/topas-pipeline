@@ -14,12 +14,12 @@ A public instance of the portal can be found here: https://topas-portal.kusterla
 
 Runtimes exclude processing time of SIMSI-Transfer.
 
-| Dataset | #channels | #samples | #cores | runtime (h) | max memory (GB) |
-| --- | --- | --- | --- | --- | --- |
-| CPTAC UCEC | 170 | 153 | 8 | 1.2 | 30 |
-| CPTAC BRCA | 170 | 153 | 8 | 1.1 | 10 |
-| CPTAC LUAD | 250 | 225 | 8 | 2 | 40 |
-| MTB cohort | 2068 | 1284 | 8 | 13 | 150 |
+| Dataset | #channels | #samples | #patients | #cores | runtime (h) | max memory (GB) |
+| --- | --- | --- | --- | --- | --- | --- |
+| CPTAC UCEC | 170 | 153 | 95 | 8 | 1 | 8 |
+| CPTAC BRCA | 170 | 153 | 122 | 8 | 1.1 | 10 |
+| CPTAC LUAD | 250 | 225 | 110 | 8 | 1.7 | 11 |
+| MTB cohort | 2068 | 1504 | 1284 | 8 | 8.3 | 50 |
 
 ## Configuration
 
