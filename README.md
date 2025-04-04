@@ -17,7 +17,7 @@ Runtimes exclude processing time of SIMSI-Transfer.
 | Dataset | #channels | #samples | #cores | runtime (h) | max memory (GB) |
 | --- | --- | --- | --- | --- | --- |
 | CPTAC UCEC | 170 | 153 | 8 | 1.2 | 30 |
-| CPTAC BRCA | 170 | 153 | 8 | 1.4 | 30 |
+| CPTAC BRCA | 170 | 153 | 8 | 1.1 | 10 |
 | CPTAC LUAD | 250 | 225 | 8 | 2 | 40 |
 | MTB cohort | 2068 | 1284 | 8 | 13 | 150 |
 

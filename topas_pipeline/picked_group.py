@@ -66,7 +66,9 @@ def prepare_evidence_for_picked(df, evidence_file):
 
     df = df[info_cols + intensity_cols]
 
-    df.fillna({"PEP": "NaN"}).to_csv(evidence_file, sep="\t", index=False, float_format="%.6g")
+    df.fillna({"PEP": "NaN"}).to_csv(
+        evidence_file, sep="\t", index=False, float_format="%.6g"
+    )
 
 
 def run_picked_group_fdr(
@@ -247,44 +249,100 @@ def add_peptides_to_protein_groups(
     proteinGroups: ProteinGroups,
 ) -> ProteinGroupResults:
     logger.info("Collecting peptides from dataframe per protein group")
-    parsedExperiments = set()
-    missingPeptidesInFasta = 0
 
+    df = filter_for_valid_precursors(df, peptideToProteinMap, proteinGroups)
+
+    # replace spaces by _ so we can access fields by attributes in df.itertuples()
     df.columns = df.columns.str.replace(" ", "_")
 
     num_tmt_channels = len(
         df.filter(regex="Reporter_intensity_corrected_", axis="columns").columns
     )
-    for row in df.itertuples():  # itertuples is ~5x faster than iterrows
-        proteins = digest.get_proteins(
-            peptideToProteinMap,
-            helpers.remove_modifications(row.Modified_sequence[1:-1]),
+    for protein, precursor_df in df.groupby("Proteins"):
+        proteinGroupResults[protein].precursorQuants = ListLikeIterable(
+            precursor_quant_generator, precursor_df, num_tmt_channels
         )
 
-        # removes peptides from proteins not present in the fasta file, this often includes peptides from contaminants
-        if len(proteins) == 0:
-            missingPeptidesInFasta += 1
-            continue
+    parsedExperiments = [
+        f"Reporter intensity corrected {x} {batch}"
+        for x in range(1, num_tmt_channels + 1)
+        for batch in df["Batch"].unique()
+    ]
+    if len(parsedExperiments) > 0:
+        proteinGroupResults.experiments = sorted(list(parsedExperiments))
 
-        proteins = helpers.remove_decoy_proteins_from_target_peptides(proteins)
-        proteinGroupIdxs = proteinGroups.get_protein_group_idxs(proteins)
+    return proteinGroupResults
 
-        if len(proteinGroupIdxs) != 1:
-            continue
 
-        proteinGroupIdx = list(proteinGroupIdxs)[0]
+def filter_for_valid_precursors(
+    df: pd.DataFrame,
+    peptideToProteinMap,
+    proteinGroups: ProteinGroups,
+) -> pd.DataFrame:
+    """Remove precursors that do not uniquely map to a single protein group.
 
+    Args:
+        df (pd.DataFrame): precursor dataframe (evidence.txt)
+        peptideToProteinMap (PeptideToProteinMap): dictionary mapping peptides to proteins
+        proteinGroups (ProteinGroups): list of protein groups
+
+    Returns:
+        pd.DataFrame: Filtered precursor dataframe
+    """
+    df["Proteins"] = df["Modified sequence"].apply(
+        lambda x: digest.get_proteins(
+            peptideToProteinMap,
+            helpers.remove_modifications(x[1:-1]),
+        )
+    )
+
+    missing_peptides_in_fasta = (df["Proteins"].apply(len) == 0).sum()
+    if missing_peptides_in_fasta > 0:
+        logger.info(
+            f"Skipping {missing_peptides_in_fasta} precursors not present in the fasta file"
+        )
+
+    df = df[df["Proteins"].apply(len) > 0]
+
+    df.loc[:, "Proteins"] = df["Proteins"].apply(
+        helpers.remove_decoy_proteins_from_target_peptides
+    )
+    df.loc[:, "Proteins"] = df["Proteins"].apply(proteinGroups.get_protein_group_idxs)
+
+    df = df[df["Proteins"].apply(len) == 1]
+    df["Proteins"] = df["Proteins"].apply(lambda x: next(iter(x)))
+
+    return df
+
+
+class ListLikeIterable:
+    """Generator that resets itself after finishing, replicating a list iterable."""
+
+    def __init__(self, generator_func, *args, **kwargs):
+        """
+        Initialize with a generator function.
+        The function should return a new generator each time it is called.
+        """
+        self.generator_func = generator_func
+        self.args = args
+        self.kwargs = kwargs
+
+    def __iter__(self):
+        """Each time __iter__ is called, a new generator is returned."""
+        return self.generator_func(*self.args, **self.kwargs)
+
+
+def precursor_quant_generator(precursor_df: pd.DataFrame, num_tmt_channels: int):
+    for row in precursor_df.itertuples():  # itertuples is ~5x faster than iterrows
         # consider each TMT channel as a separate experiment to activate the MaxLFQ algorithm (pairwise median ratios)
         for tmt_channel in range(1, num_tmt_channels + 1):
-            experiment = f"Reporter intensity corrected {tmt_channel} {row.Batch}"
-            if experiment not in parsedExperiments:
-                parsedExperiments.add(experiment)
-
             intensity = getattr(row, f"Reporter_intensity_corrected_{tmt_channel}")
             if intensity <= 0.0 or np.isnan(intensity):
                 continue
 
-            precursorQuant = PrecursorQuant(
+            experiment = f"Reporter intensity corrected {tmt_channel} {row.Batch}"
+
+            yield PrecursorQuant(
                 row.Modified_sequence,
                 row.Charge,
                 experiment,
@@ -295,17 +353,6 @@ def add_peptides_to_protein_groups(
                 None,
                 row.id,
             )
-            proteinGroupResults[proteinGroupIdx].precursorQuants.append(precursorQuant)
-
-    if missingPeptidesInFasta > 0:
-        logger.info(
-            f"Skipped {missingPeptidesInFasta} precursors not present in the fasta file"
-        )
-
-    if len(parsedExperiments) > 0:
-        proteinGroupResults.experiments = sorted(list(parsedExperiments))
-
-    return proteinGroupResults
 
 
 def remap_gene_names(df: pd.DataFrame, fasta_file: str) -> pd.DataFrame:

@@ -94,12 +94,12 @@ def test_add_peptides_to_protein_groups(sample_dataframe):
 
     # Check if precursorQuants were added correctly
     assert (
-        len(proteinGroupResults[0].precursorQuants) == 3
+        len(list(proteinGroupResults[0].precursorQuants)) == 3
     )  # Three valid intensities
 
     # Check if precursorQuants were added correctly
     assert (
-        len(proteinGroupResults[1].precursorQuants) == 1
+        len(list(proteinGroupResults[1].precursorQuants)) == 1
     )  # One valid intensities (excluding zero and NaN)
 
     assert "Reporter intensity corrected 1 A" in result.experiments
