@@ -4,18 +4,17 @@ from pathlib import Path
 
 from topas_pipeline import clinical_tools, config
 
-CONFIG_FILE_PATH = './data/test_config.json'
+CONFIG_FILE_PATH = './config_minimal.json'
 
 
 def test_add_phospho_annotations():
     """
-    This only works after replacing all empty PSP files in location /data/annotation_files
-    Further after first succesful run of pipeline add path of results_folder to test_config.json
-    And last add the annotated preprocessed_pp.csv file (annot_pp.csv) to integration_tests folder
+    This only works after placing all PSP annotation files in ./example/PSP_annotations
     """
     configs = config.load(CONFIG_FILE_PATH)
 
     preprocessed_pp_file = Path(configs.results_folder) / "preprocessed_pp.csv"
+    (Path(configs.results_folder) / "integration_tests").mkdir(exist_ok=True)
     reference_result_file = Path(configs.results_folder) / "integration_tests" / "preprocessed_pp_phospho_annot.csv"
 
     index_col = "Modified sequence"

@@ -5,8 +5,8 @@ LOCAL_DIR ?= /root/data
 CONFIG_FILE ?= config_patients.json
 
 INTERACTIVE := $(shell [ -t 0 ] && echo 1)
-MEMORY_LIMIT ?= 300gb
-CPU_LIMIT ?= 16
+MEMORY_LIMIT ?= 100gb
+CPU_LIMIT ?= 8
 PERC_TEST_FDR ?= 0.01
 PERC_TRAIN_FDR ?= 0.01
 
