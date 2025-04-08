@@ -379,6 +379,8 @@ def run_simsi_single(
         str(maximum_pep),
         "--num_threads",
         str(num_threads),
+        "--num_threads_per_precursor_bin",
+        str(2),
     ]
     if tmt_requantify:
         simsi_configs.append("--tmt_requantify")
