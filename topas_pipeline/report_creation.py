@@ -17,8 +17,6 @@ from . import clinical_annotation
 from . import clinical_tools
 from .topas import annotation as topas_annotation
 from .topas import phosphorylation
-from .topas import substrate_phosphorylation
-from .topas import protein_phosphorylation
 from .topas import topas
 
 logger = logging.getLogger(__name__)

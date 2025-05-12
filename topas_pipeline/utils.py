@@ -18,7 +18,6 @@ def init_file_logger(results_folder, log_file_name):
     module_name = ".".join(__name__.split(".")[:-1])
     file_logger = logging.FileHandler(results_folder / Path(log_file_name))
     formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-    formatter.converter = time.gmtime
     file_logger.setFormatter(formatter)
     logging.getLogger(module_name).addHandler(file_logger)
 
