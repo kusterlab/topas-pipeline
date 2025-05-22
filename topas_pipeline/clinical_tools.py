@@ -36,6 +36,14 @@ VALID_TOPAS_LEVELS = {
         "important phosphorylation",
         "kinase activity",
     ],
+    "fp_with_ref": [
+        "expression", "kinase activity"
+    ],
+    "pp_with_ref": [
+        "phosphorylation", 
+        "important phosphorylation",
+        "kinase activity"
+    ],
 }
 
 
