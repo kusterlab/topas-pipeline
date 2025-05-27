@@ -106,9 +106,15 @@ def check_annot(
     # TODO : needs to be refactored
 
     # Check for duplicates in batch, tmt_channel
-    elif sample_annot_df_filtered[["Cohort", "Batch Name", "TMT Channel"]].duplicated().any():
+    elif (
+        sample_annot_df_filtered[["Cohort", "Batch Name", "TMT Channel"]]
+        .duplicated()
+        .any()
+    ):
         duplicated = sample_annot_df_filtered[
-            sample_annot_df_filtered[["Cohort", "Batch Name", "TMT Channel"]].duplicated()
+            sample_annot_df_filtered[
+                ["Cohort", "Batch Name", "TMT Channel"]
+            ].duplicated()
         ]
         logger.info(
             f"Duplicated cohort, batch and tmt_channel in sample annotation: {duplicated}"
@@ -721,9 +727,15 @@ def rename_columns_with_sample_ids(
     )
     metadata_to_sample_id_dict = dict(zip(metadata_cols, metadata_cols_with_sample_id))
 
-    # add "pat_" prefix to intensity columns
+    # add "pat_" prefix to patient intensity columns
     channel_to_sample_id_dict = {
-        k: "pat_" + v for k, v in channel_to_sample_id_dict.items()
+        k: "pat_" + v
+        for k, v in channel_to_sample_id_dict.items()
+        if not v.startswith("ref_")
+    }
+    # keep "ref_" prefix for reference intensity columns
+    channel_to_sample_id_dict |= {
+        k: v for k, v in channel_to_sample_id_dict.items() if v.startswith("ref_")
     }
 
     rename_dict = {**channel_to_sample_id_dict, **metadata_to_sample_id_dict}

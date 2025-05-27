@@ -5,8 +5,6 @@ from typing import Dict, List, Optional, Union
 
 import pandas as pd
 
-from topas_pipeline import utils
-
 
 logger = logging.getLogger(__name__)
 
@@ -20,14 +18,12 @@ Mandatory columns:
 - Batch Name
 - TMT Channel
 - Cohort
+- is_reference ("True", "")
 
 Optional columns:
-- QC
-- Replicate
-- Material issue
-- Program
-- Entity
-- Histologic subtype
+- QC ("passed", "shaky", "failed")
+- Replicate ("replicate", "")
+- Material issue ("+", "")
 """
 
 
@@ -48,7 +44,9 @@ def load_sample_annotation(sample_annotation_file: Union[str, Path]) -> pd.DataF
 
 
 def copy_sample_annotation_file(sample_annotation_file: str, results_folder: str):
-    shutil.copyfile(sample_annotation_file, Path(results_folder) / Path(sample_annotation_file).name)
+    shutil.copyfile(
+        sample_annotation_file, Path(results_folder) / Path(sample_annotation_file).name
+    )
 
 
 def filter_sample_annotation(
@@ -87,47 +85,6 @@ def get_unique_batches(sample_annotation_df: pd.DataFrame) -> List[str]:
     )
 
 
-def filter_samples_by_metadata(
-    sample_annotation_df: pd.DataFrame,
-    program: str,
-    entity: str,
-    histologic_subtype: str,
-) -> pd.DataFrame:
-    # check that only one of program, entity and histologic subtype is chosen
-    counter = 0
-    subset_types = [program, entity, histologic_subtype]
-    for i, subset_type in enumerate(subset_types):
-        if subset_type.upper() not in ["ALL", " ", ""]:
-            counter += 1
-            if counter > 1:
-                ValueError(
-                    "Only one of program, entity, histologic subtype can be used for subsetting before scoring."
-                )
-            chosen_subtype_count = i
-            chosen_subtype = subset_type
-    if counter == 0:
-        logger.info("Processing data for all programs, entities and subtypes")
-    else:
-        subset_columns = ["Program", "Entity", "Histologic subtype"]
-
-        # In case more than one program, entity or histologic subtype is chosen
-        if "," in chosen_subtype or ";" in chosen_subtype:
-            chosen_subtypes = utils.split_str_list(chosen_subtype)
-            if chosen_subtype_count == 0:
-                chosen_subtypes = [subtype.upper() for subtype in chosen_subtypes]
-            sample_annotation_df = sample_annotation_df[
-                sample_annotation_df[subset_columns[chosen_subtype_count]].isin(
-                    chosen_subtypes
-                )
-            ]
-        else:
-            sample_annotation_df = sample_annotation_df[
-                sample_annotation_df[subset_columns[chosen_subtype_count]].str.upper()
-                == subset_types[chosen_subtype_count].upper()
-            ]
-    return sample_annotation_df
-
-
 def get_channel_to_sample_id_dict(
     sample_annotation_df: pd.DataFrame,
     filtered_sample_annotation_file: Optional[str] = None,
@@ -151,19 +108,20 @@ def get_channel_to_sample_id_dict(
         sample_annotation_df, remove_qc_failed, remove_replicates
     )
 
-    def add_leading_zero(x):
-        if x < 10:
-            return f"0{x}"
-        else:
-            return str(x)
-
     def generate_channel_name(x):
-        # return f"Reporter intensity corrected {x['TMT Channel']} {x['Cohort']}_Batch{add_leading_zero(x['Batch Name'])}"
         return f"Reporter intensity corrected {x['TMT Channel']} {x['Cohort']}_Batch{x['Batch Name']}"
 
     sample_annotation_df["channel"] = sample_annotation_df[
         ["TMT Channel", "Cohort", "Batch Name"]
     ].apply(generate_channel_name, axis=1)
+
+    unmarked_ref_channels = sample_annotation_df["is_reference"] & (
+        ~sample_annotation_df.index.str.startswith("ref_")
+    )
+
+    sample_annotation_df.loc[unmarked_ref_channels].index = (
+        "ref_" + sample_annotation_df.loc[unmarked_ref_channels].index
+    )
 
     if filtered_sample_annotation_file:
         sample_annotation_df.to_csv(filtered_sample_annotation_file)

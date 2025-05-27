@@ -21,10 +21,8 @@ import pandas as pd
 def main(argv):
     metadata_file = argv[0]
     metadata = pd.read_excel(metadata_file, engine='openpyxl')
-    # metadata = metadata[metadata['Paper_extv2'] == 'yes']
     metadata = metadata[metadata['QC'] != 'exclude']
-    # metadata = metadata[['Sample name', 'Program', 'code_oncotree', 'tissue_topology', 'Batch_No', 'TMT_Channel', 'QC']]
-    metadata = metadata.rename(columns={'Batch_No': 'Batch Name', 'TMT_Channel': 'TMT Channel', 'code_oncotree': 'Entity', 'tissue_topology': 'Histologic subtype'})
+    metadata = metadata.rename(columns={'Batch_No': 'Batch Name', 'TMT_Channel': 'TMT Channel'})
 
     new_ref_rows = []
 

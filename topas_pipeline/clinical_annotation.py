@@ -18,9 +18,6 @@ TOPAS_SUBSCORE_COLUMNS = clinical_tools.TOPAS_SUBSCORE_COLUMNS
 
 def add_clinical_annotations(*args, **kwargs) -> None:
     data_types = kwargs.pop("data_types")
-    debug = kwargs.pop("debug")
-    if debug:
-        data_types += [data_type + "_with_ref" for data_type in data_types]
 
     for data_type in data_types:
         add_clinical_annotations_data_type(*args, **kwargs, data_type=data_type)

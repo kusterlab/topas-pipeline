@@ -32,9 +32,6 @@ def compute_metrics(
     """
     logger.info("Running compute metrics module")
 
-    if debug:
-        data_types += [data_type + "_with_ref" for data_type in data_types]
-
     for data_type in data_types:
         if check_measures_computed(results_folder, data_type, MEASURE_NAMES):
             logger.info(f"Skipping compute_metrics {data_type} - already computed")
@@ -45,11 +42,7 @@ def compute_metrics(
             results_folder, data_type
         )
 
-        measures = get_metrics(annot_df.filter(regex=r"(^pat_)|(^ref_)"))
-        # TODO: check if these annotation columns are still used anywhere, they 
-        # have been absent since renaming 'BASKET' to 'TOPAS_SCORE' in the TOPAS
-        # annotation file around January 2025
-        # measures["z-score"] = add_topas_annotations(measures["z-score"], annot_df)
+        measures = get_metrics(annot_df.filter(regex=r"(^pat_)"))
 
         save_measures(
             results_folder,
@@ -57,6 +50,15 @@ def compute_metrics(
             measures,
             data_type,
         )
+
+        if debug:
+            measures = get_metrics(annot_df.filter(regex=r"(^pat_)|(^ref_)"))
+            save_measures(
+                results_folder,
+                MEASURE_NAMES,
+                measures,
+                data_type + "_with_ref",
+            )
 
 
 def add_topas_annotations(
@@ -300,7 +302,7 @@ def save_measures(
 
     filename_suffix = ""
     if data_type.endswith("_with_ref"):
-        filename_suffix = "_ref"
+        filename_suffix = "_with_ref"
 
     for m, measure in measure_names:
         filename = os.path.join(

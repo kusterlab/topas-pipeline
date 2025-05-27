@@ -3,7 +3,7 @@ import sys
 import logging
 
 import pandas as pd
-from typing import Union, List
+from typing import Union
 from pathlib import Path
 
 from . import config
@@ -90,12 +90,6 @@ def preprocess_raw_data_type(
         )
         df = pd.read_csv(preprocessed2_file)
     else:
-        sample_annotation_df = sample_annotation.filter_samples_by_metadata(
-            sample_annotation_df,
-            preprocessing_config.program,
-            preprocessing_config.entity,
-            preprocessing_config.histologic_subtype,
-        )
         df = load_sample_data(
             results_folder,
             sample_annotation_df,
@@ -126,12 +120,6 @@ def preprocess_raw_data_type(
         )
         df.to_csv(preprocessed2_file, index=False, float_format="%.6g")
 
-    sample_annotation_df = sample_annotation.filter_samples_by_metadata(
-        sample_annotation_df,
-        preprocessing_config.program,
-        preprocessing_config.entity,
-        preprocessing_config.histologic_subtype,
-    )
     filtered_sample_annotation_file = os.path.join(
         results_folder, "sample_annot_filtered.csv"
     )
@@ -149,23 +137,6 @@ def preprocess_raw_data_type(
 
     df = df.set_index("Gene names")
 
-    df.reset_index().to_csv(
-        os.path.join(results_folder, f"preprocessed_{data_type}_with_ref.csv"),
-        index=False,
-        float_format="%.6g",
-    )
-    if preprocessing_config.debug:
-        df.to_csv(
-            os.path.join(
-                results_folder,
-                f"debug_preprocessed_{data_type}_before_filter_sample.csv",
-            ),
-            index=False,
-            float_format="%.4g",
-        )
-
-    # TODO: use "is_reference" column from sample_annotation_df instead
-    df = df.drop(columns=df.loc[:, df.columns.str.contains("ref")].columns)
     df.reset_index().to_csv(
         os.path.join(results_folder, f"preprocessed_{data_type}.csv"),
         index=False,

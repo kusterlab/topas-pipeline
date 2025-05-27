@@ -193,9 +193,7 @@ The pipeline creates a folder with multiple output files:
 | pickedGeneGroups.txt | Gene-level output from Picked Protein Group FDR |  |
 | pickedGeneGroups_with_quant.txt | Gene-level output from Picked Protein Group FDR including quantification with MaxLFQ |  |
 | preprocessed_{data_type}.csv | Data matrix with patients as columns and normalized abundances of proteins or phosphopeptides as rows |  |
-| preprocessed_{data_type}_with_ref.csv | Same as preprocessed_{data_type}.csv but includes QC channels |  |
-| annot_{data_type}.csv | Same as preprocessed_{data_type}.csv but with clinical annotations | X |
-| annot_{data_type}_with_ref.csv | Same as preprocessed_{data_type}_with_ref.csv but with clinical annotations |  |
+| annot_{data_type}.csv | Same as preprocessed_{data_type}.csv but with gene and p-site functional annotations |  |
 | {data_type}_measures_rank.tsv | Data matrix with patients as columns and in-cohort rank per protein or phosphopeptide as rows |  |
 | {data_type}_measures_fc.tsv | Same as {data_type}_measures_rank.tsv but with fold changes |  |
 | {data_type}_measures_z.tsv | Same as {data_type}_measures_rank.tsv but with z-scores | X |
