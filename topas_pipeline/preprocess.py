@@ -10,6 +10,7 @@ from . import config
 from . import preprocess_tools as prep
 from . import picked_group as picked
 from . import sample_annotation
+from . import sample_metadata
 from . import utils
 from . import identification_metadata as id_meta
 from .data_loaders.tmt_loader import TMTLoader
@@ -23,6 +24,10 @@ def preprocess_raw(**kwargs) -> None:
     # Unpack directories and do checks on annotation (sample annot, metadata)
     sample_annotation_file = kwargs.pop("sample_annotation_file")
     metadata_annotation = kwargs.pop("metadata_annotation")
+
+    sample_metadata.copy_metadata_file(metadata_annotation, kwargs["results_folder"])
+    sample_annotation.copy_sample_annotation_file(sample_annotation_file, kwargs["results_folder"])
+
     sample_annotation_df = prep.check_annot(
         sample_annotation_file, metadata_annotation, prep.in_metadata
     )  # just for our pipeline

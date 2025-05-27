@@ -1,5 +1,6 @@
 import os
-from typing import Iterator, List
+import shutil
+from pathlib import Path
 
 import pandas as pd
 
@@ -50,12 +51,27 @@ Columns (subject to change semi-regularly):
 """
 
 
+def find_metadata_path(metadata_file: str):
+    if os.path.isfile(metadata_file):
+        return metadata_file
+
+    metadata_file_outdated = metadata_file.replace(
+        "Retrospective_MTBs_Evaluation",
+        "Retrospective_MTBs_Evaluation/Metadata_excel_outdated",
+    )
+    if os.path.isfile(metadata_file_outdated):
+        return metadata_file_outdated
+
+    raise ValueError(f"Could not find Metadata file: {metadata_file}")
+
+
+def copy_metadata_file(metadata_file: str, results_folder: str):
+    metadata_file = find_metadata_path(metadata_file)
+    shutil.copyfile(metadata_file, Path(results_folder) / Path(metadata_file).name)
+
+
 def load(metadata_file: str):
-    if not os.path.isfile(metadata_file):
-        metadata_file = metadata_file.replace(
-            "Retrospective_MTBs_Evaluation",
-            "Retrospective_MTBs_Evaluation/Metadata_excel_outdated",
-        )
+    metadata_file = find_metadata_path(metadata_file)
 
     try:
         metadata_df = pd.read_excel(metadata_file)

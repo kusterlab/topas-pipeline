@@ -1,4 +1,5 @@
 import logging
+import shutil
 from pathlib import Path
 from typing import Dict, List, Optional, Union
 
@@ -44,6 +45,10 @@ def load_sample_annotation(sample_annotation_file: Union[str, Path]) -> pd.DataF
             f"Cannot open sample annotation file, check if you have it open in Excel. {sample_annotation_file}"
         )
     return sample_annotation_df
+
+
+def copy_sample_annotation_file(sample_annotation_file: str, results_folder: str):
+    shutil.copyfile(sample_annotation_file, Path(results_folder) / Path(sample_annotation_file).name)
 
 
 def filter_sample_annotation(
