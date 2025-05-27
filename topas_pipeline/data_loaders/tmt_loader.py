@@ -51,7 +51,9 @@ def _parse_evidence_file(
 
     # Change phosphosite notation in modified sequence
     df["Modified sequence"] = df["Modified sequence"].str.replace(
-        re.compile(r"([STY])\(Phospho \(STY\)\)"), lambda pat: f"p{pat.group(1)}"
+        re.compile(r"([STY])\(Phospho \(STY\)\)"),
+        lambda pat: f"p{pat.group(1)}",
+        regex=True,
     )
 
     # Remove rows with no measured reporter ions

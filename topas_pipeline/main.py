@@ -116,7 +116,7 @@ def main(argv):
             results_folder=configs.results_folder,
             debug=configs.preprocessing.debug,
             report_config=configs.report,
-            annot_file=configs.clinic_proc.prot_baskets,
+            topas_annotation_file=configs.clinic_proc.prot_baskets,
             data_types=configs.data_types,
         )
         logger.info("--- %.1f seconds --- report creation" % (time.time() - start_time))

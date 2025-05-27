@@ -7,7 +7,6 @@ from typing import Union
 
 import pandas as pd
 
-from .. import config
 from . import scoring
 
 logger = logging.getLogger(__name__)
@@ -155,6 +154,7 @@ def kinase_scoring(
 
 
 if __name__ == "__main__":
+    from .. import config
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--config", help="Absolute path to configuration file.")

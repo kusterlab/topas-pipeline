@@ -50,7 +50,7 @@ def create_report(
     results_folder: Union[str, Path],
     debug: bool,
     report_config: config.Report,
-    annot_file: Union[str, Path],
+    topas_annotation_file: Union[str, Path],
     data_types: List[str],
 ) -> None:
     """Creates an Excel report for each sample
@@ -74,7 +74,7 @@ def create_report(
             print("Input not of type int or string")
         samples_list = samples_for_report
 
-    topas_annotation_df = topas_annotation.read_topas_annotations(annot_file)
+    topas_annotation_df = topas_annotation.read_topas_annotations(topas_annotation_file)
 
     # Load sample annotation file
     sample_annotation_df = sa.load_sample_annotation(
@@ -803,6 +803,6 @@ if __name__ == "__main__":
         results_folder=configs.results_folder,
         debug=configs.preprocessing.debug,
         report_config=configs.report,
-        annot_file=configs.clinic_proc.prot_baskets,
+        topas_annotation_file=configs.clinic_proc.prot_baskets,
         data_types=configs.data_types,
     )

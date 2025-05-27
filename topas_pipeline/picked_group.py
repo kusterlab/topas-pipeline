@@ -96,8 +96,6 @@ def run_picked_group_fdr(
             "6",
             "--cleavages",
             "3",
-            "--lfq_min_peptide_ratios",
-            "1",
             "--gene_level",
             "--suppress_missing_peptide_warning",
             "--methods",
