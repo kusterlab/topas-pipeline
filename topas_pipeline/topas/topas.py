@@ -141,17 +141,19 @@ def compute_topas_scores(
     measures["z-score"].columns = measures["z-score"].columns.str.strip("zscore_")
     zscores = measures["z-score"].T
 
-    # TODO: can we do without the metadata file, since we only use code_oncotree
-    metadata_df = sample_metadata.load(metadata_file)
-    save_rtk_scores_w_metadata(
-        zscores, metadata_df, os.path.join(results_folder, "rtk_landscape.tsv")
-    )
     save_topas_scores(
         zscores,
         os.path.join(
             results_folder, topas_results_folder, "basket_scores_4th_gen_zscored.tsv"
         ),
     )
+    
+    # TODO: can we do without the metadata file, since we only use code_oncotree
+    if os.path.isfile(metadata_file):
+        metadata_df = sample_metadata.load(metadata_file)
+        save_rtk_scores_w_metadata(
+            zscores, metadata_df, os.path.join(results_folder, "rtk_landscape.tsv")
+        )
 
 
 def save_rtk_scores_w_metadata(

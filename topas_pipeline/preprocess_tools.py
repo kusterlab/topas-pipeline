@@ -1,6 +1,7 @@
 from builtins import ValueError
 import re
 import os
+from glob import glob
 from typing import List, Dict, Tuple, Union, Callable
 from pathlib import Path
 import logging
@@ -705,7 +706,6 @@ def rename_columns_with_sample_ids(
     df: pd.DataFrame,
     channel_to_sample_id_dict: Dict[str, str],
     index_cols: List[str],
-    remove_ref=True,
 ) -> pd.DataFrame:
     """
     Transform column names of the format 'Reporter intensity corrected <TMT_channel> <batch_name>' to the sample names
@@ -728,17 +728,17 @@ def rename_columns_with_sample_ids(
     metadata_to_sample_id_dict = dict(zip(metadata_cols, metadata_cols_with_sample_id))
 
     # add "pat_" prefix to patient intensity columns
-    channel_to_sample_id_dict = {
+    channel_to_sample_id_dict_final = {
         k: "pat_" + v
         for k, v in channel_to_sample_id_dict.items()
         if not v.startswith("ref_")
     }
     # keep "ref_" prefix for reference intensity columns
-    channel_to_sample_id_dict |= {
+    channel_to_sample_id_dict_final |= {
         k: v for k, v in channel_to_sample_id_dict.items() if v.startswith("ref_")
     }
 
-    rename_dict = {**channel_to_sample_id_dict, **metadata_to_sample_id_dict}
+    rename_dict = {**channel_to_sample_id_dict_final, **metadata_to_sample_id_dict}
     df = df.rename(columns=rename_dict)
     df = df.reset_index()
     return df
@@ -755,21 +755,21 @@ def get_data_location(
     :return: List of file paths for full and phospho proteome data
     """
     if not os.path.isdir(maxquant_super_folder):
-        raise IOError("No datafiles found")
+        raise IOError(
+            f"MaxQuant super folder is not a directory: {maxquant_super_folder}"
+        )
 
     validity_check = is_valid_fp_file
     if data_type == "pp":
         validity_check = is_valid_pp_file
 
     evidence_files = []
-    for directory, _, files in sorted(os.walk(maxquant_super_folder, followlinks=True)):
-        for filename in files:
-            if not filename.endswith(file_type):
-                continue
-
-            path = os.path.join(directory, filename)
-            if validity_check(directory):
-                evidence_files.append(path)
+    for file_to_check in sorted(glob(
+        os.path.join(maxquant_super_folder, "**", file_type), recursive=True
+    )):
+        if validity_check(file_to_check):
+            evidence_files.append(file_to_check)
+    evidence_files = sorted(evidence_files)
     return evidence_files
 
 
