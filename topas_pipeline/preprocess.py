@@ -300,7 +300,7 @@ if __name__ == "__main__":
 
     preprocess_raw(
         results_folder=configs.results_folder,
-        sample_annotation=configs.sample_annotation,
+        sample_annotation_file=configs.sample_annotation,
         metadata_annotation=configs.metadata_annotation,
         run_simsi=configs.simsi.run_simsi,
         simsi_folder=configs.simsi.simsi_folder,
