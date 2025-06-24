@@ -79,6 +79,7 @@ def replace_detected_in_batch(
     )
 
     detected_in_batch_df = detected_in_batch_df[df.columns].astype('object')
+    detected_in_batch_df = detected_in_batch_df.fillna(False)
     detected_in_batch_df[:] = np.where(detected_in_batch_df, value, np.nan)
     df.update(
         detected_in_batch_df, overwrite=False
