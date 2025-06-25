@@ -12,7 +12,7 @@ class TestLoadZScoresFp:
     def test_correctly_reads_z_scores(self, mocker):
         # Mocking the dependencies
         measure1_df = pd.DataFrame(
-            {"zscore_pat_patient1": [1, np.nan], "zscore_pat_patient2": [3, 4]}
+            {"zscore_pat_patient1": [1, np.nan], "zscore_pat_patient2": [3, 4], "zscore_pat_patient3": [np.nan, np.nan]}
         )
         mocker.patch(
             "topas_pipeline.metrics.read_measures",
@@ -24,7 +24,8 @@ class TestLoadZScoresFp:
                 pd.DataFrame(
                     {
                         "Identification metadata patient1": ["", "detected in batch;"],
-                        "Identification metadata patient2": ["", ""],
+                        "Identification metadata patient2": ["num_peptides=1;", ""],
+                        "Identification metadata patient3": ["", np.nan],
                     }
                 )
             ),
@@ -34,7 +35,7 @@ class TestLoadZScoresFp:
         result = scoring.load_z_scores_fp(results_folder)
 
         expected_result = pd.DataFrame(
-            {"pat_patient1": [1.0, -4], "pat_patient2": [3, 4]}
+            {"pat_patient1": [1.0, -4], "pat_patient2": [3, 4], "pat_patient3": [np.nan, np.nan]},
         )
 
         pd.testing.assert_frame_equal(result, expected_result)
@@ -243,7 +244,7 @@ def topas_annotation_df():
             "TOPAS_subscore_level": ["level1", "level1"],
         }
     )
-
+      
 
 class TestSumWeightedZScores:
     def test_filter_columns(self):
