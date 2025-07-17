@@ -25,6 +25,7 @@ def add_clinical_annotations(*args, **kwargs) -> None:
 
 def add_clinical_annotations_data_type(
     results_folder: Union[str, Path],
+    debug: config.Preprocessing.debug,
     clinic_proc_config: config.ClinicProc,
     data_type: str,
 ) -> None:
