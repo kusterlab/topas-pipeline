@@ -108,7 +108,6 @@ if __name__ == "__main__":
 
     add_clinical_annotations(
         results_folder=configs.results_folder,
-        debug=configs.preprocessing.debug,
         clinic_proc_config=configs.clinic_proc,
         data_types=configs.data_types,
     )
