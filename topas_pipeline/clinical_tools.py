@@ -102,9 +102,13 @@ def add_extra_kinase_annotations(
     logger.info("Extra kinase annotation")
 
     extra_kinase_annot_df = pd.read_excel(extra_kinase_annot)
-    df["Kinase_high_conf"] = df.index.to_series().map(
-        extra_kinase_annot_df.set_index("Modified sequence")["PSP Kinase"]
+
+    kinase_map = (
+        extra_kinase_annot_df
+        .groupby("Modified sequence")["PSP Kinase"]
+        .apply(lambda x: ";".join(sorted(set(x))))
     )
+    df["Kinase_high_conf"] = df.index.to_series().map(kinase_map)
     return df
 
 
