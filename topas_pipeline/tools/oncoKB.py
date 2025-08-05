@@ -19,7 +19,7 @@ USAGES: python scriptname.py input.csv
 AUTHENTICATION_KEY="" # this token should be taken from onkoKB API
 # the key for the authentication can be retrieved after registering in the OncoKB portal 
 
-def get_data_from_the_ONKOKB_api(gene_name,alteration,AUTHENTICATION_KEY=AUTHENTICATION_KEY,data_type='variantSummary'):
+def get_data_from_the_ONKOKB_api(gene_name, alteration, AUTHENTICATION_KEY=AUTHENTICATION_KEY, data_type='variantSummary'):
     """
     this function retrives the oncoKB annoation from oncoKB API as string 
     :gene_name: is the symbol gene name
@@ -41,7 +41,7 @@ def load_genomics_table(genomics_path="") -> pd.DataFrame:
     return genomics_df
 
 
-def get_all_snv_ONKOKB_per_snvname(X,protein_name,pattern_alteration = r'p.[A-Z][0-9]+[A-Z]'):
+def get_all_snv_ONKOKB_per_snvname(X,protein_name, pattern_alteration = r'p.[A-Z][0-9]+[A-Z]'):
     """
     This function is the wrapper around the function for extracting the SNVs 
     :X: should be like cnv:CNN_snv:C_T_exonic_20_p.P266S_fusion:n.d	 if it is multi they shold be seprated by ;
