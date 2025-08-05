@@ -95,8 +95,8 @@ def main(argv):
         # 4) Run WP2 scoring (<1 minute)
         phosphorylation.psite_scoring(
             results_folder=configs.results_folder,
-            extra_kinase_annot=configs.clinic_proc.extra_kinase_annot,
             data_types=configs.data_types,
+            extra_kinase_annot=configs.clinic_proc.extra_kinase_annot,
         )
         logger.info("--- %.1f seconds --- wp2 scoring" % (time.time() - start_time))
 
