@@ -208,6 +208,9 @@ def sum_peptide_intensities(
     logger.info(
         "Summing up intensities per p-peptide across fractions and charge states"
     )
+    
+    # Perform replacement
+    df['Modified sequence'] = df["Modified sequence"].str.replace("M(Oxidation (M))", "M", regex=False)
 
     # TODO: split strings on semicolon before making unique
     def csv_list_unique(x):
