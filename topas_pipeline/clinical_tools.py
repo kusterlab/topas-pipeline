@@ -1,6 +1,3 @@
-import sys
-import ast
-
 import logging
 from itertools import compress
 from pathlib import Path
@@ -50,22 +47,6 @@ VALID_TOPAS_LEVELS = {
 }
 
 
-
-# def explode_site_column(df, column="Site position"):
-#     # Convert string-represented lists into real Python lists
-#     df = df.copy()
-#     df[column] = df[column].apply(lambda x: ast.literal_eval(x) if isinstance(x, str) else x)
-    
-#     # Explode into separate rows
-#     df = df.explode(column)
-    
-#     # Split into ACC and site
-#     df["ACC"] = df[column].str.split("_").str[0]
-#     df["Site"] = df[column].str.split("_").str[1]
-    
-#     return df
-
-
 def add_phospho_annotations(
     df: pd.DataFrame,
     clinic_proc_config: config.ClinicProc,
@@ -86,20 +67,6 @@ def add_phospho_annotations(
         pspInput=True,
         returnAllPotentialSites=False,
     )
-
-    # add our own PSP annotations
-    # print(clinic_proc_config.extra_kinase_annot)
-    # new_topas_subscores = pd.read_csv(clinic_proc_config.new_topas_subscores)
-    # print(new_topas_subscores.head())
-    # print(new_topas_subscores['Site positions'])
-    # new_topas_subscores = explode_site_column(new_topas_subscores, column="Site positions")
-    # print(new_topas_subscores.head())
-    # new_topas_subscores.to_csv("/media/kusterlab/internal_projects/active/TOPAS/WP31/Playground/Pipeline_annotations/new_topas_subscores_exploded.csv", index=False)
-    # sys.exit()
-
-    
-    # sys.exit()
-    # TODO: make a function for this?
 
     df = pa.addPSPKinaseSubstrateAnnotations(
         df, clinic_proc_config.pspKinaseSubstrateFile, gene_name=True
@@ -162,10 +129,10 @@ def add_extra_kinase_annotations(
     # get the sites we need to get peptides for
     sites_to_get_peptides_for = get_sites_to_get_peptides_for(extra_kinase_annot_df)
 
-    # Step 1: Prepare df by splitting 'Site positions' into lists
+    # Prepare df by splitting 'Site positions' into lists
     df_exploded = get_df_fill_in_missing_modified_sequence(df)
 
-    # Step 3: Subset to what has to be filled in
+    # subset to df to get the annot for (psite only given)
     df_to_fill = extra_kinase_annot_df[
         extra_kinase_annot_df['Modified sequence'].isna() &
         extra_kinase_annot_df['Gene names'].notna() &
@@ -188,7 +155,6 @@ def add_extra_kinase_annotations(
         else:
             print(f"No match found for {gene} at site {site}")
 
-    # now if that worked we explode afterwards on Modified sequence and drop duplicates (is drop necessary)?
     df_to_fill = df_to_fill.assign(
         **{"Modified sequence": df_to_fill["Modified sequence"].str.split(";")}
     ).explode("Modified sequence")
