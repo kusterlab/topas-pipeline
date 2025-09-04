@@ -71,7 +71,7 @@ def run_simsi(*args, **kwargs) -> None:
 
     data_types = kwargs.pop("data_types")
     processingPool = JobPool(
-        processes=2, timeout=108000, write_progress_to_logger=True
+        processes=2, timeout=130000, write_progress_to_logger=True
     )  # 108,000 seconds = 30 hours
     for data_type in data_types:
         kwargs_with_data_type = kwargs.copy()
