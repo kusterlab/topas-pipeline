@@ -211,7 +211,8 @@ def post_process_topas_columns(annot_df: pd.DataFrame) -> pd.DataFrame:
     for key in TOPAS_SUBSCORE_COLUMNS.keys():
         annot_df[key] = annot_df.apply(merge_topas_score_and_subscore_names, axis=1)
     for key in TOPAS_SCORE_COLUMNS.keys():
-        annot_df[key] = annot_df[key].apply(get_unique_topas_names)
+        if key in annot_df:
+            annot_df[key] = annot_df[key].apply(get_unique_topas_names)
     return annot_df
 
 
@@ -365,9 +366,9 @@ def create_patient_data(measure_dfs, patient: str):
 def get_annotation_dfs(measure_dfs) -> Dict[str, pd.DataFrame]:
     annotation_columns_patient = {}
     for data_type, dfs in measure_dfs.items():
-        annotation_columns_patient[data_type] = dfs["scores"][
-            ANNOTATION_COLUMNS[data_type].keys()
-        ].copy()
+        # skip annotation column if it is not FOUND in the dataframe
+        cols = [c for c in ANNOTATION_COLUMNS[data_type].keys() if c in dfs["scores"].columns]
+        annotation_columns_patient[data_type] = dfs["scores"][cols].copy()
     return annotation_columns_patient
 
 
@@ -492,8 +493,9 @@ def create_fp_worksheet(
     :param fp_annotation_columns:
 
     """
-    annotations = fp[fp_annotation_columns.keys()]
-    annotations = annotations.reindex(fp_annotation_columns.keys(), axis=1)
+    existing_annotation_keys = [c for c in fp_annotation_columns.keys() if c in fp.columns]
+    annotations = fp[existing_annotation_keys]
+    annotations = annotations.reindex(existing_annotation_keys, axis=1)
     annotations = annotations.rename(fp_annotation_columns, axis="columns")
 
     df = pd.concat([df, annotations], axis=1)
@@ -521,9 +523,10 @@ def create_pp_worksheet(
     writer: pd.ExcelWriter,
     pp_annotation_columns: Dict[str, str],
 ) -> None:
-    annotations = pp[pp_annotation_columns.keys()]
+    existing_annotation_keys = [c for c in pp_annotation_columns.keys() if c in pp.columns]
+    annotations = pp[existing_annotation_keys]
     annotations = annotations.reindex(
-        pp_annotation_columns.keys(), axis=1
+        existing_annotation_keys, axis=1
     )  # force correct column order
     annotations = annotations.rename(pp_annotation_columns, axis="columns")
 
