@@ -129,6 +129,12 @@ def get_topas_subscore_calculator(
     kinase_scores_df: pd.DataFrame,
 ):
     def calculate_topas_subscore(topas_subscore_annotation_df: pd.DataFrame):
+        """Compute the TOPAS subscores using different rules and input data matrices.
+
+        We cap the expression and protein phosphorylation between -4 and +4 to balance
+        out the effect of gene amplifications. The substrate phosphorylation (=kinase
+        score) is not capped because they are reliable indicators of aberrant RTK signaling.
+        """
         scoring_rule = topas_subscore_annotation_df["Scoring rule"].iloc[0].lower()
         if scoring_rule == "highest z-score":
             topas_subscore = get_weighted_max(
