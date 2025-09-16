@@ -323,13 +323,14 @@ def map_identifier_list_to_annot_types(
         if identifier not in annot_dict:
             continue
 
+        # For Proteins of Interest (POI), the annotation term is in the 
+        # TOPAS_subscore column instead of the TOPAS_score column
         annot_type_in_column = TOPAS_SCORE_COLUMN
         if "POI" in annot_type:
             annot_type_in_column = TOPAS_SUBSCORE_COLUMN
 
         groups = annot_dict[identifier]["group"].split(";")
         annot_group = annot_dict[identifier][annot_type_in_column].split(";")
-        annot_weight = annot_dict[identifier]["weight"].split(";")
 
         for i, group in enumerate(groups):
             annotations.append(annot_group[i])

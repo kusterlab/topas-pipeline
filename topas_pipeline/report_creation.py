@@ -27,7 +27,9 @@ TOPAS_SCORE_COLUMNS = clinical_tools.TOPAS_SCORE_COLUMNS
 TOPAS_SUBSCORE_COLUMNS = clinical_tools.TOPAS_SUBSCORE_COLUMNS
 
 ANNOTATION_COLUMNS = dict()
+
 ANNOTATION_COLUMNS["pp"] = {
+    "Kinase_high_conf": "TOPAS annot",  # use Kinase_high_conf column instead of TOPAS_score (removed from dict below) for the "TOPAS annot" column
     **TOPAS_SCORE_COLUMNS,
     "Site positions identified (MQ)": "Site positions (MQ identified - PSP)",
     "Site positions": "Site positions (PSP)",
@@ -41,6 +43,8 @@ ANNOTATION_COLUMNS["pp"] = {
     "PSP_MS_LIT": "High throughput studies (PSP)",
     "PSP_MS_CST": "CST studies (PSP)",
 }
+ANNOTATION_COLUMNS["pp"].pop(TOPAS_SCORE_COLUMN)
+
 ANNOTATION_COLUMNS["fp"] = {
     **TOPAS_SCORE_COLUMNS,
 }
@@ -165,7 +169,7 @@ def read_and_compute_scores(results_folder: Union[str, Path]) -> Tuple:
         ),
         "targets": topas.scoring.load_substrate_phosphorylation_num_targets(
             results_folder, add_total_targets_to_index=True
-        )
+        ),
     }
     protein_scores = {
         "scores": topas.scoring.load_protein_phosphorylation(results_folder)
@@ -367,7 +371,11 @@ def get_annotation_dfs(measure_dfs) -> Dict[str, pd.DataFrame]:
     annotation_columns_patient = {}
     for data_type, dfs in measure_dfs.items():
         # skip annotation column if it is not FOUND in the dataframe
-        cols = [c for c in ANNOTATION_COLUMNS[data_type].keys() if c in dfs["scores"].columns]
+        cols = [
+            c
+            for c in ANNOTATION_COLUMNS[data_type].keys()
+            if c in dfs["scores"].columns
+        ]
         annotation_columns_patient[data_type] = dfs["scores"][cols].copy()
     return annotation_columns_patient
 
@@ -493,7 +501,9 @@ def create_fp_worksheet(
     :param fp_annotation_columns:
 
     """
-    existing_annotation_keys = [c for c in fp_annotation_columns.keys() if c in fp.columns]
+    existing_annotation_keys = [
+        c for c in fp_annotation_columns.keys() if c in fp.columns
+    ]
     annotations = fp[existing_annotation_keys]
     annotations = annotations.reindex(existing_annotation_keys, axis=1)
     annotations = annotations.rename(fp_annotation_columns, axis="columns")
@@ -523,7 +533,9 @@ def create_pp_worksheet(
     writer: pd.ExcelWriter,
     pp_annotation_columns: Dict[str, str],
 ) -> None:
-    existing_annotation_keys = [c for c in pp_annotation_columns.keys() if c in pp.columns]
+    existing_annotation_keys = [
+        c for c in pp_annotation_columns.keys() if c in pp.columns
+    ]
     annotations = pp[existing_annotation_keys]
     annotations = annotations.reindex(
         existing_annotation_keys, axis=1

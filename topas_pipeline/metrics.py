@@ -61,25 +61,6 @@ def compute_metrics(
             )
 
 
-def add_topas_annotations(
-    measure_df: pd.DataFrame, annot_df: pd.DataFrame
-) -> pd.DataFrame:
-    topas_score_col = clinical_tools.TOPAS_SCORE_COLUMN
-    topas_subscore_col = clinical_tools.TOPAS_SUBSCORE_COLUMN
-    measure_df = measure_df.join(
-        annot_df.loc[
-            :,
-            [
-                topas_score_col,
-                f"{topas_score_col}_weights",
-                topas_subscore_col,
-                f"{topas_subscore_col}_weights",
-            ],
-        ]
-    )
-    return measure_df
-
-
 class Metrics:
     """
     Describe
@@ -278,17 +259,6 @@ def read_measures(
         logger.info(f"Reading in {filename}")
         measures[measure] = pd.read_csv(filename, sep="\t", index_col=index_col)
     return measures
-
-
-def get_topas_annotation_columns() -> List[str]:
-    topas_score_col = list(clinical_tools.TOPAS_SCORE_COLUMNS.keys())[0]
-    topas_subscore_col = list(clinical_tools.TOPAS_SUBSCORE_COLUMNS.keys())[0]
-    return [
-        topas_score_col,
-        f"{topas_score_col}_weights",
-        topas_subscore_col,
-        f"{topas_subscore_col}_weights",
-    ]
 
 
 def save_measures(
