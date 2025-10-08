@@ -84,11 +84,14 @@ def create_report(
     sample_annotation_df = sa.load_sample_annotation(
         os.path.join(results_folder, "sample_annot_filtered.csv")
     )
+    remove_reference = True
+    if debug:
+        remove_reference = False
     sample_annotation_df = sa.filter_sample_annotation(
         sample_annotation_df,
         remove_qc_failed=False,
         remove_replicates=False,
-        remove_reference=True,
+        remove_reference=remove_reference,
     )
     sample_annotation_df["Batch Name"] = (
         sample_annotation_df["Cohort"]
