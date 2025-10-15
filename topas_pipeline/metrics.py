@@ -52,12 +52,12 @@ def compute_metrics(
         )
 
         if debug:
-            measures = get_metrics(annot_df.filter(regex=r"(^pat_)|(^ref_)"))
+            measures = get_metrics(annot_df.filter(regex=r"(^pat_)|(^ref_)"), debug)
             save_measures(
                 results_folder,
                 MEASURE_NAMES,
                 measures,
-                data_type + "_with_ref",
+                data_type + "_with_ref"
             )
 
 
@@ -199,12 +199,13 @@ def _loo_std(input_matrix: np.array) -> np.array:
     )  # uses ddof = 1 because that is the pandas default
 
 
-def get_metrics(df: pd.DataFrame) -> Dict[str, pd.DataFrame]:
+def get_metrics(df: pd.DataFrame, debug: bool = False) -> Dict[str, pd.DataFrame]:
     """
     describe
     """
     logger.info("Calculating metrics")
-    df = utils.keep_only_sample_columns(df)
+    if not debug:
+        df = utils.keep_only_sample_columns(df)
 
     # Get metrics
     m = Metrics(df)
