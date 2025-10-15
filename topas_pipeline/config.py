@@ -41,6 +41,7 @@ class ClinicProc:
     pspRegulatoryFile: str
     prot_baskets: str
     extra_kinase_annot: str = ""
+    topas_kinase_substrate_file: str = ""
 
 
 @dataclass
