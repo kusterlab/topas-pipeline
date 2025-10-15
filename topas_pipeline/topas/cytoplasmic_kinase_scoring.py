@@ -378,17 +378,20 @@ VALIDATED_KINASES = [
 
 
 def calculate_cytoplasmic_kinase_scores(
-    results_folder: str, metadata_file: str, topas_kinase_substrate_file: str
+    results_folder: str, metadata_file: str, topas_kinase_substrate_file: str, expression_corrected_input: bool = False
 ):
+    file_suffix = ""
+    if expression_corrected_input:
+        file_suffix = "_expressioncorrected"
+
     logger.info("Construct joint modified sequence groups between cohort and decryptM")
     peptidoform_groups = get_joint_modified_sequence_groups(
         results_folder, topas_kinase_substrate_file
     )
 
     logger.info("Aggregate modified sequence groups in patient data")
-    pp_agg_df = aggregate_patient_modified_sequence_groups(
-        results_folder, peptidoform_groups
-    )
+    phospho = load_phospho_data(results_folder, file_suffix)
+    pp_agg_df = aggregate_patient_modified_sequence_groups(phospho, peptidoform_groups)
 
     logger.info("Aggregate modified sequence groups in decryptM data")
     automated_sites = load_confident_relationships(topas_kinase_substrate_file)
@@ -405,6 +408,7 @@ def calculate_cytoplasmic_kinase_scores(
 
     # Save with meta information
     metadata_df = pd.read_excel(metadata_file)
+    metadata_df["Sample name"] = "pat_" + metadata_df["Sample name"]
     meta_cols = [
         "Patient_Identifier",
         "Program",
@@ -414,7 +418,7 @@ def calculate_cytoplasmic_kinase_scores(
     ]
     score_cols = list(scores.columns)
 
-    kinase_score_file = f"{results_folder}/cytoplasmic_kinase_scores.csv"
+    kinase_score_file = f"{results_folder}/cytoplasmic_kinase_scores{file_suffix}.csv"
     logger.info(f"Writing results to {kinase_score_file}")
     scores.merge(
         right=metadata_df.set_index("Sample name")[meta_cols],
@@ -508,13 +512,16 @@ def explode_modified_sequence_groups(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def aggregate_patient_modified_sequence_groups(
-    results_folder: str, peptidoform_groups: pd.DataFrame
-) -> pd.DataFrame:
+def load_phospho_data(results_folder: str, file_suffix: str = "") -> pd.DataFrame:
     phospho = pd.read_csv(
-        f"{results_folder}/preprocessed_pp2_agg_batchcorrected.csv", index_col=[0, 1]
+        f"{results_folder}/preprocessed_pp2_agg_batchcorrected{file_suffix}.csv", index_col=[0, 1]
     )
+    return phospho
 
+
+def aggregate_patient_modified_sequence_groups(
+    phospho: pd.DataFrame, peptidoform_groups: pd.DataFrame
+) -> pd.DataFrame:
     phospho = 10**phospho
     phospho = phospho.reset_index()
     phospho["Modified sequence"] = phospho["Modified sequence group"].str.split(";")
@@ -695,6 +702,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "-c", "--config", required=True, help="Absolute path to configuration file."
     )
+    parser.add_argument(
+        "-e",
+        "--expression-corrected",
+        help="Use expression corrected phospho input.",
+        action=argparse.BooleanOptionalAction,
+    )
     args = parser.parse_args(sys.argv[1:])
 
     configs = config.load(args.config)
@@ -703,4 +716,5 @@ if __name__ == "__main__":
         results_folder=configs.results_folder,
         metadata_file=configs.metadata_annotation,
         topas_kinase_substrate_file=configs.clinic_proc.topas_kinase_substrate_file,
+        expression_corrected_input=args.expression_corrected,
     )
