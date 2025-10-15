@@ -220,7 +220,7 @@ def row_wise_normalize(
 
 
 """
-python3 -m topas_pipeline.phospho_grouping -c config_patients.json
+python3 -m topas_pipeline.bridge_normalization -c config_patients.json
 """
 if __name__ == "__main__":
     import argparse
