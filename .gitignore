@@ -169,3 +169,5 @@ hash.file
 # folders with example data and results
 example
 results
+notebooks
+.vscode

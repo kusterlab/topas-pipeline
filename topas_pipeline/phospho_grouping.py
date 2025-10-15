@@ -1,0 +1,122 @@
+import sys
+import logging
+import collections
+from pathlib import Path
+
+import pandas as pd
+import numpy as np
+import psite_annotation as pa
+
+from tqdm import tqdm
+
+tqdm.pandas()
+
+# hacky way to get the package logger instead of just __main__ when running as a module
+logger = logging.getLogger(__package__ + "." + Path(__file__).stem)
+
+
+def aggregate_modified_sequences(results_folder: str) -> pd.DataFrame:
+    """Aggregate modified sequence rows with localization within +/-2 amino acids.
+
+    Args:
+        results_folder (str): _description_
+    """
+    pp_df = read_preprocessed_pp2(results_folder)
+
+    # clean Mod_seq string
+    replace_dict = {
+        r"\(Acetyl \(Protein N-term\)\)": "(ac)",
+        r"M\(Oxidation \(M\)\)": "M",
+        r"p([STY])": r"\1(ph)",
+    }
+
+    pp_df["Modified sequence"] = pp_df["Modified sequence"].str[1:-1]
+    for old, new in replace_dict.items():
+        pp_df["Modified sequence"] = pp_df["Modified sequence"].replace(
+            old, new, regex=True
+        )
+
+    # replace empty metadata cells (=measured in sample) with ";" to recognize
+    # when imputed data is combined with measured values in the aggregation
+    # 1.5 minutes for full matrix
+    logger.info("Aggregating modified sequence groups")
+    pp_df.loc[:, pp_df.filter(like="Identification metadata").columns] = pp_df.loc[
+        :, pp_df.filter(like="Identification metadata").columns
+    ].fillna(";")
+
+    # 4.5 minutes for full matrix
+    agg_pp_df = pa.aggregateModifiedSequenceGroups(
+        pp_df,
+        experiment_cols=pp_df.filter(like="Reporter intensity corrected").columns,
+        agg_cols={"Gene names": "first", "Proteins": "first"}
+        | {c: "sum" for c in pp_df.filter(like="Identification metadata").columns},
+    )
+
+    # aggregate metadata imputation status. the most common case is a non-aggregated
+    # measured value, we convert these into nans to speed up the .map() function
+    # 3.5 minutes for full matrix
+    agg_pp_df.loc[:, agg_pp_df.filter(like="Identification metadata").columns] = (
+        agg_pp_df.loc[:, agg_pp_df.filter(like="Identification metadata").columns]
+        .replace(";", np.nan)
+        .map(aggregate_imputations, na_action="ignore")
+    )
+
+    # 7.5 minutes for full matrix
+    agg_pp_file = f"{results_folder}/preprocessed_pp2_agg.csv"
+    logger.info(f"Writing aggregated modified sequence groups to {agg_pp_file}")
+    agg_pp_df.to_csv(agg_pp_file, index=False, float_format="%.6g")
+
+    return agg_pp_df
+
+
+def read_preprocessed_pp2(results_folder: str) -> pd.DataFrame:
+    logger.info("Reading in preprocessed_pp2.csv")
+    headers = pd.read_csv(f"{results_folder}/preprocessed_pp2.csv", nrows=1)
+    dtype_dict = collections.defaultdict(
+        lambda: "str"
+    )  # 'str' dtype does still create NaNs for empty cells
+    dtype_dict |= {
+        c: "float32"
+        for c in headers.filter(like="Reporter intensity corrected").columns
+    }
+
+    pp_df = pd.read_csv(
+        f"{results_folder}/preprocessed_pp2.csv", dtype=dtype_dict
+    )
+    return pp_df
+
+def aggregate_imputations(x):
+    annotations = set(x[:-1].split(";"))
+    if not annotations.issubset({"imputed", "partially imputed", ""}):
+        raise ValueError(
+            f"Found other annotations ({annotations}) besides imputations, need new solution to detect partially imputed peptides"
+        )
+
+    if annotations == {""}:
+        return np.nan
+
+    if len(annotations) >= 2:
+        return "partially imputed;"
+
+    return ";".join(map(str, list(annotations))) + ";"
+
+
+"""
+python3 -m topas_pipeline.phospho_grouping -c config_patients.json
+"""
+if __name__ == "__main__":
+    import argparse
+
+    from . import config
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-c", "--config", required=True, help="Absolute path to configuration file."
+    )
+    args = parser.parse_args(sys.argv[1:])
+
+    configs = config.load(args.config)
+
+    aggregate_modified_sequences(
+        results_folder=configs.results_folder,
+    )
