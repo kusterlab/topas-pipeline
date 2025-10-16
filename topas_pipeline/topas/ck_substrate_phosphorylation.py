@@ -1,3 +1,6 @@
+# compute substrate phosphorylation scores (a.k.a. kinase activity) for cytoplasmic
+# kinases using the confident substrates from Florian Bayer's decryptM experiments
+
 import sys
 import logging
 from pathlib import Path
@@ -370,15 +373,29 @@ VALIDATED_KINASES = [
     "sAAK1",
     "SRCs",
     "ATR",
-    "CHEK2",  #'RIPK2',
-    #  'FRK', 'HERs', 'SGKs', 'PAK1/2/3', 'MAP3K20', 'CDK12/13', 'CDK9', 'sATR', 'sGSK3', 'sCDK1213', 'sCDK9',
-    #'EPHAs',
+    "CHEK2",
     "FAKs",
+    # "RIPK2",
+    # "FRK",
+    # "HERs",
+    # "SGKs",
+    # "PAK1/2/3",
+    # "MAP3K20",
+    # "CDK12/13",
+    # "CDK9",
+    # "sATR",
+    # "sGSK3",
+    # "sCDK1213",
+    # "sCDK9",
+    # "EPHAs",
 ]
 
 
 def calculate_cytoplasmic_kinase_scores(
-    results_folder: str, metadata_file: str, topas_kinase_substrate_file: str, expression_corrected_input: bool = False
+    results_folder: str,
+    metadata_file: str,
+    topas_kinase_substrate_file: str,
+    expression_corrected_input: bool = False,
 ):
     file_suffix = ""
     if expression_corrected_input:
@@ -406,6 +423,13 @@ def calculate_cytoplasmic_kinase_scores(
         pp_agg_df, decryptM_kinases, kinases=VALIDATED_KINASES
     )
 
+    kinase_score_file = f"{results_folder}/topas_scores/ck_substrate_phosphorylation_scores{file_suffix}.csv"
+    save_scores_with_metadata_columns(scores, metadata_file, kinase_score_file)
+
+
+def save_scores_with_metadata_columns(
+    scores: pd.DataFrame, metadata_file: str, kinase_score_file: str
+):
     # Save with meta information
     metadata_df = pd.read_excel(metadata_file)
     metadata_df["Sample name"] = "pat_" + metadata_df["Sample name"]
@@ -418,8 +442,8 @@ def calculate_cytoplasmic_kinase_scores(
     ]
     score_cols = list(scores.columns)
 
-    kinase_score_file = f"{results_folder}/cytoplasmic_kinase_scores{file_suffix}.csv"
     logger.info(f"Writing results to {kinase_score_file}")
+    Path(kinase_score_file).parent.mkdir(exist_ok=True)
     scores.merge(
         right=metadata_df.set_index("Sample name")[meta_cols],
         left_index=True,
@@ -437,14 +461,11 @@ def get_joint_modified_sequence_groups(
         topas_kinase_substrate_file, filter_for_confident_relationships=True
     )
 
-    df_patients = explode_modified_sequence_groups(df_patients)
-    df_decryptM = explode_modified_sequence_groups(df_decryptM)
-    df_annot = explode_modified_sequence_groups(df_annot)
-
     df_patients["Data set"] = "Patients"
     df_decryptM["Data set"] = "decryptM"
     df_annot["Data set"] = "Annotated"
     df_combined = pd.concat([df_patients, df_decryptM, df_annot])
+    df_combined = explode_modified_sequence_groups(df_combined)
     df_combined
 
     # Aggregate duplicates
@@ -514,7 +535,8 @@ def explode_modified_sequence_groups(df: pd.DataFrame) -> pd.DataFrame:
 
 def load_phospho_data(results_folder: str, file_suffix: str = "") -> pd.DataFrame:
     phospho = pd.read_csv(
-        f"{results_folder}/preprocessed_pp2_agg_batchcorrected{file_suffix}.csv", index_col=[0, 1]
+        f"{results_folder}/preprocessed_pp2_agg_batchcorrected{file_suffix}.csv",
+        index_col=[0, 1],
     )
     return phospho
 
@@ -599,12 +621,14 @@ def get_patient_annotated_sites(
 
 
 def compute_kinase_scores(
-    pp_agg_df: pd.DataFrame, decryptM_kinases: pd.Series, kinases: list[str]
+    pp_agg_df: pd.DataFrame,
+    kinase_substrate_annotation_df: pd.Series,
+    kinases: list[str],
 ) -> pd.DataFrame:
     scores = []
     for k in kinases:
-        substrate_peptides = decryptM_kinases[
-            decryptM_kinases.str.contains(k)
+        substrate_peptides = kinase_substrate_annotation_df[
+            kinase_substrate_annotation_df.str.contains(k, regex=False)
         ].index.get_level_values("Modified sequence group")
         s = z_aggregate(
             pp_agg_df,
@@ -662,7 +686,7 @@ def z_aggregate(
     if agg_f == "mean":  # should be the best option
         agg_vals = z_vals.mean()
     elif agg_f == "median":
-        agg_vals = z_vals.meidan()
+        agg_vals = z_vals.median()
     elif agg_f == "sum":  # sum is sensitive to unequal sizes (missing values)
         agg_vals = z_vals.sum()
     elif agg_f == "min":  # Min / Max is problematic in big aggregation sets
@@ -671,6 +695,8 @@ def z_aggregate(
         agg_vals = z_vals.max()
     else:
         raise ValueError("aggregation function is unknown...")
+
+    agg_vals = agg_vals.replace(0, np.nan)
 
     # Scale output (series) in mean or robust
     if robust:
@@ -691,7 +717,7 @@ def z_aggregate(
 
 
 """
-python3 -m topas_pipeline.phospho_grouping -c config_patients.json
+python3 -m topas_pipeline.topas.cytoplasmic_kinase_scoring -c config_patients.json [--expression-corrected]
 """
 if __name__ == "__main__":
     import argparse
