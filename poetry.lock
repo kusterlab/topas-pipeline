@@ -1753,12 +1753,12 @@ wcwidth = "*"
 
 [[package]]
 name = "psite-annotation"
-version = "0.5.3"
+version = "0.7.1"
 description = "Module for annotating p-sites based on resources such as PhosphoSitePlus"
 optional = false
 python-versions = "<3.13,>=3.9"
 files = [
-    {file = "psite_annotation-0.5.3-py3-none-any.whl", hash = "sha256:d3610f183a4249e0d4981b712db98bf8e0f9b100a2e588661c55e48c596074a6"},
+    {file = "psite_annotation-0.7.1-py3-none-any.whl", hash = "sha256:fb9a751f4953c9635c4eb26c827714645ce15564672c3a68bbdb3737be8226d4"},
 ]
 
 [package.dependencies]
@@ -2657,4 +2657,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<3.11"
-content-hash = "2e4a875138130e746cd95e9a4fe9eca4793fc6087b5a2e726b7905fc2cebf63c"
+content-hash = "1409d0ea436215323bdda154b2c10d0919c864d46bdc6633cf5488cd1a528080"
