@@ -48,12 +48,21 @@ def calculate_rtk_scores(
 
     annotated_cohort_intensities_df.update(annotated_cohort_batch_corrected_df)
 
-    scores = ck_substrate_phosphorylation.compute_kinase_scores(
+    substrate_file = (
+        f"{results_folder}/topas_scores/rtk_substrate_peptide_intensities.csv"
+    )
+    ck_substrate_phosphorylation.write_substrate_peptides(
+        annotated_cohort_intensities_df, annotated_sites_mapping, substrate_file
+    )
+
+    scores = ck_substrate_phosphorylation.compute_substrate_phosphorylation_scores(
         annotated_cohort_intensities_df,
         annotated_sites_mapping,
     )
 
-    kinase_score_file = f"{results_folder}/topas_scores/rtk_substrate_phosphorylation_scores.csv"
+    kinase_score_file = (
+        f"{results_folder}/topas_scores/rtk_substrate_phosphorylation_scores.csv"
+    )
     ck_substrate_phosphorylation.save_scores_with_metadata_columns(
         scores, metadata_file, kinase_score_file
     )
