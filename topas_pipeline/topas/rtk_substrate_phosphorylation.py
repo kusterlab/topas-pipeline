@@ -51,7 +51,6 @@ def calculate_rtk_scores(
     scores = ck_substrate_phosphorylation.compute_kinase_scores(
         annotated_cohort_intensities_df,
         annotated_sites_mapping,
-        kinases=annotated_sites_mapping.unique(),
     )
 
     kinase_score_file = f"{results_folder}/topas_scores/rtk_substrate_phosphorylation_scores.csv"

@@ -623,12 +623,20 @@ def get_patient_annotated_sites(
 def compute_kinase_scores(
     pp_agg_df: pd.DataFrame,
     kinase_substrate_annotation_df: pd.Series,
-    kinases: list[str],
+    kinases: list[str] = None,
 ) -> pd.DataFrame:
+    kinase_substrate_annotation_df: pd.Series = (
+        kinase_substrate_annotation_df.str.split(";")
+    )
+    kinase_substrate_annotation_df = kinase_substrate_annotation_df.explode()
+    
+    if not kinases:
+        kinases = kinase_substrate_annotation_df.sort_values().unique()
+
     scores = []
     for k in kinases:
         substrate_peptides = kinase_substrate_annotation_df[
-            kinase_substrate_annotation_df.str.contains(k, regex=False)
+            kinase_substrate_annotation_df == k
         ].index.get_level_values("Modified sequence group")
         s = z_aggregate(
             pp_agg_df,
@@ -662,7 +670,7 @@ def z_aggregate(
     agg_f="mean",
     clip_output=(-np.inf, np.inf),
     clip_input=(-3, np.inf),
-):
+) -> pd.Series:
     # Select input
     vals = phospho.droplevel("Gene names").loc[lst]
 
