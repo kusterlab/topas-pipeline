@@ -231,6 +231,9 @@ def preprocess_pp(
     # convert to wide format, i.e. each column is a patient with its peptide abundances
     df = prep.convert_long_to_wide_format(df, has_metadata_cols=True)
 
+    # Mark proteins outside of dynamic range in batch (too low compared to max)
+    df = id_meta.mark_quant_out_of_range(df)
+
     # I think solution is to save columns of transfer as separate file and only take to use for reports
     # at least for now
     # test with not running simsi
@@ -243,33 +246,6 @@ def preprocess_pp(
             axis=1,
         )
     return df
-
-
-def filter_high_dr_evidence(evidence_df, df_new, ratio_threshold: float = 0.01):
-    """
-    Filter out evidence with a log ratio below the specified threshold.
-    
-    Parameters:
-    df (DataFrame): The input DataFrame containing evidence data.
-    logratio (int): The log ratio threshold for filtering.
-    
-    Returns:
-    DataFrame: Filtered DataFrame with high DR evidence.
-    """
-    pat_cols = [col for col in evidence_df.columns if col.startswith('Reporter intensity corrected')]
-
-    # compute row-wise max
-    row_max = evidence_df[pat_cols].max(axis=1)
-
-    # compute ratio
-    ratio_df = evidence_df[pat_cols].div(row_max, axis=0)
-
-    # mask values smaller than threshold (1/100)
-    small_mask = ratio_df < 0.01
-
-    df_new[pat_cols] = evidence_df[pat_cols].mask(small_mask)
-    
-    return df_new
 
 
 def preprocess_fp(
@@ -290,12 +266,6 @@ def preprocess_fp(
     """
     logger.info("Preprocess fp function")
 
-    # apply our filter 
-    logger.info(df.isna().sum().sum())
-    df_new = df.copy()
-    df = filter_high_dr_evidence(df, df_new)
-    logger.info(df.isna().sum().sum())
-
     # Apply picked protein group on gene level and filter at 1% FDR
     df = picked.picked_protein_grouping(
         df, results_folder, picked_fdr, fasta_file, fdr_num_threads
@@ -307,11 +277,17 @@ def preprocess_fp(
     # create columns to store metadata about the identifications, e.g. imputed, detected in batch, single peptide id
     df = id_meta.create_metadata_columns(df)
 
+    # Mark number of peptide identifications per sample
+    df = id_meta.mark_num_peptides(df)
+
+    # Mark proteins with peptide identifications out of range for that protein
+    df = id_meta.mark_peptide_id_out_of_range(df)
+
     # Mark proteins detected in the batch but not in the sample
     df = id_meta.mark_detected_in_batch(df)
 
-    # Mark number of peptide identifications per sample
-    df = id_meta.mark_num_peptides(df)
+    # Mark proteins with quant outside of dynamic range in batch (too low compared to max)
+    df = id_meta.mark_quant_out_of_range(df)
 
     # log10 transform intensities and turn missing values into nans
     df = prep.log_transform_intensities(df)
