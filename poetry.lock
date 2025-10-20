@@ -2301,13 +2301,13 @@ stats = ["scipy (>=1.7)", "statsmodels (>=0.12)"]
 
 [[package]]
 name = "simsi-transfer"
-version = "0.7.0"
+version = "0.8.0"
 description = "Software-assisted reduction of missing values in phosphoproteomics and proteomics isobaric labeling data using MS2 spectrum clustering"
 optional = false
 python-versions = "<4.0,>=3.8"
 files = [
-    {file = "simsi_transfer-0.7.0-py3-none-any.whl", hash = "sha256:46500f057d5278c947a3203ad1f5088497560473435f88ac08cd3624ed84c35f"},
-    {file = "simsi_transfer-0.7.0.tar.gz", hash = "sha256:fffdd479ec8f84e70068de48cbaba7dfc06df111db134cc735d3cb12a364e210"},
+    {file = "simsi_transfer-0.8.0-py3-none-any.whl", hash = "sha256:be54b8ef0218b22de57b2b90f3cb9d65f55d75eb34b47d12bec37003e8be0561"},
+    {file = "simsi_transfer-0.8.0.tar.gz", hash = "sha256:e87ef7592bc118df892b4ad16a5a1934a70166a0df16e7754593115325de5b6f"},
 ]
 
 [package.dependencies]
@@ -2315,7 +2315,7 @@ job-pool = ">=0.3.0"
 lxml = ">=4.8.0,<5.0.0"
 numpy = ">=1.18.1"
 pandas = ">=1.4.0"
-pyarrow = ">=16.0.0"
+pyarrow = "19.0.1"
 pyteomics = ">=4.5.3,<5.0.0"
 tqdm = ">=4.66.1,<5.0.0"
 
@@ -2657,4 +2657,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<3.11"
-content-hash = "47d4212794dcfb2e6301358b65c1b6a18b508f0ecbebc3cb2d198455d83e7226"
+content-hash = "2e4a875138130e746cd95e9a4fe9eca4793fc6087b5a2e726b7905fc2cebf63c"

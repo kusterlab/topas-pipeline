@@ -27,7 +27,9 @@ TOPAS_SCORE_COLUMNS = clinical_tools.TOPAS_SCORE_COLUMNS
 TOPAS_SUBSCORE_COLUMNS = clinical_tools.TOPAS_SUBSCORE_COLUMNS
 
 ANNOTATION_COLUMNS = dict()
+
 ANNOTATION_COLUMNS["pp"] = {
+    "Kinase_high_conf": "TOPAS annot",  # use Kinase_high_conf column instead of TOPAS_score (removed from dict below) for the "TOPAS annot" column
     **TOPAS_SCORE_COLUMNS,
     "Site positions identified (MQ)": "Site positions (MQ identified - PSP)",
     "Site positions": "Site positions (PSP)",
@@ -41,6 +43,8 @@ ANNOTATION_COLUMNS["pp"] = {
     "PSP_MS_LIT": "High throughput studies (PSP)",
     "PSP_MS_CST": "CST studies (PSP)",
 }
+ANNOTATION_COLUMNS["pp"].pop(TOPAS_SCORE_COLUMN)
+
 ANNOTATION_COLUMNS["fp"] = {
     **TOPAS_SCORE_COLUMNS,
 }
@@ -80,11 +84,14 @@ def create_report(
     sample_annotation_df = sa.load_sample_annotation(
         os.path.join(results_folder, "sample_annot_filtered.csv")
     )
+    remove_reference = True
+    if debug:
+        remove_reference = False
     sample_annotation_df = sa.filter_sample_annotation(
         sample_annotation_df,
         remove_qc_failed=False,
         remove_replicates=False,
-        remove_reference=True,
+        remove_reference=remove_reference,
     )
     sample_annotation_df["Batch Name"] = (
         sample_annotation_df["Cohort"]
@@ -165,7 +172,7 @@ def read_and_compute_scores(results_folder: Union[str, Path]) -> Tuple:
         ),
         "targets": topas.scoring.load_substrate_phosphorylation_num_targets(
             results_folder, add_total_targets_to_index=True
-        )
+        ),
     }
     protein_scores = {
         "scores": topas.scoring.load_protein_phosphorylation(results_folder)
@@ -211,7 +218,8 @@ def post_process_topas_columns(annot_df: pd.DataFrame) -> pd.DataFrame:
     for key in TOPAS_SUBSCORE_COLUMNS.keys():
         annot_df[key] = annot_df.apply(merge_topas_score_and_subscore_names, axis=1)
     for key in TOPAS_SCORE_COLUMNS.keys():
-        annot_df[key] = annot_df[key].apply(get_unique_topas_names)
+        if key in annot_df:
+            annot_df[key] = annot_df[key].apply(get_unique_topas_names)
     return annot_df
 
 
@@ -365,9 +373,13 @@ def create_patient_data(measure_dfs, patient: str):
 def get_annotation_dfs(measure_dfs) -> Dict[str, pd.DataFrame]:
     annotation_columns_patient = {}
     for data_type, dfs in measure_dfs.items():
-        annotation_columns_patient[data_type] = dfs["scores"][
-            ANNOTATION_COLUMNS[data_type].keys()
-        ].copy()
+        # skip annotation column if it is not FOUND in the dataframe
+        cols = [
+            c
+            for c in ANNOTATION_COLUMNS[data_type].keys()
+            if c in dfs["scores"].columns
+        ]
+        annotation_columns_patient[data_type] = dfs["scores"][cols].copy()
     return annotation_columns_patient
 
 
@@ -492,8 +504,11 @@ def create_fp_worksheet(
     :param fp_annotation_columns:
 
     """
-    annotations = fp[fp_annotation_columns.keys()]
-    annotations = annotations.reindex(fp_annotation_columns.keys(), axis=1)
+    existing_annotation_keys = [
+        c for c in fp_annotation_columns.keys() if c in fp.columns
+    ]
+    annotations = fp[existing_annotation_keys]
+    annotations = annotations.reindex(existing_annotation_keys, axis=1)
     annotations = annotations.rename(fp_annotation_columns, axis="columns")
 
     df = pd.concat([df, annotations], axis=1)
@@ -521,9 +536,12 @@ def create_pp_worksheet(
     writer: pd.ExcelWriter,
     pp_annotation_columns: Dict[str, str],
 ) -> None:
-    annotations = pp[pp_annotation_columns.keys()]
+    existing_annotation_keys = [
+        c for c in pp_annotation_columns.keys() if c in pp.columns
+    ]
+    annotations = pp[existing_annotation_keys]
     annotations = annotations.reindex(
-        pp_annotation_columns.keys(), axis=1
+        existing_annotation_keys, axis=1
     )  # force correct column order
     annotations = annotations.rename(pp_annotation_columns, axis="columns")
 

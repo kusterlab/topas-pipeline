@@ -6,7 +6,7 @@ import logging
 
 import pandas as pd
 from pathlib import Path
-from typing import Union
+from typing import Union, Optional
 
 from .. import metrics
 from .. import utils
@@ -128,9 +128,13 @@ def get_topas_subscore_calculator(
     protein_phosphorylation_df: pd.DataFrame,
     kinase_scores_df: pd.DataFrame,
 ):
-    def calculate_topas_subscore(
-        topas_subscore_annotation_df: pd.DataFrame, is_ligand: bool
-    ):
+    def calculate_topas_subscore(topas_subscore_annotation_df: pd.DataFrame):
+        """Compute the TOPAS subscores using different rules and input data matrices.
+
+        We cap the expression and protein phosphorylation between -4 and +4 to balance
+        out the effect of gene amplifications. The substrate phosphorylation (=kinase
+        score) is not capped because they are reliable indicators of aberrant RTK signaling.
+        """
         scoring_rule = topas_subscore_annotation_df["Scoring rule"].iloc[0].lower()
         if scoring_rule == "highest z-score":
             topas_subscore = get_weighted_max(
@@ -138,7 +142,6 @@ def get_topas_subscore_calculator(
                 topas_subscore_annotation_df,
                 "Gene names",
                 "Gene names",
-                is_ligand,
             )
         elif scoring_rule == "highest z-score (p-site)":
             topas_subscore = get_weighted_max(
@@ -146,7 +149,6 @@ def get_topas_subscore_calculator(
                 topas_subscore_annotation_df,
                 "Modified sequence",
                 "Modified sequence",
-                is_ligand,
             )
         elif (
             scoring_rule
@@ -157,7 +159,6 @@ def get_topas_subscore_calculator(
                 topas_subscore_annotation_df,
                 "Gene names",
                 "Gene names",
-                is_ligand,
             )
         elif scoring_rule == "highest kinase score (2nd level z-score, fh)":
             topas_subscore = get_weighted_max(
@@ -165,7 +166,8 @@ def get_topas_subscore_calculator(
                 topas_subscore_annotation_df,
                 "PSP Kinases",
                 "Gene names",
-                is_ligand,
+                clip_lower=None,
+                clip_upper=None,
             )
         elif scoring_rule == "summed z-score":
             topas_subscore = get_summed_zscore(
@@ -173,7 +175,6 @@ def get_topas_subscore_calculator(
                 topas_subscore_annotation_df,
                 "Gene names",
                 "Gene names",
-                is_ligand,
             )
         else:
             raise ValueError(f"Unknown scoring rule {scoring_rule}")
@@ -188,18 +189,14 @@ def get_weighted_max(
     topas_subscore_df: pd.DataFrame,
     z_score_index_col: str,
     topas_subscore_index_col: str,
-    ligand: bool,
+    clip_lower: Optional[int] = -4,
+    clip_upper: Optional[int] = 4,
 ) -> pd.Series:
 
     z_scores = get_weighted_z_scores(
         z_score_df, topas_subscore_df, z_score_index_col, topas_subscore_index_col
     )
-
-    # cap the z-scores between -4 and +4 unless ligand
-    if ligand:
-        z_scores = z_scores.clip(lower=0, upper=4)
-    else:
-        z_scores = z_scores.clip(lower=-4, upper=4)
+    z_scores = z_scores.clip(lower=clip_lower, upper=clip_upper)
 
     # take the maximum score per column (=sample)
     return z_scores.max()
@@ -210,17 +207,14 @@ def get_summed_zscore(
     topas_subscore_df: pd.DataFrame,
     z_score_index_col: str,
     topas_subscore_index_col: str,
-    ligand: bool,
+    clip_lower: Optional[int] = -4,
+    clip_upper: Optional[int] = 4,
 ) -> pd.Series:
 
     z_scores = get_weighted_z_scores(
         z_score_df, topas_subscore_df, z_score_index_col, topas_subscore_index_col
     )
-    # cap the z-scores between -4 and +4 unless ligand
-    if ligand:
-        z_scores = z_scores.clip(lower=0, upper=4)
-    else:
-        z_scores = z_scores.clip(lower=-4, upper=4)
+    z_scores = z_scores.clip(lower=clip_lower, upper=clip_upper)
 
     # calculate the summed score per column (=sample)
     return z_scores.sum()

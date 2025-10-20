@@ -23,6 +23,7 @@ TOPAS_SCORE_COLUMN = "TOPAS_score"
 TOPAS_SCORE_COLUMNS = {
     TOPAS_SCORE_COLUMN: "TOPAS annot",
     "POI_category": "POI category",
+    "POI_category_protein": "POI category (protein level)",
 }
 TOPAS_SUBSCORE_COLUMN = "TOPAS_subscore"
 TOPAS_SUBSCORE_COLUMNS = {
@@ -67,6 +68,7 @@ def add_phospho_annotations(
         pspInput=True,
         returnAllPotentialSites=False,
     )
+
     df = pa.addPSPKinaseSubstrateAnnotations(
         df, clinic_proc_config.pspKinaseSubstrateFile, gene_name=True
     )
@@ -90,6 +92,28 @@ def add_phospho_annotations(
     return df
 
 
+def get_extra_kinase_annot_df(path):
+    extra_kinase_annot_df = pd.read_excel(path)
+    extra_kinase_annot_df = extra_kinase_annot_df.rename(columns={'Gene name': 'Gene names', 'Site': 'Site positions', 'Modified_sequence': 'Modified sequence'})
+    return extra_kinase_annot_df
+
+
+def get_df_fill_in_missing_modified_sequence(df):
+    df['Site positions'] = df['Site positions'].str.split(';')
+    df = df.explode('Site positions').reset_index()
+    df['Site positions'] = df['Site positions'].str.split('_').str[1]
+    return df
+
+
+def get_sites_to_get_peptides_for(extra_kinase_annot_df):
+    # we need to get the peptides with these sites on
+    sites_to_get_peptides_for = extra_kinase_annot_df.loc[
+        extra_kinase_annot_df["Modified sequence"].isna(),
+        ['Gene names', 'Site positions']
+    ]
+    return sites_to_get_peptides_for
+
+
 def add_extra_kinase_annotations(
     df: pd.DataFrame, extra_kinase_annot: str
 ) -> pd.DataFrame:
@@ -101,7 +125,51 @@ def add_extra_kinase_annotations(
     """
     logger.info("Extra kinase annotation")
 
-    extra_kinase_annot_df = pd.read_excel(extra_kinase_annot)
+    extra_kinase_annot_df = get_extra_kinase_annot_df(extra_kinase_annot)
+
+    # get the sites we need to get peptides for
+    sites_to_get_peptides_for = get_sites_to_get_peptides_for(extra_kinase_annot_df)
+
+    # Prepare df by splitting 'Site positions' into lists
+    df_exploded = get_df_fill_in_missing_modified_sequence(df)
+
+    # subset to df to get the annot for (psite only given)
+    df_to_fill = extra_kinase_annot_df[
+        extra_kinase_annot_df['Modified sequence'].isna() &
+        extra_kinase_annot_df['Gene names'].notna() &
+        extra_kinase_annot_df['Site positions'].notna()
+    ].copy()
+
+    # loop over df_to_fill and fill in Modified sequence using the lookup
+    for index, row in df_to_fill.iterrows():
+        gene = row['Gene names']
+        site = str(row['Site positions'])
+        matches = df_exploded[
+            (df_exploded['Gene names'].str.contains(gene)) &
+            (df_exploded['Site positions'] == site)
+        ]
+        if not matches.empty:
+            # If there are multiple matches, join them with ';'
+            modified_sequences = ";".join(matches['Modified sequence'].unique())
+            df_to_fill.at[index, 'Modified sequence'] = modified_sequences
+            print(f"Filled Modified sequence for {gene} at site {site}: {modified_sequences}")
+        else:
+            print(f"No match found for {gene} at site {site}")
+
+    df_to_fill = df_to_fill.assign(
+        **{"Modified sequence": df_to_fill["Modified sequence"].str.split(";")}
+    ).explode("Modified sequence")
+    
+    # and then we can merge back to extra_kinase_annot_df
+    extra_kinase_annot_df = pd.concat([extra_kinase_annot_df[extra_kinase_annot_df['Modified sequence'].notna()], df_to_fill], ignore_index=True)
+
+    # drop if any complete duplicate rows
+    key_cols = ["Gene names", "Site positions", "Modified sequence"]
+    extra_kinase_annot_df = (
+        extra_kinase_annot_df
+        .drop_duplicates(subset=key_cols)
+        .reset_index(drop=True)
+    )
 
     kinase_map = (
         extra_kinase_annot_df
@@ -173,30 +241,61 @@ def add_topas_annotations(
     df = df.replace(r"^\s*$", np.nan, regex=True)
     topas_annotation_df = topas_annotation.read_topas_annotations(annot_file)
 
-    if "fp" in data_type:
-        gene_df = df.index.to_frame()
-    elif "pp" in data_type:
-        gene_df = df[["Gene names"]].fillna("")
-
     if "POI" in annot_type:
-        annot_dict = create_identifier_to_topas_dict(topas_annotation_df, "POI")
-        df[annot_type] = gene_df.apply(
-            map_identifier_list_to_annot_types,
-            annot_dict=annot_dict,
-            annot_type=annot_type,
-            with_weights=False,
-            axis=1,
-        )
-    else:
-        annot_dict = create_identifier_to_topas_dict(topas_annotation_df, data_type)
-        df[[annot_type, f"{annot_type}_weights"]] = gene_df.apply(
-            map_identifier_list_to_annot_types,
-            annot_dict=annot_dict,
-            annot_type=annot_type,
-            with_weights=True,
-            axis=1,
-            result_type="expand",
-        )
+        if data_type == 'pp':
+            
+            if annot_type == 'POI_category_protein':
+                gene_df = df[['Gene names']].fillna("")
+                gene_df = gene_df['Gene names']
+                annot_dict = create_identifier_to_topas_dict(topas_annotation_df, "POI", identifier_type="Gene names")
+            else:
+                gene_df = df.index.to_series()
+                annot_dict = create_identifier_to_topas_dict(topas_annotation_df, "POI", identifier_type="Modified sequence")
+
+            df[annot_type] = gene_df.apply(
+                map_identifier_list_to_annot_types,
+                annot_dict=annot_dict,
+                annot_type=annot_type,
+                with_weights=False,
+            )
+        else:
+            if annot_type != 'POI_category_protein':
+                gene_df = df.index.to_series()
+                annot_dict = create_identifier_to_topas_dict(topas_annotation_df, "POI", identifier_type="Gene names")
+                df[annot_type] = gene_df.apply(
+                    map_identifier_list_to_annot_types,
+                    annot_dict=annot_dict,
+                    annot_type=annot_type,
+                    with_weights=False,
+                )
+
+    if 'TOPAS' in annot_type:
+        identifier_type = "Gene names"
+
+        # Do we need to subset to expression because it's expression we annotate here? 
+        topas_expression = topas_annotation_df[topas_annotation_df['level'] == 'expression']
+        annot_dict = create_identifier_to_topas_dict(topas_annotation_df, data_type, identifier_type=identifier_type)
+        
+        if data_type == 'pp':
+            gene_df = df[['Gene names']].fillna("") 
+
+            # we give it another annot_type name to reach an POI if statement in the function
+            # This makes us get the TOPAS_subscore category instead of TOPAS_score which is just 'other'
+            df[annot_type] = gene_df['Gene names'].apply(
+                map_identifier_list_to_annot_types,
+                annot_dict=annot_dict,
+                annot_type='TOPAS_POI',
+                with_weights=False,
+            )
+        else:
+            annot_dict = create_identifier_to_topas_dict(topas_expression, data_type, identifier_type=identifier_type)
+            gene_df = df.index.to_series()        
+            df[annot_type] = gene_df.apply(
+                map_identifier_list_to_annot_types,
+                annot_dict=annot_dict,
+                annot_type=annot_type,
+                with_weights=False,
+            )
 
     return df
 
@@ -214,49 +313,28 @@ def map_identifier_list_to_annot_types(
     """
     # TODO: Create unit tests and refactor this function!
     annotations = []
-    for identifier in identifier_list.iloc[0].split(";"):
+    if isinstance(identifier_list, pd.Series):
+        if ';' in identifier_list.iloc[0]:
+            identifier_list = identifier_list.iloc[0].split(";")
+    else:
+        identifier_list = [identifier_list]
+
+    for identifier in identifier_list:
         if identifier not in annot_dict:
             continue
 
+        # For Proteins of Interest (POI), the annotation term is in the 
+        # TOPAS_subscore column instead of the TOPAS_score column
         annot_type_in_column = TOPAS_SCORE_COLUMN
         if "POI" in annot_type:
             annot_type_in_column = TOPAS_SUBSCORE_COLUMN
 
         groups = annot_dict[identifier]["group"].split(";")
         annot_group = annot_dict[identifier][annot_type_in_column].split(";")
-        annot_weight = annot_dict[identifier]["weight"].split(";")
 
         for i, group in enumerate(groups):
-            # for POI only add to dict when group is OTHER
-            if group == "OTHER" and "POI" in annot_type:
-                annotations.append(annot_group[i])
-
-            # for TOPAS score annotations only add to dict when group is not OTHER
-            elif group != "OTHER" and "POI" not in annot_type:
-                if with_weights:
-                    annotations.append([annot_group[i], annot_weight[i]])
-                else:
-                    annotations.append(annot_group[i])
-
-    if "POI" in annot_type:
-        return ";".join(annotations)
-    else:
-        # TODO: use a function please
-        if with_weights:
-            if len(annotations) > 1:
-                group_names, weights = zip(*annotations)
-                # take set of group names and join them with ;
-                group_names = ";".join(sorted(set(group_names)))
-                # take set of weights and join them with ;
-                weights = ";".join(weights)
-                annotations = [group_names, weights]
-            else:
-                annotations = annotations[0] if annotations else [""]
-        else:
-            if len(annotations) > 0:
-                annotations = ";".join(annotations)
-
-        return pd.Series(annotations, dtype="object")
+            annotations.append(annot_group[i])
+    return ";".join(annotations)
 
 
 def create_identifier_to_topas_dict(
@@ -274,16 +352,25 @@ def create_identifier_to_topas_dict(
     Returns:
         Dict[str, str]: _description_
     """
-    if "fp" in data_type or "pp" in data_type:
+
+    if "fp" in data_type:
+
         topas_annotation_df = topas_annotation_df[
             (topas_annotation_df["group"] != "OTHER")
             & (topas_annotation_df["level"].isin(VALID_TOPAS_LEVELS[data_type]))
+        ]
+    elif "pp" in data_type:
+        # adjust above because we want to use == Other but subset to name TOPAS in the sub?
+        topas_annotation_df = topas_annotation_df[
+            (topas_annotation_df["group"] == "OTHER") 
+            & (topas_annotation_df["TOPAS_subscore"].str.contains("paper"))  
         ]
     else:  # other proteins of interest (POI)
         topas_annotation_df = topas_annotation_df[
             topas_annotation_df["group"] == "OTHER"
         ]
 
+    topas_annotation_df = topas_annotation_df.dropna(subset=[identifier_type])
     topas_annotation_df = topas_annotation_df.groupby([identifier_type]).agg(
         lambda x: ";".join(sorted(map(str, x)))
     )

@@ -91,9 +91,7 @@ def compute_topas_scores(
             topas_subscore_name,
             topas_subscore_annotation_df,
         ) in topas_score_annotation_df.groupby("TOPAS_subscore_level"):
-            topas_subscore = calculate_topas_subscore(
-                topas_subscore_annotation_df, is_ligand="Ligand" in topas_subscore_name
-            )
+            topas_subscore = calculate_topas_subscore(topas_subscore_annotation_df)
             topas_subscores[f"{topas_name} - {topas_subscore_name}"] = topas_subscore
 
         topas_subscores_df = pd.DataFrame.from_dict(topas_subscores)
@@ -147,7 +145,7 @@ def compute_topas_scores(
             results_folder, topas_results_folder, "basket_scores_4th_gen_zscored.tsv"
         ),
     )
-    
+
     # TODO: can we do without the metadata file, since we only use code_oncotree
     if os.path.isfile(metadata_file):
         metadata_df = sample_metadata.load(metadata_file)

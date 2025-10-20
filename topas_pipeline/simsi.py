@@ -71,7 +71,7 @@ def run_simsi(*args, **kwargs) -> None:
 
     data_types = kwargs.pop("data_types")
     processingPool = JobPool(
-        processes=2, timeout=108000, write_progress_to_logger=True
+        processes=2, timeout=130000, write_progress_to_logger=True
     )  # 108,000 seconds = 30 hours
     for data_type in data_types:
         kwargs_with_data_type = kwargs.copy()
@@ -130,41 +130,6 @@ def run_simsi_data_type(
         )
         logger.info("Skipping SIMSI processing.")
         return
-
-    # TODO: clean this up!
-    # now that we know we have to run simsi we can do this (is quite slow though)
-    for folder in meta_input_df["mq_txt_folder"]:
-        matches = re.findall(r"Batch([A-Za-z]*\d+)", folder)
-
-        if matches[0].isdigit():
-            if int(matches[0]) < 230:
-                continue
-        else:
-            if "CL" not in matches[0] and "PDX" not in matches[0]:
-                continue
-
-        # check if any missingness in Min scan number or Max scan number - if so fix file
-        if not os.path.isfile(folder + "/allPeptides.txt"):
-            continue
-
-        allpep = pd.read_csv(folder + "/allPeptides.txt", sep="\t")
-        if (
-            allpep["Min scan number"].isna().any()
-            or allpep["Max scan number"].isna().any()
-        ):
-
-            msms = pd.read_csv(folder + "/msms.txt", sep="\t")
-            msms_max_scans = msms.groupby("Raw file")[
-                "Precursor full scan number"
-            ].max()
-
-            allpep.loc[allpep["Max scan number"].isna(), "Max scan number"] = (
-                allpep.loc[allpep["Max scan number"].isna(), "Raw file"].map(
-                    msms_max_scans
-                )
-            )
-            allpep.loc[allpep["Min scan number"].isna(), "Min scan number"] = 1
-            allpep.to_csv(folder + "/allPeptides.txt", sep="\t", index=False)
 
     run_simsi_single(
         meta_input_file,

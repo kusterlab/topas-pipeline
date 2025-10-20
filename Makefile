@@ -72,3 +72,7 @@ pull:
 jump:
 	$(DOCKER_CMD) \
 		$(IMAGE) bash
+
+bootstrap: DATA=/root/data
+bootstrap:
+	bash -c "cp /root/topas-pipeline/Makefile* $(LOCAL_DIR)"

@@ -52,32 +52,13 @@ def compute_metrics(
         )
 
         if debug:
-            measures = get_metrics(annot_df.filter(regex=r"(^pat_)|(^ref_)"))
+            measures = get_metrics(annot_df.filter(regex=r"(^pat_)|(^ref_)"), debug)
             save_measures(
                 results_folder,
                 MEASURE_NAMES,
                 measures,
-                data_type + "_with_ref",
+                data_type + "_with_ref"
             )
-
-
-def add_topas_annotations(
-    measure_df: pd.DataFrame, annot_df: pd.DataFrame
-) -> pd.DataFrame:
-    topas_score_col = clinical_tools.TOPAS_SCORE_COLUMN
-    topas_subscore_col = clinical_tools.TOPAS_SUBSCORE_COLUMN
-    measure_df = measure_df.join(
-        annot_df.loc[
-            :,
-            [
-                topas_score_col,
-                f"{topas_score_col}_weights",
-                topas_subscore_col,
-                f"{topas_subscore_col}_weights",
-            ],
-        ]
-    )
-    return measure_df
 
 
 class Metrics:
@@ -218,12 +199,13 @@ def _loo_std(input_matrix: np.array) -> np.array:
     )  # uses ddof = 1 because that is the pandas default
 
 
-def get_metrics(df: pd.DataFrame) -> Dict[str, pd.DataFrame]:
+def get_metrics(df: pd.DataFrame, debug: bool = False) -> Dict[str, pd.DataFrame]:
     """
     describe
     """
     logger.info("Calculating metrics")
-    df = utils.keep_only_sample_columns(df)
+    if not debug:
+        df = utils.keep_only_sample_columns(df)
 
     # Get metrics
     m = Metrics(df)
@@ -278,17 +260,6 @@ def read_measures(
         logger.info(f"Reading in {filename}")
         measures[measure] = pd.read_csv(filename, sep="\t", index_col=index_col)
     return measures
-
-
-def get_topas_annotation_columns() -> List[str]:
-    topas_score_col = list(clinical_tools.TOPAS_SCORE_COLUMNS.keys())[0]
-    topas_subscore_col = list(clinical_tools.TOPAS_SUBSCORE_COLUMNS.keys())[0]
-    return [
-        topas_score_col,
-        f"{topas_score_col}_weights",
-        topas_subscore_col,
-        f"{topas_subscore_col}_weights",
-    ]
 
 
 def save_measures(

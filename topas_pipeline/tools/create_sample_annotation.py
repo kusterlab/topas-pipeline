@@ -7,7 +7,7 @@ Reference channels are added for each batch as TMT channel 10 and 11.
 
 Usage:
     
-    python tools/create_sample_annotation.py Metadata_file.xlsx
+    python tools/create_sample_annotation.py Metadata_file.xlsx output_folder
 
 """
 
@@ -20,6 +20,7 @@ import pandas as pd
 
 def main(argv):
     metadata_file = argv[0]
+    output_folder = argv[1]
     metadata = pd.read_excel(metadata_file, engine='openpyxl')
     metadata = metadata[metadata['QC'] != 'exclude']
     metadata = metadata.rename(columns={'Batch_No': 'Batch Name', 'TMT_Channel': 'TMT Channel'})
@@ -57,7 +58,7 @@ def main(argv):
 
     metadata['Cohort'] = metadata.apply(update_cohort, axis=1)
     today = datetime.datetime.today().date()
-    metadata.to_csv(f'sample_annotation_{today}.csv', index=False)
+    metadata.to_csv(f'{output_folder}/sample_annotation_{today}.csv', index=False)
 
 
 if __name__ == '__main__':
