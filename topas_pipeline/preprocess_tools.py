@@ -345,12 +345,6 @@ def load_and_normalize(
     save_debug_df(df, "_complete_raw")
     save_qc_info(df, sample_annotation_df, results_folder, data_type)
 
-    # apply high dynamic range filter 
-    logger.info(df.isna().sum().sum())
-    df_new = df.copy()
-    df = filter_high_dr_evidence(df, df_new)
-    logger.info(df.isna().sum().sum())
-
     # MS2/MS3 intensity median centering within each batch
     df, correction_factors = data_loader.median_centering_within_batch(df)
     save_debug_df(df, "_after_1st_median")
