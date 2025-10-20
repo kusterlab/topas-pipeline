@@ -231,6 +231,9 @@ def preprocess_pp(
     # convert to wide format, i.e. each column is a patient with its peptide abundances
     df = prep.convert_long_to_wide_format(df, has_metadata_cols=True)
 
+    # Mark proteins outside of dynamic range in batch (too low compared to max)
+    df = id_meta.mark_quant_out_of_range(df)
+
     # I think solution is to save columns of transfer as separate file and only take to use for reports
     # at least for now
     # test with not running simsi
@@ -274,11 +277,17 @@ def preprocess_fp(
     # create columns to store metadata about the identifications, e.g. imputed, detected in batch, single peptide id
     df = id_meta.create_metadata_columns(df)
 
+    # Mark number of peptide identifications per sample
+    df = id_meta.mark_num_peptides(df)
+
+    # Mark proteins with peptide identifications out of range for that protein
+    df = id_meta.mark_peptide_id_out_of_range(df)
+
     # Mark proteins detected in the batch but not in the sample
     df = id_meta.mark_detected_in_batch(df)
 
-    # Mark number of peptide identifications per sample
-    df = id_meta.mark_num_peptides(df)
+    # Mark proteins with quant outside of dynamic range in batch (too low compared to max)
+    df = id_meta.mark_quant_out_of_range(df)
 
     # log10 transform intensities and turn missing values into nans
     df = prep.log_transform_intensities(df)

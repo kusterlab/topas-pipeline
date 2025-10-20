@@ -375,6 +375,33 @@ def load_and_normalize(
     return df
 
 
+def filter_high_dr_evidence(evidence_df, df_new, ratio_threshold: float = 0.01):
+    """
+    Filter out evidence with a log ratio below the specified threshold.
+    
+    Parameters:
+    df (DataFrame): The input DataFrame containing evidence data.
+    logratio (int): The log ratio threshold for filtering.
+    
+    Returns:
+    DataFrame: Filtered DataFrame with high DR evidence.
+    """
+    pat_cols = [col for col in evidence_df.columns if col.startswith('Reporter intensity corrected')]
+
+    # compute row-wise max
+    row_max = evidence_df[pat_cols].max(axis=1)
+
+    # compute ratio
+    ratio_df = evidence_df[pat_cols].div(row_max, axis=0)
+
+    # mask values smaller than threshold (1/100)
+    small_mask = ratio_df < 0.01
+
+    df_new[pat_cols] = evidence_df[pat_cols].mask(small_mask)
+    
+    return df_new
+
+
 def get_save_debug_df_function(
     debug: bool, results_folder: str, data_type: str
 ) -> Callable[[pd.DataFrame, str], None]:
