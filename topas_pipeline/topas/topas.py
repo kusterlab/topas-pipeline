@@ -9,6 +9,8 @@ import pandas as pd
 from .. import metrics, sample_metadata
 from . import annotation as topas_annotation
 from . import scoring
+from . import protein_phosphorylation
+from . import rtk_substrate_phosphorylation as rtk_scoring
 
 # hacky way to get the package logger instead of just __main__ when running as a module
 logger = logging.getLogger(__package__ + "." + __file__)
@@ -46,7 +48,7 @@ def compute_topas_scores(
     results_folder: Union[str, Path],
     metadata_file: Union[str, Path],
     topas_annotation_file: Union[str, Path],
-    topas_results_folder: str = "",
+    topas_results_folder: str = "topas_scores",
 ) -> None:
     """
     Computes TOPAS subscores and TOPAS scores
@@ -57,7 +59,7 @@ def compute_topas_scores(
     """
     logger.info("Running TOPAS scoring module")
     if os.path.exists(
-        os.path.join(results_folder, topas_results_folder, "basket_scores_4th_gen.tsv")
+        os.path.join(results_folder, topas_results_folder, "topas_rtk_scores.tsv")
     ):
         logger.info(f"TOPAS scoring skipped - found files already preprocessed")
         return
@@ -66,11 +68,11 @@ def compute_topas_scores(
     topas_annotation_df = topas_annotation_df[topas_annotation_df["group"] != "OTHER"]
 
     z_scores_fp_df = scoring.load_z_scores_fp(results_folder)
-    z_scores_pp_df = scoring.load_z_scores_pp(results_folder)
-    protein_phosphorylation_df = scoring.load_protein_phosphorylation(
+    z_scores_pp_df = None # scoring.load_z_scores_pp(results_folder) # no longer used
+    protein_phosphorylation_df = protein_phosphorylation.load_protein_phosphorylation(
         results_folder, remove_multi_gene_groups=True
     )
-    kinase_scores_df = scoring.load_substrate_phosphorylation(results_folder)
+    kinase_scores_df = rtk_scoring.load_substrate_phosphorylation(results_folder)
 
     # remove phosphoprotein groups which are a result of shared peptides
     protein_phosphorylation_df = protein_phosphorylation_df.loc[
@@ -129,7 +131,7 @@ def compute_topas_scores(
     topas_scores_df = pd.DataFrame.from_dict(topas_scores_dict)
     save_topas_scores(
         topas_scores_df,
-        os.path.join(results_folder, topas_results_folder, "basket_scores_4th_gen.tsv"),
+        os.path.join(results_folder, topas_results_folder, "topas_rtk_scores.tsv"),
     )
 
     topas_scores_df = topas_scores_df.drop(
@@ -142,7 +144,7 @@ def compute_topas_scores(
     save_topas_scores(
         zscores,
         os.path.join(
-            results_folder, topas_results_folder, "basket_scores_4th_gen_zscored.tsv"
+            results_folder, topas_results_folder, "topas_rtk_scores_zscored.tsv"
         ),
     )
 
@@ -150,7 +152,7 @@ def compute_topas_scores(
     if os.path.isfile(metadata_file):
         metadata_df = sample_metadata.load(metadata_file)
         save_rtk_scores_w_metadata(
-            zscores, metadata_df, os.path.join(results_folder, "rtk_landscape.tsv")
+            zscores, metadata_df, os.path.join(results_folder, "topas_scores", "rtk_landscape.tsv")
         )
 
 
