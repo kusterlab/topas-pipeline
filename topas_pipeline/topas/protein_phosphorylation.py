@@ -8,10 +8,59 @@ import numpy as np
 import pandas as pd
 
 from .. import config
+from .. import utils
 from . import scoring
+from topas_pipeline import phospho_grouping
+from topas_pipeline import bridge_normalization
+from . import rtk_substrate_phosphorylation as rtk_scoring
+from . import ck_substrate_phosphorylation as ck_scoring
 
 # hacky way to get the package logger instead of just __main__ when running as a module
 logger = logging.getLogger(__package__ + "." + Path(__file__).stem)
+
+
+def protein_phospho_scoring_peptidoforms(
+    results_folder: str, sample_annotation_file: str, metadata_file: str
+):
+    logger.info("Running protein phosphorylation scoring module")
+
+    if os.path.exists(
+        os.path.join(
+            results_folder, "topas_scores", "protein_phosphorylation_scores.tsv"
+        )
+    ):
+        logger.info(
+            f"Protein phosphorylation scoring skipped - found files already processed"
+        )
+        return
+
+    cohort_intensities_df = phospho_grouping.read_cohort_intensities_df(
+        results_folder, sample_annotation_file
+    )
+
+    cohort_batch_corrected_df = bridge_normalization.read_cohort_batch_corrected_df(
+        results_folder
+    )
+
+    cohort_intensities_df = rtk_scoring.update_with_batch_corrected_intensities(
+        cohort_intensities_df, cohort_batch_corrected_df
+    )
+
+    annotation_df = cohort_intensities_df.index.to_frame().rename(
+        columns={"Gene names": "Phosphoprotein"}
+    )["Phosphoprotein"]
+    protein_phosphorylation_score_df = (
+        ck_scoring.compute_substrate_phosphorylation_scores(
+            cohort_intensities_df, annotation_df, explode=False
+        )
+    )
+
+    protein_phosphorylation_file = (
+        f"{results_folder}/topas_scores/protein_phosphorylation_scores.csv"
+    )
+    ck_scoring.save_scores_with_metadata_columns(
+        protein_phosphorylation_score_df, metadata_file, protein_phosphorylation_file
+    )
 
 
 def protein_phospho_scoring(results_folder, preprocessed_protein_df):
@@ -71,6 +120,32 @@ def protein_phospho_scoring(results_folder, preprocessed_protein_df):
     )
 
 
+@utils.validate_file_access
+def load_protein_phosphorylation(
+    results_folder,
+    protein_results_folder: str = "topas_scores",
+    remove_multi_gene_groups: bool = False,
+):
+    protein_scores_file = os.path.join(
+        results_folder, protein_results_folder, "protein_phosphorylation_scores.csv"
+    )
+    protein_phosphorylation_df = pd.read_csv(
+        protein_scores_file,
+        index_col=0,
+    )
+
+    protein_phosphorylation_df = protein_phosphorylation_df.drop(columns=ck_scoring.META_COLS)
+    protein_phosphorylation_df = protein_phosphorylation_df.T
+    protein_phosphorylation_df.index.name = "Gene names"
+
+    if remove_multi_gene_groups:
+        # remove phosphoprotein groups which are a result of shared peptides
+        protein_phosphorylation_df = protein_phosphorylation_df.loc[
+            ~protein_phosphorylation_df.index.str.contains(";")
+        ]
+    return protein_phosphorylation_df
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
@@ -78,5 +153,9 @@ if __name__ == "__main__":
     args = parser.parse_args(sys.argv[1:])
     configs = config.load(args.config)
 
-    preprocessed_df = scoring.topas_score_preprocess(configs.results_folder)
-    protein_phospho_scoring(configs.results_folder, preprocessed_df)
+    # preprocessed_df = scoring.topas_score_preprocess(configs.results_folder)
+    # protein_phospho_scoring(configs.results_folder, preprocessed_df)
+
+    protein_phospho_scoring_peptidoforms(
+        configs.results_folder, configs.sample_annotation, configs.metadata_annotation
+    )

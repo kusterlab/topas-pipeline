@@ -11,6 +11,9 @@ from tqdm import tqdm
 
 tqdm.pandas()
 
+from . import sample_annotation
+from . import preprocess_tools as prep
+
 # hacky way to get the package logger instead of just __main__ when running as a module
 logger = logging.getLogger(__package__ + "." + Path(__file__).stem)
 
@@ -80,10 +83,9 @@ def read_preprocessed_pp2(results_folder: str) -> pd.DataFrame:
         for c in headers.filter(like="Reporter intensity corrected").columns
     }
 
-    pp_df = pd.read_csv(
-        f"{results_folder}/preprocessed_pp2.csv", dtype=dtype_dict
-    )
+    pp_df = pd.read_csv(f"{results_folder}/preprocessed_pp2.csv", dtype=dtype_dict)
     return pp_df
+
 
 def aggregate_imputations(x):
     annotations = set(x[:-1].split(";"))
@@ -99,6 +101,47 @@ def aggregate_imputations(x):
         return "partially imputed;"
 
     return ";".join(map(str, list(annotations))) + ";"
+
+
+def read_cohort_intensities_df(
+    results_folder: str,
+    sample_annotation_file: str = None,
+    skiprows: pd.Series = None,
+):
+    logger.info("Reading preprocessed_pp2_agg.csv")
+    header = pd.read_csv(
+        f"{results_folder}/preprocessed_pp2_agg.csv", index_col=0, nrows=1
+    )
+    intensity_cols = header.filter(like="Reporter intensity corrected").columns.tolist()
+    index_cols = ["Modified sequence group", "Gene names"]
+
+    dtype_dict = collections.defaultdict(lambda: "str")
+    dtype_dict |= {c: "float64" for c in intensity_cols}
+
+    intensities_df = pd.read_csv(
+        f"{results_folder}/preprocessed_pp2_agg.csv",
+        skiprows=skiprows,
+        usecols=intensity_cols + index_cols,
+        dtype=dtype_dict,
+    )
+    intensities_df = intensities_df.set_index(index_cols)
+
+    if sample_annotation_file:
+        sample_annotation_df = pd.read_csv(sample_annotation_file)
+        channel_to_sample_id_dict = sample_annotation.get_channel_to_sample_id_dict(
+            sample_annotation_df,
+            remove_qc_failed=True,
+            remove_replicates=False,
+        )
+
+        intensities_df = prep.rename_columns_with_sample_ids(
+            intensities_df.reset_index(),
+            channel_to_sample_id_dict,
+            index_cols=index_cols,
+        )
+        intensities_df = intensities_df.set_index(index_cols)
+
+    return intensities_df
 
 
 """

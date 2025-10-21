@@ -7,8 +7,11 @@ from pathlib import Path
 
 import pandas as pd
 import numpy as np
+from tqdm import tqdm
 
 import psite_annotation as pa
+
+tqdm.pandas()
 
 # hacky way to get the package logger instead of just __main__ when running as a module
 logger = logging.getLogger(__package__ + "." + Path(__file__).stem)
@@ -390,6 +393,14 @@ VALIDATED_KINASES = [
     # "EPHAs",
 ]
 
+META_COLS = [
+    "Patient_Identifier",
+    "Program",
+    "code_oncotree",
+    "breadcrumb_oncotree",
+    "tissue_topology",
+]
+
 
 def calculate_cytoplasmic_kinase_scores(
     results_folder: str,
@@ -408,7 +419,9 @@ def calculate_cytoplasmic_kinase_scores(
 
     logger.info("Aggregate modified sequence groups in patient data")
     phospho = load_phospho_data(results_folder, file_suffix)
-    pp_agg_df = aggregate_patient_modified_sequence_groups(phospho, peptidoform_groups)
+    pp_intensities_df = aggregate_patient_modified_sequence_groups(
+        phospho, peptidoform_groups
+    )
 
     logger.info("Aggregate modified sequence groups in decryptM data")
     automated_sites = load_confident_relationships(topas_kinase_substrate_file)
@@ -416,11 +429,18 @@ def calculate_cytoplasmic_kinase_scores(
         automated_sites, peptidoform_groups
     )
 
-    decryptM_kinases = get_patient_annotated_sites(pp_agg_df, automated_sites)
+    decryptM_kinases = get_patient_annotated_sites(pp_intensities_df, automated_sites)
+
+    substrate_file = (
+        f"{results_folder}/topas_scores/ck_substrate_peptide_intensities.csv"
+    )
+    write_substrate_peptides(
+        pp_intensities_df, decryptM_kinases, substrate_file, kinases=VALIDATED_KINASES
+    )
 
     logger.info("Compute cytoplasmic kinase scores")
-    scores = compute_kinase_scores(
-        pp_agg_df, decryptM_kinases, kinases=VALIDATED_KINASES
+    scores = compute_substrate_phosphorylation_scores(
+        pp_intensities_df, decryptM_kinases, kinases=VALIDATED_KINASES
     )
 
     kinase_score_file = f"{results_folder}/topas_scores/ck_substrate_phosphorylation_scores{file_suffix}.csv"
@@ -433,29 +453,22 @@ def save_scores_with_metadata_columns(
     # Save with meta information
     metadata_df = pd.read_excel(metadata_file)
     metadata_df["Sample name"] = "pat_" + metadata_df["Sample name"]
-    meta_cols = [
-        "Patient_Identifier",
-        "Program",
-        "code_oncotree",
-        "breadcrumb_oncotree",
-        "tissue_topology",
-    ]
     score_cols = list(scores.columns)
 
     logger.info(f"Writing results to {kinase_score_file}")
     Path(kinase_score_file).parent.mkdir(exist_ok=True)
     scores.merge(
-        right=metadata_df.set_index("Sample name")[meta_cols],
+        right=metadata_df.set_index("Sample name")[META_COLS],
         left_index=True,
         right_index=True,
         how="left",
-    )[meta_cols + score_cols].to_csv(kinase_score_file)
+    )[META_COLS + score_cols].to_csv(kinase_score_file)
 
 
 def get_joint_modified_sequence_groups(
     results_folder: str, topas_kinase_substrate_file: str
 ):
-    df_patients = get_patient_modified_sequence_groups(results_folder)
+    df_patients = read_cohort_modified_sequence_groups(results_folder)
     df_decryptM = get_decryptm_modified_sequence_groups(topas_kinase_substrate_file)
     df_annot = get_decryptm_modified_sequence_groups(
         topas_kinase_substrate_file, filter_for_confident_relationships=True
@@ -496,7 +509,7 @@ def get_joint_modified_sequence_groups(
     return peptidoform_groups
 
 
-def get_patient_modified_sequence_groups(results_folder: str) -> pd.DataFrame:
+def read_cohort_modified_sequence_groups(results_folder: str) -> pd.DataFrame:
     df_patients = pd.read_csv(
         f"{results_folder}/preprocessed_pp2_agg_batchcorrected.csv",
         usecols=["Gene names", "Modified sequence group"],
@@ -620,29 +633,67 @@ def get_patient_annotated_sites(
     return decryptM_kinases
 
 
-def compute_kinase_scores(
-    pp_agg_df: pd.DataFrame,
+def write_substrate_peptides(
+    pp_intensities_df: pd.DataFrame,
     kinase_substrate_annotation_df: pd.Series,
-    kinases: list[str],
+    substrate_file: str,
+    kinases: list[str] = None,
 ) -> pd.DataFrame:
-    scores = []
-    for k in kinases:
-        substrate_peptides = kinase_substrate_annotation_df[
-            kinase_substrate_annotation_df.str.contains(k, regex=False)
-        ].index.get_level_values("Modified sequence group")
-        s = z_aggregate(
-            pp_agg_df,
-            substrate_peptides,
+    exploded_substrates_df = explode_series(kinase_substrate_annotation_df)
+    if not kinases:
+        kinases = exploded_substrates_df.unique()
+
+    substrate_modified_sequence_groups = (
+        exploded_substrates_df[exploded_substrates_df.isin(kinases)]
+        .index.get_level_values("Modified sequence group")
+        .drop_duplicates()
+    )
+
+    substrate_intensities_df = (
+        kinase_substrate_annotation_df[substrate_modified_sequence_groups]
+        .to_frame()
+        .join(pp_intensities_df.loc[substrate_modified_sequence_groups], how="inner")
+    )
+
+    logger.info(f"Writing substrate intensities to {substrate_file}")
+    Path(substrate_file).parent.mkdir(exist_ok=True)
+    substrate_intensities_df.to_csv(substrate_file, float_format="%.4g")
+
+
+def compute_substrate_phosphorylation_scores(
+    pp_intensities_df: pd.DataFrame,
+    kinase_substrate_annotation_df: pd.Series,
+    kinases: list[str] = None,
+    explode: bool = True,
+) -> pd.DataFrame:
+    if explode:
+        kinase_substrate_annotation_df = explode_series(kinase_substrate_annotation_df)
+
+    if kinases:
+        kinase_substrate_annotation_df = kinase_substrate_annotation_df[
+            kinase_substrate_annotation_df.isin(kinases)
+        ]
+
+    scores = pp_intensities_df.join(kinase_substrate_annotation_df, how="inner")
+    scores = (
+        scores.groupby(by=kinase_substrate_annotation_df.name)
+        .progress_apply(
+            z_aggregate,
             robust=False,
             standardize_input=False,
             standardize_output=True,
             agg_f="sum",
-            clip_output=(-4, 4),
             clip_input=(-np.inf, np.inf),
+            # clip_output=(-4, 4),
         )
-        scores.append(s.rename(k))
-    scores = pd.concat(scores, axis=1)
+        .T
+    )
     return scores
+
+
+def explode_series(s: pd.Series, delimiter: str = ";") -> pd.Series:
+    s: pd.Series = s.str.split(delimiter)
+    return s.explode()
 
 
 def mad(x, sigma_scaling=1.4826017):
@@ -653,36 +704,25 @@ def mad(x, sigma_scaling=1.4826017):
 
 
 def z_aggregate(
-    phospho: pd.DataFrame,
-    lst,
+    vals: pd.DataFrame,
     robust=False,
     standardize_input=True,
     center_output=True,
     standardize_output=True,
     agg_f="mean",
-    clip_output=(-np.inf, np.inf),
     clip_input=(-3, np.inf),
-):
-    # Select input
-    vals = phospho.droplevel("Gene names").loc[lst]
+    clip_output=(-np.inf, np.inf),
+) -> pd.Series:
+    patient_vals = vals.filter(like="pat_")
 
     # Scale input (dataframe) in mean or robust way
-    if robust:
-        if standardize_input:
-            z_vals = ((vals.T - vals.median(axis=1)) / mad(vals)).T
-        else:
-            z_vals = (vals.T - vals.median(axis=1)).T
-
-    else:
-        if standardize_input:
-            z_vals = ((vals.T - vals.mean(axis=1)) / vals.std(axis=1)).T
-        else:
-            z_vals = (vals.T - vals.mean(axis=1)).T
+    center, scale = get_center_and_scale(patient_vals, standardize_input, robust)
+    z_vals = ((vals.T - center) / scale).T
 
     # Clip input to prevent destructive loss of a substrate for what ever reason
     z_vals = np.clip(z_vals, a_min=clip_input[0], a_max=clip_input[1])
 
-    # Aggreagte
+    # Aggregate
     if agg_f == "mean":  # should be the best option
         agg_vals = z_vals.mean()
     elif agg_f == "median":
@@ -699,21 +739,27 @@ def z_aggregate(
     agg_vals = agg_vals.replace(0, np.nan)
 
     # Scale output (series) in mean or robust
-    if robust:
-        if center_output:
-            agg_vals = agg_vals - agg_vals.median()
-        if standardize_output:
-            agg_vals = (agg_vals - agg_vals.median()) / mad(agg_vals)
-    else:
-        if center_output:
-            agg_vals = agg_vals - agg_vals.mean()
-        if standardize_output:
-            agg_vals = (agg_vals - agg_vals.mean()) / agg_vals.std()
+    if center_output or standardize_output:
+        patient_agg_vals = agg_vals.filter(like="pat_")
+        center, scale = get_center_and_scale(
+            patient_agg_vals, standardize_output, robust, axis=0
+        )
+        agg_vals = (agg_vals - center) / scale
 
     # Clip output
     agg_vals = np.clip(agg_vals, a_min=clip_output[0], a_max=clip_output[1])
 
     return agg_vals
+
+
+def get_center_and_scale(
+    vals: pd.DataFrame, standardize: bool, robust: bool, axis: int = 1
+):
+    center = vals.median(axis=axis) if robust else vals.mean(axis=axis)
+    scale = 1
+    if standardize:
+        scale = mad(vals) if robust else vals.std(axis=axis)
+    return center, scale
 
 
 """

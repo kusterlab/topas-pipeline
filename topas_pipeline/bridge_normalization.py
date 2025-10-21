@@ -16,6 +16,7 @@ warnings.filterwarnings(action="ignore", category=RuntimeWarning)
 
 from . import sample_annotation
 from . import preprocess_tools as prep
+from . import phospho_grouping
 
 # hacky way to get the package logger instead of just __main__ when running as a module
 logger = logging.getLogger(__package__ + "." + Path(__file__).stem)
@@ -26,21 +27,7 @@ def apply_bridge_channel_normalization(
     sample_annotation_df: pd.DataFrame,
     min_occurrence: float = 2 / 3,  # Good Value for phospho
 ):
-    logger.info("Reading preprocessed_pp2_agg.csv")
-    pp_df = pd.read_csv(f"{results_folder}/preprocessed_pp2_agg.csv")
-
-    phospho_df = (
-        pp_df.filter(regex=r"^(?!Identification metadata)")
-        .drop(
-            columns=[
-                "Delocalized sequence",
-                "Modified sequence representative",
-                "Modified sequence representative degree",
-                "Proteins",
-            ]
-        )
-        .set_index(["Modified sequence group", "Gene names"])
-    )
+    phospho_df = phospho_grouping.read_cohort_intensities_df(results_folder)
 
     sample_qc_lot_mapping_df = get_sample_qc_lot_mapping_df(
         phospho_df.columns, sample_annotation_df
@@ -59,6 +46,8 @@ def apply_bridge_channel_normalization(
     correction_factors.to_csv(f"{results_folder}/peptide_correction_factors.csv")
 
     logger.info("Applying across QC lot normalization")
+
+    combined_column_order = phospho_df_corrected.columns
 
     phospho_df_ref_corrected = phospho_df_corrected.loc[:, ref_cols]
     phospho_df_corrected = phospho_df_corrected.loc[:, pat_cols]
@@ -101,6 +90,11 @@ def apply_bridge_channel_normalization(
     phospho_df_corrected2 = (phospho_df_corrected2.T + avg_intensity).T
     phospho_df_ref_corrected2 = (phospho_df_ref_corrected2.T + avg_intensity).T
 
+    phospho_df_corrected2 = pd.concat(
+        [phospho_df_corrected2, phospho_df_ref_corrected2], axis=1
+    )
+    phospho_df_corrected2 = phospho_df_corrected2[combined_column_order]
+
     # map column names to patient names
     channel_to_sample_id_dict = sample_annotation.get_channel_to_sample_id_dict(
         sample_annotation_df,
@@ -115,20 +109,10 @@ def apply_bridge_channel_normalization(
         index_cols=index_cols,
     )
 
-    phospho_df_ref_corrected2 = prep.rename_columns_with_sample_ids(
-        phospho_df_ref_corrected2.reset_index(),
-        channel_to_sample_id_dict,
-        index_cols=index_cols,
-    )
-
-    logger.info("Writing results")
+    batch_corrected_file = f"{results_folder}/preprocessed_pp2_agg_batchcorrected.csv"
+    logger.info(f"Writing results to {batch_corrected_file}")
     phospho_df_corrected2.to_csv(
-        f"{results_folder}/preprocessed_pp2_agg_batchcorrected.csv",
-        float_format="%.6f",
-        index=False,
-    )
-    phospho_df_ref_corrected2.to_csv(
-        f"{results_folder}/preprocessed_pp2_agg_batchcorrected_refonly.csv",
+        batch_corrected_file,
         float_format="%.6f",
         index=False,
     )
@@ -217,6 +201,15 @@ def row_wise_normalize(
     # Correct intensity values
     vals["intensity corrected"] = vals["intensity raw"] + vals["ref correction"]
     return vals["intensity corrected"]
+
+
+def read_cohort_batch_corrected_df(results_folder: str, skiprows: pd.Series = None):
+    phospho_batch_corrected = pd.read_csv(
+        f"{results_folder}/preprocessed_pp2_agg_batchcorrected.csv",
+        index_col=[0, 1],
+        skiprows=skiprows,
+    )
+    return phospho_batch_corrected
 
 
 """
