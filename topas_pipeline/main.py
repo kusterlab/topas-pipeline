@@ -13,7 +13,11 @@ from . import preprocess
 from . import clinical_annotation
 from . import report_creation
 from . import metrics
-from .topas import phosphorylation
+from . import phospho_grouping
+from . import bridge_normalization
+from .topas import protein_phosphorylation
+from .topas import ck_substrate_phosphorylation
+from .topas import rtk_substrate_phosphorylation
 from .topas import topas
 from . import portal_updater
 
@@ -72,6 +76,19 @@ def main(argv):
         logger.info("--- %.1f seconds --- preprocessing" % (time.time() - start_time))
 
         start_time = time.time()
+        # 2) extra phospho processing (grouping)
+        phospho_grouping.aggregate_modified_sequences(
+           results_folder=configs.results_folder
+        )  
+        logger.info("--- %.1f seconds --- phospho grouping" % (time.time() - start_time))
+        start_time = time.time()
+        
+        bridge_normalization.apply_bridge_channel_normalization(
+            results_folder=configs.results_folder, sample_annotation_file=configs.sample_annotation
+        )
+        logger.info("--- %.1f seconds --- bridge normalization" % (time.time() - start_time))
+
+        start_time = time.time()
         # 2) clinical processing (~3 minutes)
         clinical_annotation.add_clinical_annotations(
             results_folder=configs.results_folder,
@@ -91,14 +108,35 @@ def main(argv):
         )
         logger.info("--- %.1f seconds --- metrics" % (time.time() - start_time))
 
+        # TODO: if it gets slow do the next analysis parts in parallel
         start_time = time.time()
         # 4) Run WP2 scoring (<1 minute)
-        phosphorylation.psite_scoring(
+        protein_phosphorylation.protein_phospho_scoring_peptidoforms(
             results_folder=configs.results_folder,
-            data_types=configs.data_types,
-            extra_kinase_annot=configs.clinic_proc.extra_kinase_annot,
+            sample_annotation_file=configs.sample_annotation,
+            metadata_file=configs.metadata_annotation
         )
-        logger.info("--- %.1f seconds --- wp2 scoring" % (time.time() - start_time))
+        logger.info("--- %.1f seconds --- protein phospho scoring" % (time.time() - start_time))
+
+        start_time = time.time()
+        # 4) Run substrate activity scoring
+        ck_substrate_phosphorylation.calculate_cytoplasmic_kinase_scores(
+            results_folder=configs.results_folder,
+            metadata_file=configs.metadata_annotation,
+            topas_kinase_substrate_file=configs.clinic_proc.topas_kinase_substrate_file,
+            expression_corrected_input=False
+        )
+        logger.info("--- %.1f seconds --- ck substrate phosphorylation scoring" % (time.time() - start_time))
+        
+        start_time = time.time()
+        rtk_substrate_phosphorylation.calculate_rtk_scores(
+            results_folder=configs.results_folder,
+            metadata_file=configs.metadata_annotation,
+            extra_kinase_annot=configs.clinic_proc.extra_kinase_annot,
+            sample_annotation_file=configs.sample_annotation,
+            fasta_file=configs.preprocessing.fasta_file,
+        )
+        logger.info("--- %.1f seconds --- rtk substrate phosphorylation scoring" % (time.time() - start_time))
 
         start_time = time.time()
         # 5) compute TOPAS scores (<1 minute)
