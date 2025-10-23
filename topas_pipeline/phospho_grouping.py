@@ -24,6 +24,14 @@ def aggregate_modified_sequences(results_folder: str) -> pd.DataFrame:
     Args:
         results_folder (str): _description_
     """
+    results_folder = Path(results_folder)
+    if os.path.exists(
+            results_folder / "preprocessed_pp2_agg.csv"
+    ):
+        logger.info(
+            f"Phospho grouping skipped - found file already processed"
+        )
+        return
     pp_df = read_preprocessed_pp2(results_folder)
 
     # clean Mod_seq string
@@ -60,12 +68,12 @@ def aggregate_modified_sequences(results_folder: str) -> pd.DataFrame:
     # 3.5 minutes for full matrix
     agg_pp_df.loc[:, agg_pp_df.filter(like="Identification metadata").columns] = (
         agg_pp_df.loc[:, agg_pp_df.filter(like="Identification metadata").columns]
-        .replace(";", np.nan)
+        .replace(r'^;+$|^$', np.nan, regex=True)
         .map(aggregate_imputations, na_action="ignore")
     )
 
     # 7.5 minutes for full matrix
-    agg_pp_file = f"{results_folder}/preprocessed_pp2_agg.csv"
+    agg_pp_file = results_folder / "preprocessed_pp2_agg.csv"
     logger.info(f"Writing aggregated modified sequence groups to {agg_pp_file}")
     agg_pp_df.to_csv(agg_pp_file, index=False, float_format="%.6g")
 
@@ -74,7 +82,7 @@ def aggregate_modified_sequences(results_folder: str) -> pd.DataFrame:
 
 def read_preprocessed_pp2(results_folder: str) -> pd.DataFrame:
     logger.info("Reading in preprocessed_pp2.csv")
-    headers = pd.read_csv(f"{results_folder}/preprocessed_pp2.csv", nrows=1)
+    headers = pd.read_csv(results_folder / "preprocessed_pp2.csv", nrows=1)
     dtype_dict = collections.defaultdict(
         lambda: "str"
     )  # 'str' dtype does still create NaNs for empty cells
@@ -83,24 +91,56 @@ def read_preprocessed_pp2(results_folder: str) -> pd.DataFrame:
         for c in headers.filter(like="Reporter intensity corrected").columns
     }
 
-    pp_df = pd.read_csv(f"{results_folder}/preprocessed_pp2.csv", dtype=dtype_dict)
+    pp_df = pd.read_csv(results_folder / "preprocessed_pp2.csv", dtype=dtype_dict)
     return pp_df
 
 
 def aggregate_imputations(x):
     annotations = set(x[:-1].split(";"))
-    if not annotations.issubset({"imputed", "partially imputed", ""}):
-        raise ValueError(
-            f"Found other annotations ({annotations}) besides imputations, need new solution to detect partially imputed peptides"
-        )
-
-    if annotations == {""}:
-        return np.nan
 
     if len(annotations) >= 2:
-        return "partially imputed;"
-
+        annotations = summarize_annotations(annotations)
+        return annotations
+    # else, just one annotation
     return ";".join(map(str, list(annotations))) + ";"
+
+
+def summarize_annotations(annotations):
+    annotations = set(annotations)  # ensure set
+
+    if not has_quan_OOR(annotations):
+        # just a fallback logic. Shoult not happen
+        if not has_partially_imputed(annotations) and not has_empty(annotations):
+            return 'imputed;'
+        return 'partially imputed;'
+
+    # has quan_OOR
+    annotations.discard('quan_OOR')
+
+    if not has_imputed(annotations) and not has_partially_imputed(annotations):
+        return 'partially quan_OOR;'
+    elif has_partially_imputed(annotations) or (has_imputed(annotations) and has_empty(annotations)):
+        return 'partially imputed;quan_OOR;'
+    elif annotations == {'imputed'}:
+        return 'imputed;quan_OOR;'
+    else:
+        raise ValueError(f"Unexpected annotation combination: {annotations}")
+
+
+def has_quan_OOR(annotations):
+    return 'quan_OOR' in annotations
+
+
+def has_imputed(annotations):
+    return 'imputed' in annotations
+
+
+def has_partially_imputed(annotations):
+    return 'partially imputed' in annotations
+
+
+def has_empty(annotations):
+    return '' in annotations
 
 
 def read_cohort_intensities_df(

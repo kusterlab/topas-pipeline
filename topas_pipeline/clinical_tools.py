@@ -86,16 +86,18 @@ def add_phospho_annotations(
     df = df.set_index("Modified sequence", drop=True)
 
     # Add extra kinase annotations
-    if len(str(clinic_proc_config.extra_kinase_annot)) > 0:
-        df = add_extra_kinase_annotations(df, clinic_proc_config.extra_kinase_annot)
+    # if len(str(clinic_proc_config.extra_kinase_annot)) > 0:
+    #     df = add_extra_kinase_annotations(df, clinic_proc_config.extra_kinase_annot)
 
     return df
 
 
-def get_extra_kinase_annot_df(path):
-    extra_kinase_annot_df = pd.read_excel(path)
-    extra_kinase_annot_df = extra_kinase_annot_df.rename(columns={'Gene name': 'Gene names', 'Site': 'Site positions', 'Modified_sequence': 'Modified sequence'})
-    return extra_kinase_annot_df
+# def get_extra_kinase_annot_df(path):
+#     # extra_kinase_annot_df = pd.read_excel(path)
+#     extra_kinase_annot_df = pd.read_csv(path, sep="\t")
+#     print(extra_kinase_annot_df.head())
+#     extra_kinase_annot_df = extra_kinase_annot_df.rename(columns={'Gene name': 'Gene names', 'Site': 'Site positions', 'Modified_sequence': 'Modified sequence'})
+#     return extra_kinase_annot_df
 
 
 def get_df_fill_in_missing_modified_sequence(df):
@@ -114,70 +116,70 @@ def get_sites_to_get_peptides_for(extra_kinase_annot_df):
     return sites_to_get_peptides_for
 
 
-def add_extra_kinase_annotations(
-    df: pd.DataFrame, extra_kinase_annot: str
-) -> pd.DataFrame:
-    """
-    Adds extra kinase annotations to the dataframe.
+# def add_extra_kinase_annotations(
+#     df: pd.DataFrame, extra_kinase_annot: str
+# ) -> pd.DataFrame:
+#     """
+#     Adds extra kinase annotations to the dataframe.
 
-    :param df: dataframe with measured peptide intensities
-    :param extra_kinase_annot: path to file with extra kinase annotations
-    """
-    logger.info("Extra kinase annotation")
+#     :param df: dataframe with measured peptide intensities
+#     :param extra_kinase_annot: path to file with extra kinase annotations
+#     """
+#     logger.info("Extra kinase annotation")
 
-    extra_kinase_annot_df = get_extra_kinase_annot_df(extra_kinase_annot)
+#     extra_kinase_annot_df = get_extra_kinase_annot_df(extra_kinase_annot)
 
-    # get the sites we need to get peptides for
-    sites_to_get_peptides_for = get_sites_to_get_peptides_for(extra_kinase_annot_df)
+#     # get the sites we need to get peptides for
+#     sites_to_get_peptides_for = get_sites_to_get_peptides_for(extra_kinase_annot_df)
 
-    # Prepare df by splitting 'Site positions' into lists
-    df_exploded = get_df_fill_in_missing_modified_sequence(df)
+#     # Prepare df by splitting 'Site positions' into lists
+#     df_exploded = get_df_fill_in_missing_modified_sequence(df)
 
-    # subset to df to get the annot for (psite only given)
-    df_to_fill = extra_kinase_annot_df[
-        extra_kinase_annot_df['Modified sequence'].isna() &
-        extra_kinase_annot_df['Gene names'].notna() &
-        extra_kinase_annot_df['Site positions'].notna()
-    ].copy()
+#     # subset to df to get the annot for (psite only given)
+#     df_to_fill = extra_kinase_annot_df[
+#         extra_kinase_annot_df['Modified sequence'].isna() &
+#         extra_kinase_annot_df['Gene names'].notna() &
+#         extra_kinase_annot_df['Site positions'].notna()
+#     ].copy()
 
-    # loop over df_to_fill and fill in Modified sequence using the lookup
-    for index, row in df_to_fill.iterrows():
-        gene = row['Gene names']
-        site = str(row['Site positions'])
-        matches = df_exploded[
-            (df_exploded['Gene names'].str.contains(gene)) &
-            (df_exploded['Site positions'] == site)
-        ]
-        if not matches.empty:
-            # If there are multiple matches, join them with ';'
-            modified_sequences = ";".join(matches['Modified sequence'].unique())
-            df_to_fill.at[index, 'Modified sequence'] = modified_sequences
-            print(f"Filled Modified sequence for {gene} at site {site}: {modified_sequences}")
-        else:
-            print(f"No match found for {gene} at site {site}")
+#     # loop over df_to_fill and fill in Modified sequence using the lookup
+#     for index, row in df_to_fill.iterrows():
+#         gene = row['Gene names']
+#         site = str(row['Site positions'])
+#         matches = df_exploded[
+#             (df_exploded['Gene names'].str.contains(gene)) &
+#             (df_exploded['Site positions'] == site)
+#         ]
+#         if not matches.empty:
+#             # If there are multiple matches, join them with ';'
+#             modified_sequences = ";".join(matches['Modified sequence'].unique())
+#             df_to_fill.at[index, 'Modified sequence'] = modified_sequences
+#             print(f"Filled Modified sequence for {gene} at site {site}: {modified_sequences}")
+#         else:
+#             print(f"No match found for {gene} at site {site}")
 
-    df_to_fill = df_to_fill.assign(
-        **{"Modified sequence": df_to_fill["Modified sequence"].str.split(";")}
-    ).explode("Modified sequence")
+#     df_to_fill = df_to_fill.assign(
+#         **{"Modified sequence": df_to_fill["Modified sequence"].str.split(";")}
+#     ).explode("Modified sequence")
     
-    # and then we can merge back to extra_kinase_annot_df
-    extra_kinase_annot_df = pd.concat([extra_kinase_annot_df[extra_kinase_annot_df['Modified sequence'].notna()], df_to_fill], ignore_index=True)
+#     # and then we can merge back to extra_kinase_annot_df
+#     extra_kinase_annot_df = pd.concat([extra_kinase_annot_df[extra_kinase_annot_df['Modified sequence'].notna()], df_to_fill], ignore_index=True)
 
-    # drop if any complete duplicate rows
-    key_cols = ["Gene names", "Site positions", "Modified sequence"]
-    extra_kinase_annot_df = (
-        extra_kinase_annot_df
-        .drop_duplicates(subset=key_cols)
-        .reset_index(drop=True)
-    )
+#     # drop if any complete duplicate rows
+#     key_cols = ["Gene names", "Site positions", "Modified sequence"]
+#     extra_kinase_annot_df = (
+#         extra_kinase_annot_df
+#         .drop_duplicates(subset=key_cols)
+#         .reset_index(drop=True)
+#     )
 
-    kinase_map = (
-        extra_kinase_annot_df
-        .groupby("Modified sequence")["PSP Kinase"]
-        .apply(lambda x: ";".join(sorted(set(x))))
-    )
-    df["Kinase_high_conf"] = df.index.to_series().map(kinase_map)
-    return df
+#     kinase_map = (
+#         extra_kinase_annot_df
+#         .groupby("Modified sequence")["PSP Kinase"]
+#         .apply(lambda x: ";".join(sorted(set(x))))
+#     )
+#     df["Kinase_high_conf"] = df.index.to_series().map(kinase_map)
+#     return df
 
 
 def add_psp_urls(pp: pd.DataFrame) -> pd.DataFrame:

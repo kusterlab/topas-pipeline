@@ -23,11 +23,9 @@ def protein_phospho_scoring_peptidoforms(
     results_folder: str, sample_annotation_file: str, metadata_file: str
 ):
     logger.info("Running protein phosphorylation scoring module")
-
+    results_folder = Path(results_folder)
     if os.path.exists(
-        os.path.join(
-            results_folder, "topas_scores", "protein_phosphorylation_scores.tsv"
-        )
+            results_folder / "topas_scores" / "protein_phosphorylation_scores.tsv"
     ):
         logger.info(
             f"Protein phosphorylation scoring skipped - found files already processed"
@@ -56,7 +54,7 @@ def protein_phospho_scoring_peptidoforms(
     )
 
     protein_phosphorylation_file = (
-        f"{results_folder}/topas_scores/protein_phosphorylation_scores.csv"
+        results_folder / "topas_scores" / "protein_phosphorylation_scores.csv"
     )
     ck_scoring.save_scores_with_metadata_columns(
         protein_phosphorylation_score_df, metadata_file, protein_phosphorylation_file
@@ -67,7 +65,7 @@ def protein_phospho_scoring(results_folder, preprocessed_protein_df):
     logger.info("Running protein phosphorylation scoring module")
 
     if os.path.exists(
-        os.path.join(results_folder, "protein_results", "protein_scores.tsv")
+        results_folder / "protein_results" / "protein_scores.tsv"
     ):
         logger.info(
             f"Protein phosphorylation scoring skipped - found files already processed"
@@ -75,7 +73,7 @@ def protein_phospho_scoring(results_folder, preprocessed_protein_df):
         return
 
     if not os.path.exists(
-        protein_folder := os.path.join(results_folder, "protein_results")
+        protein_folder := results_folder / "protein_results"
     ):
         os.makedirs(protein_folder)
 
@@ -112,9 +110,7 @@ def protein_phospho_scoring(results_folder, preprocessed_protein_df):
         .sort_index()
     )
     protein_scores_t.to_csv(
-        os.path.join(
-            results_folder, "protein_results", "protein_scores_transposed.tsv"
-        ),
+            results_folder / "protein_results" / "protein_scores_transposed.tsv",
         sep="\t",
         float_format="%.4g",
     )
@@ -126,9 +122,7 @@ def load_protein_phosphorylation(
     protein_results_folder: str = "topas_scores",
     remove_multi_gene_groups: bool = False,
 ):
-    protein_scores_file = os.path.join(
-        results_folder, protein_results_folder, "protein_phosphorylation_scores.csv"
-    )
+    protein_scores_file = results_folder / protein_results_folder / "protein_phosphorylation_scores.csv"
     protein_phosphorylation_df = pd.read_csv(
         protein_scores_file,
         index_col=0,

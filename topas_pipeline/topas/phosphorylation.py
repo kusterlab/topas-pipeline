@@ -32,17 +32,17 @@ def psite_scoring(
         logger.info(f"Psite scoring skipped - no phospho data available")
         return
 
+    # concatenate_psp_and_extra_kinases = False
+    # if len(str(extra_kinase_annot)) > 0:
+    #     concatenate_psp_and_extra_kinases = True
     concatenate_psp_and_extra_kinases = False
-    if len(str(extra_kinase_annot)) > 0:
-        concatenate_psp_and_extra_kinases = True
-
     preprocessed_df = scoring.topas_score_preprocess(
         results_folder, concatenate_psp_and_extra_kinases
     )
 
     kinase_results_folder = os.path.join(results_folder, "kinase_results")
 
-    substrate_phosphorylation.kinase_scoring(kinase_results_folder, preprocessed_df)
+    # substrate_phosphorylation.kinase_scoring(kinase_results_folder, preprocessed_df)
     protein_phosphorylation.protein_phospho_scoring(results_folder, preprocessed_df)
 
 

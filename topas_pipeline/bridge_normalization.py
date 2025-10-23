@@ -24,9 +24,14 @@ logger = logging.getLogger(__package__ + "." + Path(__file__).stem)
 
 def apply_bridge_channel_normalization(
     results_folder: str,
-    sample_annotation_df: pd.DataFrame,
+    sample_annotation_file: str,
     min_occurrence: float = 2 / 3,  # Good Value for phospho
 ):
+    results_folder = Path(results_folder)
+    sample_annotation_df = sample_annotation.load_sample_annotation(
+        sample_annotation_file
+    )
+
     phospho_df = phospho_grouping.read_cohort_intensities_df(results_folder)
 
     sample_qc_lot_mapping_df = get_sample_qc_lot_mapping_df(
@@ -43,7 +48,7 @@ def apply_bridge_channel_normalization(
     phospho_df_corrected, correction_factors = within_qc_lot_normalization(
         phospho_df, ref_cols, min_occurrence, sample_qc_lot_mapping_df
     )
-    correction_factors.to_csv(f"{results_folder}/peptide_correction_factors.csv")
+    correction_factors.to_csv(results_folder / "peptide_correction_factors.csv")
 
     logger.info("Applying across QC lot normalization")
 
@@ -109,7 +114,7 @@ def apply_bridge_channel_normalization(
         index_cols=index_cols,
     )
 
-    batch_corrected_file = f"{results_folder}/preprocessed_pp2_agg_batchcorrected.csv"
+    batch_corrected_file = results_folder / "preprocessed_pp2_agg_batchcorrected.csv"
     logger.info(f"Writing results to {batch_corrected_file}")
     phospho_df_corrected2.to_csv(
         batch_corrected_file,
@@ -205,7 +210,7 @@ def row_wise_normalize(
 
 def read_cohort_batch_corrected_df(results_folder: str, skiprows: pd.Series = None):
     phospho_batch_corrected = pd.read_csv(
-        f"{results_folder}/preprocessed_pp2_agg_batchcorrected.csv",
+        results_folder / "preprocessed_pp2_agg_batchcorrected.csv",
         index_col=[0, 1],
         skiprows=skiprows,
     )
@@ -228,10 +233,6 @@ if __name__ == "__main__":
 
     configs = config.load(args.config)
 
-    sample_annotation_df = sample_annotation.load_sample_annotation(
-        configs.sample_annotation
-    )
-
     apply_bridge_channel_normalization(
-        results_folder=configs.results_folder, sample_annotation_df=sample_annotation_df
+        results_folder=configs.results_folder, sample_annotation_file=configs.sample_annotation
     )

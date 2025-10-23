@@ -24,7 +24,8 @@ def calculate_rtk_scores(
     extra_kinase_annot: str,
     sample_annotation_file: str,
     fasta_file: str,
-):
+):  
+    results_folder = Path(results_folder)
     cohort_annotated_sites_df = get_annotated_modified_sequence_groups(
         results_folder,
         extra_kinase_annot,
@@ -53,7 +54,7 @@ def calculate_rtk_scores(
     )
 
     substrate_file = (
-        f"{results_folder}/topas_scores/rtk_substrate_peptide_intensities.csv"
+        results_folder / "topas_scores" / "rtk_substrate_peptide_intensities.csv"
     )
     ck_substrate_phosphorylation.write_substrate_peptides(
         annotated_cohort_intensities_df, annotated_sites_mapping, substrate_file
@@ -65,7 +66,7 @@ def calculate_rtk_scores(
     )
 
     kinase_score_file = (
-        f"{results_folder}/topas_scores/rtk_substrate_phosphorylation_scores.csv"
+        results_folder / "topas_scores" / "rtk_substrate_phosphorylation_scores.csv"
     )
     ck_substrate_phosphorylation.save_scores_with_metadata_columns(
         scores, metadata_file, kinase_score_file
@@ -80,7 +81,7 @@ def get_annotated_modified_sequence_groups(
     logger.info("Reading cohort modified sequence groups")
     # loading only these three columns takes 20 sec instead of 4 minutes
     pp_df = pd.read_csv(
-        f"{results_folder}/preprocessed_pp2_agg.csv",
+        results_folder / "preprocessed_pp2_agg.csv",
         usecols=["Gene names", "Modified sequence group", "Proteins"],
     )
 
@@ -150,7 +151,7 @@ def read_annotated_cohort_batch_corrected_df(
     logger.info("Read batch corrected cohort intensities for annotated sites")
     # only contains 6 out of ~50 annotated TOPAS-RTK sites
     df_patients = pd.read_csv(
-        f"{results_folder}/preprocessed_pp2_agg_batchcorrected.csv",
+        results_folder / "preprocessed_pp2_agg_batchcorrected.csv",
         usecols=["Gene names", "Modified sequence group"],
     )
     df_patients = df_patients.reset_index()
@@ -185,9 +186,7 @@ def load_substrate_phosphorylation(
     results_folder,
     kinase_results_folder: str = "topas_scores",
 ):
-    kinase_score_file = os.path.join(
-        results_folder, kinase_results_folder, "rtk_substrate_phosphorylation_scores.csv"
-    )
+    kinase_score_file = results_folder / kinase_results_folder / "rtk_substrate_phosphorylation_scores.csv"
 
     kinase_scores_df = pd.read_csv(
         kinase_score_file,

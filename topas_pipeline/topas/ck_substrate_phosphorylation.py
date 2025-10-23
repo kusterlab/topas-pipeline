@@ -408,6 +408,7 @@ def calculate_cytoplasmic_kinase_scores(
     topas_kinase_substrate_file: str,
     expression_corrected_input: bool = False,
 ):
+    results_folder = Path(results_folder)
     file_suffix = ""
     if expression_corrected_input:
         file_suffix = "_expressioncorrected"
@@ -432,7 +433,7 @@ def calculate_cytoplasmic_kinase_scores(
     decryptM_kinases = get_patient_annotated_sites(pp_intensities_df, automated_sites)
 
     substrate_file = (
-        f"{results_folder}/topas_scores/ck_substrate_peptide_intensities.csv"
+        results_folder / "topas_scores" / "ck_substrate_peptide_intensities.csv"
     )
     write_substrate_peptides(
         pp_intensities_df, decryptM_kinases, substrate_file, kinases=VALIDATED_KINASES
@@ -443,7 +444,7 @@ def calculate_cytoplasmic_kinase_scores(
         pp_intensities_df, decryptM_kinases, kinases=VALIDATED_KINASES
     )
 
-    kinase_score_file = f"{results_folder}/topas_scores/ck_substrate_phosphorylation_scores{file_suffix}.csv"
+    kinase_score_file = results_folder / "topas_scores" / f"ck_substrate_phosphorylation_scores{file_suffix}.csv"
     save_scores_with_metadata_columns(scores, metadata_file, kinase_score_file)
 
 
@@ -511,7 +512,7 @@ def get_joint_modified_sequence_groups(
 
 def read_cohort_modified_sequence_groups(results_folder: str) -> pd.DataFrame:
     df_patients = pd.read_csv(
-        f"{results_folder}/preprocessed_pp2_agg_batchcorrected.csv",
+        results_folder / "preprocessed_pp2_agg_batchcorrected.csv",
         usecols=["Gene names", "Modified sequence group"],
     )
     return df_patients[["Modified sequence group"]]
@@ -548,7 +549,7 @@ def explode_modified_sequence_groups(df: pd.DataFrame) -> pd.DataFrame:
 
 def load_phospho_data(results_folder: str, file_suffix: str = "") -> pd.DataFrame:
     phospho = pd.read_csv(
-        f"{results_folder}/preprocessed_pp2_agg_batchcorrected{file_suffix}.csv",
+        results_folder / f"preprocessed_pp2_agg_batchcorrected{file_suffix}.csv",
         index_col=[0, 1],
     )
     return phospho
