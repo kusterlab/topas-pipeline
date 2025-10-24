@@ -1,4 +1,5 @@
 from builtins import ValueError
+import sys
 import re
 import os
 from glob import glob
@@ -55,9 +56,29 @@ MQ_EVIDENCE_COLUMNS_TYPES = {
     "id": "",
 }
 
+def load_meta_file(results_folder):
+    results_folder = Path(results_folder)
+    meta_fp = pd.read_csv(results_folder / "meta_input_file_FP.tsv", sep="\t")
+    meta_pp = pd.read_csv(results_folder / "meta_input_file_PP.tsv", sep="\t")
+    return meta_fp, meta_pp
+
+
+def check_metafiles(results_folder):
+    meta_fp, meta_pp = load_meta_file(results_folder)
+
+    # ADD potential for CL in between batch and digits
+    fp_batches = meta_fp['mq_txt_folder'].str.extract(r'Batch(\d+)')
+    pp_batches = meta_pp['mq_txt_folder'].str.extract(r'Batch(\d+)')
+
+    fp_batches_set = set(fp_batches[0].dropna())
+    pp_batches_set = set(pp_batches[0].dropna())
+    
+    if fp_batches_set != pp_batches_set:
+        raise ValueError("The batches for FP and PP differ (meta_input_file content mismatch).")
+
 
 # TODO: move this to config validation
-def check_annot(
+def check_annot(results_folder: str,
     sample_annotation_file: str, metadata_annotation_file: str, in_metadata: Callable
 ):
     """Performs consistency checks of the sample annotation and metadata files.
@@ -77,6 +98,12 @@ def check_annot(
         _description_
 
     """
+    logger.info("Checking sample annotation and metadata files")
+
+    # load metafiles and check they contain same batches
+    check_metafiles(results_folder)
+    sys.exit()
+
     sample_annot_df = sample_annotation.load_sample_annotation(sample_annotation_file)
     sample_annot_df_filtered = sample_annotation.filter_sample_annotation(
         sample_annot_df, remove_qc_failed=True, remove_replicates=True

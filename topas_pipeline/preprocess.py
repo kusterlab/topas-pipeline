@@ -28,7 +28,7 @@ def preprocess_raw(**kwargs) -> None:
     sample_metadata.copy_metadata_file(metadata_annotation, kwargs["results_folder"])
     sample_annotation.copy_sample_annotation_file(sample_annotation_file, kwargs["results_folder"])
 
-    sample_annotation_df = prep.check_annot(
+    sample_annotation_df = prep.check_annot(kwargs["results_folder"],
         sample_annotation_file, metadata_annotation, prep.in_metadata
     )  # just for our pipeline
 
