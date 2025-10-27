@@ -158,7 +158,7 @@ def mark_quant_out_of_range(df, ratio_threshold: float = 0.01):
         tmt_cols_df = tmt_cols_df.replace(0, np.nan)
         tmt_cols_df = 10 ** tmt_cols_df
 
-        metadata_cols = get_metadata_columns(df.filter(regex=rf"{batch}"))
+        metadata_cols = get_metadata_columns(df.filter(regex=rf"{batch}$"))
         
         row_max = tmt_cols_df.max(axis=1)
         ratio_df = tmt_cols_df.div(row_max, axis=0).astype(float)

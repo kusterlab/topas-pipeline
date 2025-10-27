@@ -286,11 +286,11 @@ def preprocess_fp(
     # Mark proteins detected in the batch but not in the sample
     df = id_meta.mark_detected_in_batch(df)
 
-    # Mark proteins with quant outside of dynamic range in batch (too low compared to max)
-    df = id_meta.mark_quant_out_of_range(df)
-
     # log10 transform intensities and turn missing values into nans
     df = prep.log_transform_intensities(df)
+
+    # Mark proteins with quant outside of dynamic range in batch (too low compared to max)
+    df = id_meta.mark_quant_out_of_range(df)
     return df
 
 
