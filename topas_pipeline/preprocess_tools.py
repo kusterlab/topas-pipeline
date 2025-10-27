@@ -102,7 +102,6 @@ def check_annot(results_folder: str,
 
     # load metafiles and check they contain same batches
     check_metafiles(results_folder)
-    sys.exit()
 
     sample_annot_df = sample_annotation.load_sample_annotation(sample_annotation_file)
     sample_annot_df_filtered = sample_annotation.filter_sample_annotation(
