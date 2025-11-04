@@ -132,6 +132,7 @@ def get_sample_qc_lot_mapping_df(
         sample_mapping_df["index"].str.split(" ").str[-2].astype(int)
     )
     if "QC Lot" not in sample_annotation_df.columns:
+        logger.info("No 'QC Lot' column found in sample annotation file. Setting QC Lot = 1 for all samples.")
         sample_annotation_df.loc[:, "QC Lot"] = 1
 
     sample_mapping_df = sample_mapping_df.merge(
