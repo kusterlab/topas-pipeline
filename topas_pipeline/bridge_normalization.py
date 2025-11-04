@@ -143,6 +143,9 @@ def get_sample_qc_lot_mapping_df(
     sample_mapping_df["channel"] = (
         sample_mapping_df["index"].str.split(" ").str[-2].astype(int)
     )
+    if "QC Lot" not in sample_annotation_df.columns:
+        sample_annotation_df.loc[:, "QC Lot"] = 1
+
     sample_mapping_df = sample_mapping_df.merge(
         sample_annotation_df[["Batch Name", "TMT Channel", "QC Lot"]],
         left_on=["batch", "channel"],
@@ -246,5 +249,6 @@ if __name__ == "__main__":
     configs = config.load(args.config)
 
     apply_bridge_channel_normalization(
-        results_folder=configs.results_folder, sample_annotation_file=configs.sample_annotation
+        results_folder=configs.results_folder,
+        sample_annotation_file=configs.sample_annotation,
     )
