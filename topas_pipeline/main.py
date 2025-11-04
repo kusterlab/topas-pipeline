@@ -18,6 +18,7 @@ from . import bridge_normalization
 from .topas import protein_phosphorylation
 from .topas import ck_substrate_phosphorylation
 from .topas import rtk_substrate_phosphorylation
+from . import expression_correction
 from .topas import topas
 from . import portal_updater
 
@@ -78,7 +79,7 @@ def main(argv):
         start_time = time.time()
         # 2) extra phospho processing (grouping)
         phospho_grouping.aggregate_modified_sequences(
-           results_folder=configs.results_folder
+            results_folder=configs.results_folder
         )  
         logger.info("--- %.1f seconds --- phospho grouping" % (time.time() - start_time))
         start_time = time.time()
@@ -87,6 +88,10 @@ def main(argv):
             results_folder=configs.results_folder, sample_annotation_file=configs.sample_annotation
         )
         logger.info("--- %.1f seconds --- bridge normalization" % (time.time() - start_time))
+
+        expression_correction.correct_phospho_for_protein_expression(
+            results_folder=configs.results_folder)
+        logger.info("--- %.1f seconds --- expression correction" % (time.time() - start_time))    
 
         start_time = time.time()
         # 2) clinical processing (~3 minutes)
@@ -108,7 +113,6 @@ def main(argv):
         )
         logger.info("--- %.1f seconds --- metrics" % (time.time() - start_time))
 
-        # TODO: if it gets slow do the next analysis parts in parallel
         start_time = time.time()
         # 4) Run WP2 scoring (<1 minute)
         protein_phosphorylation.protein_phospho_scoring_peptidoforms(
@@ -124,7 +128,7 @@ def main(argv):
             results_folder=configs.results_folder,
             metadata_file=configs.metadata_annotation,
             topas_kinase_substrate_file=configs.clinic_proc.topas_kinase_substrate_file,
-            expression_corrected_input=False
+            expression_corrected_input=True
         )
         logger.info("--- %.1f seconds --- ck substrate phosphorylation scoring" % (time.time() - start_time))
         

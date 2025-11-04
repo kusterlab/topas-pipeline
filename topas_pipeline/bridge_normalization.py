@@ -1,3 +1,4 @@
+import os
 import sys
 import logging
 from pathlib import Path
@@ -28,6 +29,17 @@ def apply_bridge_channel_normalization(
     min_occurrence: float = 2 / 3,  # Good Value for phospho
 ):
     results_folder = Path(results_folder)
+    batch_corrected_file = results_folder / "preprocessed_pp2_agg_batchcorrected.csv"
+    
+    if os.path.exists(
+            batch_corrected_file
+    ):
+        logger.info(
+            f"Bridge normalization skipped - found file already processed"
+        )
+        return
+
+
     sample_annotation_df = sample_annotation.load_sample_annotation(
         sample_annotation_file
     )
@@ -114,7 +126,7 @@ def apply_bridge_channel_normalization(
         index_cols=index_cols,
     )
 
-    batch_corrected_file = results_folder / "preprocessed_pp2_agg_batchcorrected.csv"
+    
     logger.info(f"Writing results to {batch_corrected_file}")
     phospho_df_corrected2.to_csv(
         batch_corrected_file,

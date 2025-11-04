@@ -14,9 +14,12 @@ logger = logging.getLogger(__package__ + "." + Path(__file__).stem)
 
 
 def correct_phospho_for_protein_expression(results_folder: str):
+
+    results_folder = Path(results_folder)
+
     phospho_df = load_phospho_df(results_folder)
     full_df = load_full_proteome_df(results_folder)
-
+    
     if not all(phospho_df.columns == full_df.columns):
         raise ValueError(
             f"Missing columns in full: {set(phospho_df.columns) - set(full_df.columns)}\nMissing columns in phospho: {set(full_df.columns) - set(phospho_df.columns)}"
@@ -33,7 +36,7 @@ def correct_phospho_for_protein_expression(results_folder: str):
     )
 
     expression_corrected_file = (
-        f"{results_folder}/preprocessed_pp2_agg_batchcorrected_expressioncorrected.csv"
+        results_folder / "preprocessed_pp2_agg_batchcorrected_expressioncorrected.csv"
     )
     logger.info(f"Writing expression corrected phospho matrix to {expression_corrected_file}")
     phospho_corrected.to_csv(expression_corrected_file, float_format="%.4f")
@@ -41,9 +44,18 @@ def correct_phospho_for_protein_expression(results_folder: str):
 
 def load_phospho_df(results_folder: str) -> pd.DataFrame:
     logger.info("Loading phospho proteome data")
+    header = pd.read_csv(results_folder / "preprocessed_fp.csv", index_col=0, nrows=1)
+    intensity_cols = header.filter(like="pat_").columns.tolist()
+    dtype_dict = collections.defaultdict(lambda: "str")
+    dtype_dict |= {c: "float32" for c in intensity_cols}
+
     phospho_df = pd.read_csv(
-        f"{results_folder}/preprocessed_pp2_agg_batchcorrected.csv"
+        results_folder / "preprocessed_pp2_agg_batchcorrected.csv",
+        usecols=intensity_cols + ["Modified sequence group", "Gene names"],
+        dtype=dtype_dict,
     )
+
+    intensity_cols = phospho_df.filter(like="pat_").columns.tolist()
     phospho_df["Gene names"] = phospho_df["Gene names"].fillna("")
     phospho_df = phospho_df.set_index(["Modified sequence group", "Gene names"])
     return phospho_df
@@ -51,13 +63,14 @@ def load_phospho_df(results_folder: str) -> pd.DataFrame:
 
 def load_full_proteome_df(results_folder: str) -> pd.DataFrame:
     logger.info("Loading full proteome data")
-    header = pd.read_csv(f"{results_folder}/preprocessed_fp.csv", index_col=0, nrows=1)
+
+    header = pd.read_csv(results_folder / "preprocessed_fp.csv", index_col=0, nrows=1)
     intensity_cols = header.filter(like="pat_").columns.tolist()
 
     dtype_dict = collections.defaultdict(lambda: "str")
     dtype_dict |= {c: "float32" for c in intensity_cols}
     full_df = pd.read_csv(
-        f"{results_folder}/preprocessed_fp.csv",
+        results_folder / "preprocessed_fp.csv",
         index_col=0,
         usecols=intensity_cols + ["Gene names"],
         dtype=dtype_dict,
