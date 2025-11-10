@@ -14,8 +14,16 @@ logger = logging.getLogger(__package__ + "." + Path(__file__).stem)
 
 
 def correct_phospho_for_protein_expression(results_folder: str):
-
     results_folder = Path(results_folder)
+    expression_corrected_file = (
+        results_folder
+        / "preprocessed_pp2_agg_batchcorrected_expressioncorrected.csv"
+    )
+    if expression_corrected_file.is_file():
+        logger.info(
+            f"Reusing previously generated expression corrected intensities: {expression_corrected_file}"
+        )
+        return
 
     phospho_df = load_phospho_df(results_folder)
     full_df = load_full_proteome_df(results_folder)
@@ -35,10 +43,9 @@ def correct_phospho_for_protein_expression(results_folder: str):
         phospho_df, mod_seq_df, full_predicted
     )
 
-    expression_corrected_file = (
-        results_folder / "preprocessed_pp2_agg_batchcorrected_expressioncorrected.csv"
+    logger.info(
+        f"Writing expression corrected phospho matrix to {expression_corrected_file}"
     )
-    logger.info(f"Writing expression corrected phospho matrix to {expression_corrected_file}")
     phospho_corrected.to_csv(expression_corrected_file, float_format="%.4f")
 
 

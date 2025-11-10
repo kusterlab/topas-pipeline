@@ -213,8 +213,8 @@ def read_topas_scores(
         f"basket_scores_4th_gen{z_scored_suffix}.tsv",
         "basket_scores{z_scored_suffix}.tsv",
     ]:
-        topas_scores_file_path = results_folder / topas_score_file_name
-        if not os.path.exists(topas_scores_file_path):
+        topas_scores_file_path = Path(results_folder) / topas_score_file_name
+        if not topas_scores_file_path.is_file():
             continue
 
         try:

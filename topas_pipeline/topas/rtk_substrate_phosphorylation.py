@@ -24,8 +24,16 @@ def calculate_rtk_scores(
     extra_kinase_annot: str,
     sample_annotation_file: str,
     fasta_file: str,
-):  
+):
     results_folder = Path(results_folder)
+    kinase_score_file = (
+        results_folder / "topas_scores" / "rtk_substrate_phosphorylation_scores.tsv"
+    )
+    if kinase_score_file.is_file():
+        logger.info(
+            f"Receptor tyrosine substrate phosphorylation scoring skipped - found files already processed"
+        )
+        return
     cohort_annotated_sites_df = get_annotated_modified_sequence_groups(
         results_folder,
         extra_kinase_annot,
@@ -54,7 +62,7 @@ def calculate_rtk_scores(
     )
 
     substrate_file = (
-        results_folder / "topas_scores" / "rtk_substrate_peptide_intensities.csv"
+        results_folder / "topas_scores" / "rtk_substrate_peptide_intensities.tsv"
     )
     ck_substrate_phosphorylation.write_substrate_peptides(
         annotated_cohort_intensities_df, annotated_sites_mapping, substrate_file
@@ -65,12 +73,8 @@ def calculate_rtk_scores(
         annotated_sites_mapping,
     )
 
-    kinase_score_file = (
-        results_folder / "topas_scores" / "rtk_substrate_phosphorylation_scores.csv"
-    )
-    ck_substrate_phosphorylation.save_scores_with_metadata_columns(
-        scores, metadata_file, kinase_score_file
-    )
+    ck_substrate_phosphorylation.save_scores(scores, kinase_score_file)
+    ck_substrate_phosphorylation.save_scores(scores, kinase_score_file, metadata_file)
 
 
 def get_annotated_modified_sequence_groups(
@@ -186,18 +190,25 @@ def load_substrate_phosphorylation(
     results_folder,
     kinase_results_folder: str = "topas_scores",
 ):
-    kinase_score_file = results_folder / kinase_results_folder / "rtk_substrate_phosphorylation_scores.csv"
+    kinase_score_file = (
+        results_folder
+        / kinase_results_folder
+        / "rtk_substrate_phosphorylation_scores.tsv"
+    )
 
     kinase_scores_df = pd.read_csv(
         kinase_score_file,
         index_col=0,
+        sep="\t"
     )
-    kinase_scores_df = kinase_scores_df.drop(columns=ck_substrate_phosphorylation.META_COLS)
     kinase_scores_df = kinase_scores_df.T
     kinase_scores_df.index.name = "PSP Kinases"
-    kinase_scores_df.index = kinase_scores_df.index.str.replace("RTK-TOPAS", "TOPAS", regex=False)
+    kinase_scores_df.index = kinase_scores_df.index.str.replace(
+        "RTK-TOPAS", "TOPAS", regex=False
+    )
 
     return kinase_scores_df
+
 
 """
 python3 -m topas_pipeline.topas.rtk_scoring -c config_patients.json

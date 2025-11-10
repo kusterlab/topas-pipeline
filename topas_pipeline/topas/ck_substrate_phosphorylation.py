@@ -4,12 +4,15 @@
 import sys
 import logging
 from pathlib import Path
+from typing import Optional
 
 import pandas as pd
 import numpy as np
 from tqdm import tqdm
 
 import psite_annotation as pa
+
+from .. import sample_metadata
 
 tqdm.pandas()
 
@@ -412,6 +415,16 @@ def calculate_cytoplasmic_kinase_scores(
     file_suffix = ""
     if expression_corrected_input:
         file_suffix = "_expressioncorrected"
+    kinase_score_file = (
+        results_folder
+        / "topas_scores"
+        / f"ck_substrate_phosphorylation_scores{file_suffix}.tsv"
+    )
+    if kinase_score_file.is_file():
+        logger.info(
+            f"Cytoplasmic kinase scoring skipped - found files already processed"
+        )
+        return
 
     logger.info("Construct joint modified sequence groups between cohort and decryptM")
     peptidoform_groups = get_joint_modified_sequence_groups(
@@ -433,7 +446,7 @@ def calculate_cytoplasmic_kinase_scores(
     decryptM_kinases = get_patient_annotated_sites(pp_intensities_df, automated_sites)
 
     substrate_file = (
-        results_folder / "topas_scores" / "ck_substrate_peptide_intensities.csv"
+        results_folder / "topas_scores" / "ck_substrate_peptide_intensities.tsv"
     )
     write_substrate_peptides(
         pp_intensities_df, decryptM_kinases, substrate_file, kinases=VALIDATED_KINASES
@@ -444,26 +457,41 @@ def calculate_cytoplasmic_kinase_scores(
         pp_intensities_df, decryptM_kinases, kinases=VALIDATED_KINASES
     )
 
-    kinase_score_file = results_folder / "topas_scores" / f"ck_substrate_phosphorylation_scores{file_suffix}.csv"
-    save_scores_with_metadata_columns(scores, metadata_file, kinase_score_file)
+    save_scores(scores, kinase_score_file)
+    save_scores(scores, kinase_score_file, metadata_file)
 
 
-def save_scores_with_metadata_columns(
-    scores: pd.DataFrame, metadata_file: str, kinase_score_file: str
+def save_scores(
+    scores: pd.DataFrame, kinase_score_file: Path, metadata_file: Optional[str] = None
 ):
-    # Save with meta information
-    metadata_df = pd.read_excel(metadata_file)
-    metadata_df["Sample name"] = "pat_" + metadata_df["Sample name"]
-    score_cols = list(scores.columns)
+    if metadata_file:
+        metadata_df = sample_metadata.load(metadata_file)
+        scores = merge_scores_with_sample_metadata(scores, metadata_df)
+        kinase_score_file = kinase_score_file.with_name(
+            kinase_score_file.stem + "_with_metadata.tsv"
+        )
+
+    scores.index.name = "Sample name"
 
     logger.info(f"Writing results to {kinase_score_file}")
     Path(kinase_score_file).parent.mkdir(exist_ok=True)
-    scores.merge(
+
+    scores.to_csv(kinase_score_file, sep="\t", float_format="%.4f")
+
+
+def merge_scores_with_sample_metadata(
+    scores: pd.DataFrame, metadata_df: pd.DataFrame
+) -> pd.DataFrame:
+    """Merge scores DataFrame with metadata on sample name."""
+    score_cols = list(scores.columns)
+    metadata_df["Sample name"] = "pat_" + metadata_df["Sample name"]
+    merged = scores.merge(
         right=metadata_df.set_index("Sample name")[META_COLS],
         left_index=True,
         right_index=True,
         how="left",
-    )[META_COLS + score_cols].to_csv(kinase_score_file)
+    )
+    return merged[META_COLS + score_cols]
 
 
 def get_joint_modified_sequence_groups(
@@ -658,7 +686,7 @@ def write_substrate_peptides(
 
     logger.info(f"Writing substrate intensities to {substrate_file}")
     Path(substrate_file).parent.mkdir(exist_ok=True)
-    substrate_intensities_df.to_csv(substrate_file, float_format="%.4g")
+    substrate_intensities_df.to_csv(substrate_file, sep="\t", float_format="%.4g")
 
 
 def compute_substrate_phosphorylation_scores(
