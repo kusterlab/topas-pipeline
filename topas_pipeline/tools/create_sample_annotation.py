@@ -35,12 +35,18 @@ def main(argv):
         "--qc-lot-mapping-file",
         help="Path to Excel file with two mandatory columns: 'Batch Name' and 'QC Lot'",
     )
+    parser.add_argument(
+        "--output-file-suffix",
+        help="Add suffix to output file before the extension.",
+        default=""
+    )
 
     args = parser.parse_args(argv)
 
     metadata_file = args.metadata_file
     output_folder = args.output_folder
     qc_lot_mapping_file = args.qc_lot_mapping_file
+    output_file_suffix = args.output_file_suffix
 
     # Rest of your logic goes here
     print(f"Metadata file: {metadata_file}")
@@ -116,9 +122,12 @@ def main(argv):
     metadata_df = metadata_df.sort_values(['Batch Name', 'TMT Channel'])
 
     today = datetime.datetime.today().date()
-    metadata_df.to_csv(f"{output_folder}/sample_annotation_{today}.csv", index=False)
+    output_file = f"{output_folder}/sample_annotation_{today}{output_file_suffix}.csv"
+    metadata_df.to_csv(output_file, index=False)
 
-    print(f"Written sample annotation file to: {output_folder}/sample_annotation_{today}.csv")
+    print(f"Written sample annotation file to: {output_file}")
+
+    return output_file
 
 
 def expand_rows(row: pd.Series):

@@ -27,18 +27,15 @@ def apply_bridge_channel_normalization(
     results_folder: str,
     sample_annotation_file: str,
     min_occurrence: float = 2 / 3,  # Good Value for phospho
+    min_samples_in_qc_lot: int = 100,
 ):
     results_folder = Path(results_folder)
     batch_corrected_file = results_folder / "preprocessed_pp2_agg_batchcorrected.csv"
-    
-    if os.path.exists(
-            batch_corrected_file
-    ):
+    if batch_corrected_file.is_file():
         logger.info(
-            f"Bridge normalization skipped - found file already processed"
+            f"Reusing previously generated batch corrected intensities: {batch_corrected_file}"
         )
         return
-
 
     sample_annotation_df = sample_annotation.load_sample_annotation(
         sample_annotation_file
@@ -51,10 +48,10 @@ def apply_bridge_channel_normalization(
     )
 
     ref_cols = sample_qc_lot_mapping_df.loc[
-        sample_qc_lot_mapping_df["QC Lot"].notna()
+        sample_qc_lot_mapping_df["is_reference"]
     ].index
     pat_cols = sample_qc_lot_mapping_df.loc[
-        sample_qc_lot_mapping_df["QC Lot"].isna()
+        ~sample_qc_lot_mapping_df["is_reference"]
     ].index
 
     phospho_df_corrected, correction_factors = within_qc_lot_normalization(
@@ -77,16 +74,19 @@ def apply_bridge_channel_normalization(
     # correct QC lots with at least 100 patient samples
     qc_lots_to_correct = (
         sample_qc_lot_mapping_df["QC Lot group"]
-        .value_counts()[sample_qc_lot_mapping_df["QC Lot group"].value_counts() >= 100]
+        .value_counts()[
+            sample_qc_lot_mapping_df["QC Lot group"].value_counts()
+            >= min_samples_in_qc_lot
+        ]
         .index
     )
     for qc_lot_group in qc_lots_to_correct:
         qc_lot_samples = sample_qc_lot_mapping_df["QC Lot group"] == qc_lot_group
         qc_lot_patient_samples = sample_qc_lot_mapping_df.loc[
-            qc_lot_samples & sample_qc_lot_mapping_df["QC Lot"].isna()
+            qc_lot_samples & ~sample_qc_lot_mapping_df["is_reference"], :
         ].index
         qc_lot_ref_samples = sample_qc_lot_mapping_df.loc[
-            qc_lot_samples & sample_qc_lot_mapping_df["QC Lot"].notna()
+            qc_lot_samples & sample_qc_lot_mapping_df["is_reference"], :
         ].index
 
         avg_patient_intensity = phospho_df_corrected2.loc[
@@ -126,7 +126,6 @@ def apply_bridge_channel_normalization(
         index_cols=index_cols,
     )
 
-    
     logger.info(f"Writing results to {batch_corrected_file}")
     phospho_df_corrected2.to_csv(
         batch_corrected_file,
@@ -143,18 +142,17 @@ def get_sample_qc_lot_mapping_df(
     sample_mapping_df["channel"] = (
         sample_mapping_df["index"].str.split(" ").str[-2].astype(int)
     )
-    if "QC Lot" not in sample_annotation_df.columns:
-        logger.info("No 'QC Lot' column found in sample annotation file. Setting QC Lot = 1 for all samples.")
-        sample_annotation_df.loc[:, "QC Lot"] = 1
 
     sample_mapping_df = sample_mapping_df.merge(
-        sample_annotation_df[["Batch Name", "TMT Channel", "QC Lot"]],
+        sample_annotation_df[["Batch Name", "TMT Channel", "QC Lot", "is_reference"]],
         left_on=["batch", "channel"],
         right_on=["Batch Name", "TMT Channel"],
     )
     sample_mapping_df["QC Lot group"] = sample_mapping_df.groupby("batch")[
         "QC Lot"
-    ].transform("mean")
+    ].transform(
+        "mean"
+    )  # TODO: replace this with sorted string concat to not get accidental collisions
     sample_mapping_df = sample_mapping_df.drop(columns=[0, "Batch Name", "TMT Channel"])
     sample_mapping_df = sample_mapping_df.set_index("index")
     return sample_mapping_df
@@ -192,6 +190,9 @@ def row_wise_normalize(
     # Grab a single peptide
     vals = row.rename("intensity raw")
     vals = pd.concat([vals, sample_qc_lot_mapping_df], axis=1)
+    vals["is_reference"] = vals["is_reference"].fillna(
+        False
+    )  # for samples not in the sample annotation file
     vals["sample type"] = vals["QC Lot"]
 
     # Calculates the ref correction for each mix type.
@@ -200,7 +201,7 @@ def row_wise_normalize(
 
     # Calculate the mean ref intensity per Batch and QC Lot
     mean_intensities = (
-        vals[vals["channel"].isin({10, 11})]
+        vals[vals["is_reference"]]
         .groupby(["sample type", "batch"], as_index=False)["intensity raw"]
         .agg(mean_realspace_f, engine="cython")
     )

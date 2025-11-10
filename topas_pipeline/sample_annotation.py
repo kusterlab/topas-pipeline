@@ -22,9 +22,18 @@ Mandatory columns:
 
 Optional columns:
 - QC ("passed", "shaky", "failed")
+- QC Lot (integer, should only be filled if is_reference == True)
 - Replicate ("replicate", "")
 - Material issue ("+", "")
 """
+
+MANDATORY_COLUMNS = [
+    "Sample name",
+    "Batch Name",
+    "TMT Channel",
+    "Cohort",
+    "is_reference",
+]
 
 
 def load_sample_annotation(sample_annotation_file: Union[str, Path]) -> pd.DataFrame:
@@ -40,7 +49,55 @@ def load_sample_annotation(sample_annotation_file: Union[str, Path]) -> pd.DataF
         raise PermissionError(
             f"Cannot open sample annotation file, check if you have it open in Excel. {sample_annotation_file}"
         )
+
+    sample_annotation_df["is_reference"] = sample_annotation_df["is_reference"].fillna(
+        False
+    )
+    if "QC Lot" not in sample_annotation_df.columns:
+        logger.info(
+            "No 'QC Lot' column found in sample annotation file. Setting QC Lot = 1 for all QC samples."
+        )
+        sample_annotation_df.loc[sample_annotation_df["is_reference"], "QC Lot"] = 1
+
     return sample_annotation_df
+
+
+def validate_sample_annotation(sample_annotation_df: pd.DataFrame) -> None:
+    logger.info("Checking sample annotation file")
+
+    sample_annotation_df = (
+        sample_annotation_df.reset_index()
+    )  # make Sample name a regular column
+
+    missing_cols = sample_annotation_df.columns.difference(MANDATORY_COLUMNS)
+    if missing_cols:
+        missing_str = ", ".join(missing_cols)
+        raise ValueError(
+            f"Missing mandatory columns in sample annotation file: {missing_str}\n"
+            f"Found columns: {list(sample_annotation_df.columns)}"
+        )
+
+    # TODO: Check that sample names do not contain / and ; (problems with paths and passing multiple sample names in TOPAS portal)
+
+    # Check that there are no duplicates in neither patient annot and metadata
+    if sample_annotation_df["Sample name"].duplicated().any():
+        duplicated = sample_annotation_df[
+            sample_annotation_df["Sample name"].duplicated()
+        ]
+        logger.info(f"Duplicated sample(s) in sample annotation: {duplicated}")
+        raise ValueError(f"Duplicated sample(s) in sample annotation: {duplicated}")
+
+    # Check for duplicates in batch, tmt_channel
+    if sample_annotation_df[["Cohort", "Batch Name", "TMT Channel"]].duplicated().any():
+        duplicated = sample_annotation_df[
+            sample_annotation_df[["Cohort", "Batch Name", "TMT Channel"]].duplicated()
+        ]
+        logger.info(
+            f"Duplicated cohort, batch and tmt_channel in sample annotation: {duplicated}"
+        )
+        raise ValueError(
+            f"Duplicated cohort, batch and tmt_channel in sample annotation: {duplicated}"
+        )
 
 
 def copy_sample_annotation_file(sample_annotation_file: str, results_folder: str):
@@ -74,7 +131,7 @@ def filter_sample_annotation(
         ]
     if "is_reference" in sample_annotation_df.columns and remove_reference:
         sample_annotation_df = sample_annotation_df[
-            sample_annotation_df["is_reference"] != True
+            ~sample_annotation_df["is_reference"]
         ]
     return sample_annotation_df
 

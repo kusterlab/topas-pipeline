@@ -56,6 +56,7 @@ MQ_EVIDENCE_COLUMNS_TYPES = {
     "id": "",
 }
 
+
 def load_meta_file(results_folder):
     results_folder = Path(results_folder)
     meta_fp = pd.read_csv(results_folder / "meta_input_file_FP.tsv", sep="\t")
@@ -67,19 +68,24 @@ def check_metafiles(results_folder):
     meta_fp, meta_pp = load_meta_file(results_folder)
 
     # ADD potential for CL in between batch and digits
-    fp_batches = meta_fp['mq_txt_folder'].str.extract(r'Batch(\d+)')
-    pp_batches = meta_pp['mq_txt_folder'].str.extract(r'Batch(\d+)')
+    fp_batches = meta_fp["mq_txt_folder"].str.extract(r"Batch(\d+)")
+    pp_batches = meta_pp["mq_txt_folder"].str.extract(r"Batch(\d+)")
 
     fp_batches_set = set(fp_batches[0].dropna())
     pp_batches_set = set(pp_batches[0].dropna())
-    
+
     if fp_batches_set != pp_batches_set:
-        raise ValueError("The batches for FP and PP differ (meta_input_file content mismatch).")
+        raise ValueError(
+            "The batches for FP and PP differ (meta_input_file content mismatch)."
+        )
 
 
 # TODO: move this to config validation
-def check_annot(results_folder: str,
-    sample_annotation_file: str, metadata_annotation_file: str, in_metadata: Callable
+def check_annot(
+    results_folder: str,
+    sample_annotation_file: str,
+    metadata_annotation_file: str,
+    in_metadata: Callable,
 ):
     """Performs consistency checks of the sample annotation and metadata files.
 
@@ -104,21 +110,17 @@ def check_annot(results_folder: str,
     check_metafiles(results_folder)
 
     sample_annot_df = sample_annotation.load_sample_annotation(sample_annotation_file)
+    sample_annotation.validate_sample_annotation(sample_annot_df)
+
     sample_annot_df_filtered = sample_annotation.filter_sample_annotation(
         sample_annot_df, remove_qc_failed=True, remove_replicates=True
     )
-    sample_annot_df_filtered = sample_annot_df_filtered.reset_index()  # drop=True
+    sample_annot_df_filtered = sample_annot_df_filtered.reset_index()
+
     metadata_df = sample_metadata.load(metadata_annotation_file)
 
-    # Check that there are no duplicates in neither patient annot and metadata
-    if sample_annot_df_filtered["Sample name"].duplicated().any():
-        duplicated = sample_annot_df_filtered[
-            sample_annot_df_filtered["Sample name"].duplicated()
-        ]
-        logger.info(f"Duplicated sample(s) in sample annotation: {duplicated}")
-        raise ValueError(f"Duplicated sample(s) in sample annotation: {duplicated}")
-
-    elif metadata_df["Sample name"].duplicated().any():
+    # Check that there are no duplicates in metadata
+    if metadata_df["Sample name"].duplicated().any():
         duplicates_samples = metadata_df["Sample name"][
             metadata_df["Sample name"].duplicated()
         ]
@@ -128,26 +130,6 @@ def check_annot(results_folder: str,
         )
         raise ValueError(
             f"The Duplicated sample(s): {duplicates_samples} in metadata annotation should be removed"
-        )
-
-    # TODO : needs to be refactored
-
-    # Check for duplicates in batch, tmt_channel
-    elif (
-        sample_annot_df_filtered[["Cohort", "Batch Name", "TMT Channel"]]
-        .duplicated()
-        .any()
-    ):
-        duplicated = sample_annot_df_filtered[
-            sample_annot_df_filtered[
-                ["Cohort", "Batch Name", "TMT Channel"]
-            ].duplicated()
-        ]
-        logger.info(
-            f"Duplicated cohort, batch and tmt_channel in sample annotation: {duplicated}"
-        )
-        raise ValueError(
-            f"Duplicated cohort, batch and tmt_channel in sample annotation: {duplicated}"
         )
 
     # Check if all given samples in patient annot is also in metadata
@@ -234,9 +216,11 @@ def sum_peptide_intensities(
     logger.info(
         "Summing up intensities per p-peptide across fractions and charge states"
     )
-    
+
     # Perform replacement
-    df['Modified sequence'] = df["Modified sequence"].str.replace("M(Oxidation (M))", "M", regex=False)
+    df["Modified sequence"] = df["Modified sequence"].str.replace(
+        "M(Oxidation (M))", "M", regex=False
+    )
 
     # TODO: split strings on semicolon before making unique
     def csv_list_unique(x):
@@ -381,9 +365,7 @@ def load_and_normalize(
     save_debug_df(df, "_after_ms1_centering")
     save_correction_factors(correction_factors, "_ms1_correction_factors")
 
-    ref_channels_df = sample_annotation_df.loc[
-        sample_annotation_df["is_reference"] == True, :
-    ]
+    ref_channels_df = sample_annotation_df.loc[sample_annotation_df["is_reference"], :]
     if normalize_to_reference:
         # Scale MS1 intensities such that reference channel MS1 contribution is constant across batches
         df = data_loader.scale_ms1_to_reference(df, ref_channels_df)
@@ -404,15 +386,19 @@ def load_and_normalize(
 def filter_high_dr_evidence(evidence_df, df_new, ratio_threshold: float = 0.01):
     """
     Filter out evidence with a log ratio below the specified threshold.
-    
+
     Parameters:
     df (DataFrame): The input DataFrame containing evidence data.
     logratio (int): The log ratio threshold for filtering.
-    
+
     Returns:
     DataFrame: Filtered DataFrame with high DR evidence.
     """
-    pat_cols = [col for col in evidence_df.columns if col.startswith('Reporter intensity corrected')]
+    pat_cols = [
+        col
+        for col in evidence_df.columns
+        if col.startswith("Reporter intensity corrected")
+    ]
 
     # compute row-wise max
     row_max = evidence_df[pat_cols].max(axis=1)
@@ -424,7 +410,7 @@ def filter_high_dr_evidence(evidence_df, df_new, ratio_threshold: float = 0.01):
     small_mask = ratio_df < 0.01
 
     df_new[pat_cols] = evidence_df[pat_cols].mask(small_mask)
-    
+
     return df_new
 
 
@@ -820,9 +806,9 @@ def get_data_location(
         validity_check = is_valid_pp_file
 
     evidence_files = []
-    for file_to_check in sorted(glob(
-        os.path.join(maxquant_super_folder, "**", file_type), recursive=True
-    )):
+    for file_to_check in sorted(
+        glob(os.path.join(maxquant_super_folder, "**", file_type), recursive=True)
+    ):
         if validity_check(file_to_check):
             evidence_files.append(file_to_check)
     evidence_files = sorted(evidence_files)
