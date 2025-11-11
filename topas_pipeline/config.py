@@ -2,8 +2,10 @@ import json
 from typing import List
 
 from dataclasses import dataclass, field, asdict
+import toml
 
 # TODO: switch to pydantic dataclasses to enforce data types
+
 
 @dataclass
 class Simsi:
@@ -95,11 +97,19 @@ class Config:
     def asjson(self):
         return json.dumps(self.asdict(), indent=4)
 
+    def astoml(self):
+        return toml.dumps(self.asdict())
 
-def load(json_file: str):
+
+def load(config_file: str):
     """Reads a JSON file and updates the provided Config dataclass instance."""
-    with open(json_file, "r") as f:
-        config_data = json.load(f)
+    with open(config_file, "r") as f:
+        if config_file.endswith(".json"):
+            config_data = json.load(f)
+        elif config_file.endswith(".toml"):
+            config_data = toml.load(f)
+        else:
+            raise ValueError("Unknown config file format, should be either .json or .toml")
 
     config = Config(**config_data)
 

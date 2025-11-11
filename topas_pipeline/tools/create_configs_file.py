@@ -13,10 +13,12 @@ Usage:
 
 import sys
 import re
-import datetime
 import argparse
+from pathlib import Path
 
 import pandas as pd
+
+from topas_pipeline import config
 
 
 def main(argv):
@@ -24,36 +26,46 @@ def main(argv):
         description="Script to create input sample annotation file for pipeline from metadata file."
     )
     parser.add_argument(
+        "--config-file-template",
+        required=True,
+        help="Config file to use as template. The result_folder, sample_annotation and metadata_annotation fields will be overwritten.",
+    )
+    parser.add_argument(
         "--metadata-file", required=True, help="Path to the metadata Excel file"
     )
     parser.add_argument(
-        "--output-folder",
+        "--results-folder",
         required=True,
-        help="Path to the folder where to write annotation file",
+        help="Path to the folder where to write the pipeline results, should be of the format 2025.11.04_xxx",
     )
     parser.add_argument(
         "--qc-lot-mapping-file",
         help="Path to Excel file with two mandatory columns: 'Batch Name' and 'QC Lot'",
     )
-    parser.add_argument(
-        "--output-file-suffix",
-        help="Add suffix to output file before the extension.",
-        default="",
-    )
 
     args = parser.parse_args(argv)
 
     metadata_file = args.metadata_file
-    output_folder = args.output_folder
     qc_lot_mapping_file = args.qc_lot_mapping_file
-    output_file_suffix = args.output_file_suffix
+    results_folder = Path(args.results_folder)
+    output_file_suffix = results_folder.name
 
-    create_sample_annotation(
+    results_folder.mkdir(exist_ok=True)
+
+    sample_annotation_file = create_sample_annotation(
         metadata_file,
-        output_folder,
+        results_folder,
         qc_lot_mapping_file,
         output_file_suffix,
     )
+
+    configs = config.load(args.config_file_template)
+    configs.results_folder = str(results_folder)
+    configs.sample_annotation = sample_annotation_file
+    configs.metadata_annotation = metadata_file
+
+    with open(results_folder / "configs.toml", "w") as toml_file:
+        toml_file.write(configs.astoml())
 
 
 def create_sample_annotation(
@@ -135,8 +147,7 @@ def create_sample_annotation(
 
     metadata_df = metadata_df.sort_values(["Batch Name", "TMT Channel"])
 
-    today = datetime.datetime.today().date()
-    output_file = f"{output_folder}/sample_annotation_{today}{output_file_suffix}.csv"
+    output_file = f"{output_folder}/sample_annotation_{output_file_suffix}.csv"
     metadata_df.to_csv(output_file, index=False)
 
     print(f"Written sample annotation file to: {output_file}")
