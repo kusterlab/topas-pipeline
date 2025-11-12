@@ -74,7 +74,7 @@ def copy_metadata_file(metadata_file: str, results_folder: str):
         shutil.copyfile(metadata_file, Path(results_folder) / Path(metadata_file).name)
     except shutil.SameFileError:
         logger.info(
-            "Skipped copying sample metadata: source and destination are the same."
+            "Skipped copying sample metadata: source and destination file are the same."
         )
 
 

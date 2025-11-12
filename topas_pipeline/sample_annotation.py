@@ -69,8 +69,8 @@ def validate_sample_annotation(sample_annotation_df: pd.DataFrame) -> None:
         sample_annotation_df.reset_index()
     )  # make Sample name a regular column
 
-    missing_cols = sample_annotation_df.columns.difference(MANDATORY_COLUMNS)
-    if missing_cols:
+    missing_cols = sample_annotation_df.columns.difference(MANDATORY_COLUMNS).to_list()
+    if len(missing_cols) > 0:
         missing_str = ", ".join(missing_cols)
         raise ValueError(
             f"Missing mandatory columns in sample annotation file: {missing_str}\n"
@@ -108,7 +108,7 @@ def copy_sample_annotation_file(sample_annotation_file: str, results_folder: str
         )
     except shutil.SameFileError:
         logger.info(
-            "Skipped copying sample annotation: source and destination are the same."
+            "Skipped copying sample annotation: source and destination file are the same."
         )
 
 
