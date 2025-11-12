@@ -1,10 +1,13 @@
 import os
 import shutil
+import logging
 from pathlib import Path
 
 import pandas as pd
 
 from . import utils
+
+logger = logging.getLogger(__name__)
 
 """
 Patient metadata annotation file is an excel file which contains a mapping of sample names 
@@ -67,7 +70,12 @@ def find_metadata_path(metadata_file: str):
 
 def copy_metadata_file(metadata_file: str, results_folder: str):
     metadata_file = find_metadata_path(metadata_file)
-    shutil.copyfile(metadata_file, Path(results_folder) / Path(metadata_file).name)
+    try:
+        shutil.copyfile(metadata_file, Path(results_folder) / Path(metadata_file).name)
+    except shutil.SameFileError:
+        logger.info(
+            "Skipped copying sample metadata: source and destination are the same."
+        )
 
 
 def load(metadata_file: str):

@@ -101,9 +101,15 @@ def validate_sample_annotation(sample_annotation_df: pd.DataFrame) -> None:
 
 
 def copy_sample_annotation_file(sample_annotation_file: str, results_folder: str):
-    shutil.copyfile(
-        sample_annotation_file, Path(results_folder) / Path(sample_annotation_file).name
-    )
+    try:
+        shutil.copyfile(
+            sample_annotation_file,
+            Path(results_folder) / Path(sample_annotation_file).name,
+        )
+    except shutil.SameFileError:
+        logger.info(
+            "Skipped copying sample annotation: source and destination are the same."
+        )
 
 
 def filter_sample_annotation(
