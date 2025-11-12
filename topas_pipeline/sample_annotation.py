@@ -69,7 +69,7 @@ def validate_sample_annotation(sample_annotation_df: pd.DataFrame) -> None:
         sample_annotation_df.reset_index()
     )  # make Sample name a regular column
 
-    missing_cols = sample_annotation_df.columns.difference(MANDATORY_COLUMNS).to_list()
+    missing_cols = list(set(MANDATORY_COLUMNS) - set(sample_annotation_df.columns))
     if len(missing_cols) > 0:
         missing_str = ", ".join(missing_cols)
         raise ValueError(
