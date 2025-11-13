@@ -458,7 +458,8 @@ def calculate_cytoplasmic_kinase_scores(
     )
 
     save_scores(scores, kinase_score_file)
-    save_scores(scores, kinase_score_file, metadata_file)
+    if metadata_file is not None and len(metadata_file) > 0:
+        save_scores(scores, kinase_score_file, metadata_file)
 
 
 def save_scores(
@@ -483,15 +484,17 @@ def merge_scores_with_sample_metadata(
     scores: pd.DataFrame, metadata_df: pd.DataFrame
 ) -> pd.DataFrame:
     """Merge scores DataFrame with metadata on sample name."""
-    score_cols = list(scores.columns)
     metadata_df["Sample name"] = "pat_" + metadata_df["Sample name"]
+    metadata_columns = metadata_df.columns.intersection(META_COLS).tolist()
     merged = scores.merge(
-        right=metadata_df.set_index("Sample name")[META_COLS],
+        right=metadata_df.set_index("Sample name")[metadata_columns],
         left_index=True,
         right_index=True,
         how="left",
     )
-    return merged[META_COLS + score_cols]
+
+    score_cols = scores.columns.tolist()
+    return merged[metadata_columns + score_cols]
 
 
 def get_joint_modified_sequence_groups(

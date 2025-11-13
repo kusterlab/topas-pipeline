@@ -74,7 +74,8 @@ def calculate_rtk_scores(
     )
 
     ck_substrate_phosphorylation.save_scores(scores, kinase_score_file)
-    ck_substrate_phosphorylation.save_scores(scores, kinase_score_file, metadata_file)
+    if metadata_file is not None and len(metadata_file) > 0:
+        ck_substrate_phosphorylation.save_scores(scores, kinase_score_file, metadata_file)
 
 
 def get_annotated_modified_sequence_groups(

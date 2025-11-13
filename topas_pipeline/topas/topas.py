@@ -115,17 +115,6 @@ def compute_topas_scores(
             topas_subscores_output_file, sep="\t", float_format="%.4g"
         )
 
-        # apply second-level z-scoring per basket (i.e. per column)
-        # topas_subscores_df = topas_subscores_df.apply(zscore)
-        # topas_subscore_output_file_zscored = os.path.join(
-        #     results_folder,
-        #     topas_results_folder,
-        #     f'subbasket_scores_{topas_name.replace("/", "_").replace(" ", "_")}_zscored.tsv',
-        # )
-        # topas_subscores_df.to_csv(
-        #     topas_subscore_output_file_zscored, sep="\t", index=False, float_format="%.4g"
-        # )
-
         logger.info(
             f"Written TOPAS results for {topas_name} to: {topas_subscores_output_file}"
         )

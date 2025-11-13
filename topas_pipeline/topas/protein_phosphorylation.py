@@ -57,9 +57,10 @@ def protein_phospho_scoring_peptidoforms(
     ck_scoring.save_scores(
         protein_phosphorylation_score_df, protein_phosphorylation_file
     )
-    ck_scoring.save_scores(
-        protein_phosphorylation_score_df, protein_phosphorylation_file, metadata_file
-    )
+    if metadata_file is not None and len(metadata_file) > 0:
+        ck_scoring.save_scores(
+            protein_phosphorylation_score_df, protein_phosphorylation_file, metadata_file
+        )
 
 
 def protein_phospho_scoring(results_folder, preprocessed_protein_df):
