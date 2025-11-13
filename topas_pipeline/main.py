@@ -76,25 +76,33 @@ def main(argv):
         )
         logger.info("--- %.1f seconds --- preprocessing" % (time.time() - start_time))
 
+        # 2) extra phospho processing (grouping, normalization, expression correction)
         start_time = time.time()
-        # 2) extra phospho processing (grouping)
         phospho_grouping.aggregate_modified_sequences(
             results_folder=configs.results_folder
-        )  
-        logger.info("--- %.1f seconds --- phospho grouping" % (time.time() - start_time))
-        start_time = time.time()
-        
-        bridge_normalization.apply_bridge_channel_normalization(
-            results_folder=configs.results_folder, sample_annotation_file=configs.sample_annotation
         )
-        logger.info("--- %.1f seconds --- bridge normalization" % (time.time() - start_time))
+        logger.info(
+            "--- %.1f seconds --- phospho grouping" % (time.time() - start_time)
+        )
+        start_time = time.time()
+
+        bridge_normalization.apply_bridge_channel_normalization(
+            results_folder=configs.results_folder,
+            sample_annotation_file=configs.sample_annotation,
+        )
+        logger.info(
+            "--- %.1f seconds --- bridge normalization" % (time.time() - start_time)
+        )
 
         expression_correction.correct_phospho_for_protein_expression(
-            results_folder=configs.results_folder)
-        logger.info("--- %.1f seconds --- expression correction" % (time.time() - start_time))    
+            results_folder=configs.results_folder
+        )
+        logger.info(
+            "--- %.1f seconds --- expression correction" % (time.time() - start_time)
+        )
 
         start_time = time.time()
-        # 2) clinical processing (~3 minutes)
+        # 2) add protein/p-site clinical annotations (~3 minutes)
         clinical_annotation.add_clinical_annotations(
             results_folder=configs.results_folder,
             clinic_proc_config=configs.clinic_proc,
@@ -114,24 +122,29 @@ def main(argv):
         logger.info("--- %.1f seconds --- metrics" % (time.time() - start_time))
 
         start_time = time.time()
-        # 4) Run WP2 scoring (<1 minute)
+        # 4) Run protein phosphorylation scoring (<1 minute)
         protein_phosphorylation.protein_phospho_scoring_peptidoforms(
             results_folder=configs.results_folder,
             sample_annotation_file=configs.sample_annotation,
-            metadata_file=configs.metadata_annotation
+            metadata_file=configs.metadata_annotation,
         )
-        logger.info("--- %.1f seconds --- protein phospho scoring" % (time.time() - start_time))
+        logger.info(
+            "--- %.1f seconds --- protein phospho scoring" % (time.time() - start_time)
+        )
 
         start_time = time.time()
-        # 4) Run substrate activity scoring
+        # 4) Run substrate phosphorylation scoring
         ck_substrate_phosphorylation.calculate_cytoplasmic_kinase_scores(
             results_folder=configs.results_folder,
             metadata_file=configs.metadata_annotation,
             topas_kinase_substrate_file=configs.clinic_proc.topas_kinase_substrate_file,
-            expression_corrected_input=True
+            expression_corrected_input=True,
         )
-        logger.info("--- %.1f seconds --- ck substrate phosphorylation scoring" % (time.time() - start_time))
-        
+        logger.info(
+            "--- %.1f seconds --- ck substrate phosphorylation scoring"
+            % (time.time() - start_time)
+        )
+
         start_time = time.time()
         rtk_substrate_phosphorylation.calculate_rtk_scores(
             results_folder=configs.results_folder,
@@ -140,7 +153,10 @@ def main(argv):
             sample_annotation_file=configs.sample_annotation,
             fasta_file=configs.preprocessing.fasta_file,
         )
-        logger.info("--- %.1f seconds --- rtk substrate phosphorylation scoring" % (time.time() - start_time))
+        logger.info(
+            "--- %.1f seconds --- rtk substrate phosphorylation scoring"
+            % (time.time() - start_time)
+        )
 
         start_time = time.time()
         # 5) compute TOPAS scores (<1 minute)
@@ -150,17 +166,6 @@ def main(argv):
             metadata_file=configs.metadata_annotation,
         )
         logger.info("--- %.1f seconds --- TOPAS scoring" % (time.time() - start_time))
-
-        start_time = time.time()
-        # 6) report creation (~18 minutes)
-        report_creation.create_report(
-            results_folder=configs.results_folder,
-            debug=configs.preprocessing.debug,
-            report_config=configs.report,
-            topas_annotation_file=configs.clinic_proc.prot_baskets,
-            data_types=configs.data_types,
-        )
-        logger.info("--- %.1f seconds --- report creation" % (time.time() - start_time))
 
         message = "Pipeline finished"
     except Exception as e:
