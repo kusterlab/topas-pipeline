@@ -159,6 +159,7 @@ adc_ids.txt
 
 # config files
 config*.json
+config*.toml
 
 # memory profiling results
 mprofile*.dat

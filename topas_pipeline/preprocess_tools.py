@@ -59,6 +59,7 @@ MQ_EVIDENCE_COLUMNS_TYPES = {
 
 def load_meta_file(results_folder):
     results_folder = Path(results_folder)
+    # TODO replace with meta_input_file.read_meta_input_file
     meta_fp = pd.read_csv(results_folder / "meta_input_file_FP.tsv", sep="\t")
     meta_pp = pd.read_csv(results_folder / "meta_input_file_PP.tsv", sep="\t")
     return meta_fp, meta_pp

@@ -20,7 +20,7 @@ report_creation: save_git_hash
 docker_all: pull full_pipeline
 
 # runs mintest
-docker_mintest: CONFIG_FILE=config_patients_minimal_test.json
+docker_mintest: CONFIG_FILE=config_patients_minimal_test.toml
 docker_mintest: full_pipeline
 
 # runs pipeline locally
@@ -30,7 +30,7 @@ all: LOCAL_DIR=.
 all: full_pipeline
 
 # runs minimal test locally
-mintest: CONFIG_FILE=config_patients_minimal_test.json
+mintest: CONFIG_FILE=config_patients_minimal_test.toml
 mintest: DOCKER_CMD=
 mintest: IMAGE=
 mintest: LOCAL_DIR=.
