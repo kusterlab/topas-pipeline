@@ -125,7 +125,7 @@ class TestTopasAnnotation:
         )
 
         expected_result_df = pd.DataFrame(
-            {"TOPAS_score": ["topas1", ""], "TOPAS_score_weights": ["1.0", np.nan]},
+            {"TOPAS_score": ["topas1", ""]},
             index=pd.Series(["GeneA", "GeneB"], name="Gene names"),
         )
         pd.testing.assert_frame_equal(result_df, expected_result_df, check_dtype=False)
@@ -161,25 +161,28 @@ class TestCreateIdentifierToBasketDict:
     def test_process_pp_data_type(self):
         data = {
             "Gene names": ["gene1", "gene2", "gene1"],
-            "group": ["(R)TK", "(R)TK", "(R)TK"],
+            "group": ["OTHER", "OTHER", "OTHER"],
             "level": [
                 "phosphorylation",
                 "kinase activity",
                 "important phosphorylation",
             ],
             "TOPAS_score": ["topas1", "topas2", "topas3"],
+            "TOPAS_subscore": ["subtopas1(paper)", "subtopas2(paper)", "subtopas3(paper)"],
         }
         df = pd.DataFrame(data)
         expected_output = {
             "gene1": {
-                "group": "(R)TK;(R)TK",
+                "group": "OTHER;OTHER",
                 "level": "important phosphorylation;phosphorylation",
                 "TOPAS_score": "topas1;topas3",
+                "TOPAS_subscore": "subtopas1(paper);subtopas3(paper)",
             },
             "gene2": {
-                "group": "(R)TK",
+                "group": "OTHER",
                 "level": "kinase activity",
                 "TOPAS_score": "topas2",
+                "TOPAS_subscore": "subtopas2(paper)",
             },
         }
 

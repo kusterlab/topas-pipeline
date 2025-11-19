@@ -30,7 +30,7 @@ class TestClinicalProcessDataType:
     def test_processes_data_with_all_files_present(self, mocker):
         # Mocking dependencies
         mocker.patch("os.path.exists", return_value=False)
-        mock_read_csv = mocker.patch("pandas.read_csv", return_value=pd.DataFrame())
+        mock_read_csv = mocker.patch("pandas.read_csv", return_value=pd.DataFrame(index=[""]))
         mocker.patch(
             "topas_pipeline.clinical_tools.add_phospho_annotations", return_value=pd.DataFrame()
         )

@@ -45,7 +45,7 @@ class TestComputeTopasScores:
             ),
         )
         mocker.patch(
-            "topas_pipeline.topas.scoring.load_protein_phosphorylation",
+            "topas_pipeline.topas.protein_phosphorylation.load_protein_phosphorylation",
             return_value=pd.DataFrame(
                 {
                     "pat_Sample1": [0.5, 0.8],
@@ -56,7 +56,7 @@ class TestComputeTopasScores:
             ),
         )
         mocker.patch(
-            "topas_pipeline.topas.scoring.load_substrate_phosphorylation",
+            "topas_pipeline.topas.rtk_substrate_phosphorylation.load_substrate_phosphorylation",
             return_value=pd.DataFrame(
                 {
                     "pat_Sample1": [0.5, 0.8],
@@ -130,7 +130,7 @@ def topas_annotation_df():
 class TestReadTopasScores:
     def test_reads_topas_scores_from_valid_file_path(self, mocker):
         # Mocking os.path.exists to return True
-        mocker.patch("os.path.exists", return_value=True)
+        mocker.patch("pathlib.Path.is_file", return_value=True)
         # Mocking pd.read_csv to return a sample DataFrame
         sample_df = pd.DataFrame({"Sample": ["A", "B"], "Score": [1, 2]}).set_index(
             "Sample"

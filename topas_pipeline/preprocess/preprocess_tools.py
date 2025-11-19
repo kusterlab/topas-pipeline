@@ -1,6 +1,6 @@
 import re
 import os
-from glob import glob
+import glob
 from typing import List, Tuple, Union, Callable
 from pathlib import Path
 import logging
@@ -741,7 +741,7 @@ def get_data_location(
 
     evidence_files = []
     for file_to_check in sorted(
-        glob(os.path.join(maxquant_super_folder, "**", file_type), recursive=True)
+        glob.glob(os.path.join(maxquant_super_folder, "**", file_type), recursive=True)
     ):
         if validity_check(file_to_check):
             evidence_files.append(file_to_check)

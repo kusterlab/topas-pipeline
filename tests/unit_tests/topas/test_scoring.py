@@ -148,7 +148,7 @@ class TestGetSummedZscore:
         topas_subscore_df = pd.DataFrame(topas_subscore_data)
 
         result = scoring.get_summed_zscore(
-            z_score_df, topas_subscore_df, "Gene names", "GENES", ligand=False
+            z_score_df, topas_subscore_df, "Gene names", "GENES"
         )
         # 1.5*1 - 4.0 + 2.25*0.5 = -0.25
         # -2.5*1 + 4.0 + -2.05*0.5 = -0.55

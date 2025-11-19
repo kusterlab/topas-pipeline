@@ -44,7 +44,7 @@ class TestMain:
                     "slack": {
                         "webhook_url": "dummy_url",
                         "channel": "#dummy_channel",
-                    }
+                    },
                 }
             ),
         )
@@ -90,8 +90,8 @@ class TestMain:
                     "slack": {
                         "webhook_url": "dummy_url",
                         "channel": "#dummy_channel",
-                    }
-                }                
+                    },
+                }
             ),
         )
         mocker.patch("topas_pipeline.simsi.run_simsi")
@@ -124,7 +124,7 @@ class TestRunSimsiDataType:
         mocker.patch("time.time", side_effect=[0, 10, 20, 30])
         mocker.patch("topas_pipeline.simsi.init_file_logger")
         mocker.patch(
-            "topas_pipeline.preprocess_tools.get_summary_files",
+            "topas_pipeline.preprocess.preprocess_tools.get_summary_files",
             return_value=["summary_file"],
         )
         mocker.patch("topas_pipeline.simsi.copy_raw_files")
@@ -447,6 +447,8 @@ class TestRunSimsiSingle:
             str(maximum_pep),
             "--num_threads",
             str(num_threads),
+            "--num_threads_per_precursor_bin",
+            str(2),
             "--tmt_requantify",
         ]
 

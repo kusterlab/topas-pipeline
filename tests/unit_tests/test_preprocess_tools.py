@@ -1,5 +1,4 @@
 import io
-from pathlib import Path
 
 import pytest
 import numpy as np
@@ -15,27 +14,50 @@ from topas_pipeline.data_loaders import data_loader, tmt_loader
 class TestCheckAnnot:
     # Loads sample annotation file correctly
     def test_loads_sample_annotation_file_correctly(self, mocker):
+        mocker.patch(
+            "topas_pipeline.meta_input_file.check_metafiles",
+            return_value=True,
+        )
         mock_sample_annotation = mocker.patch(
-            "topas_pipeline.sample_annotation.load_sample_annotation"
+            "topas_pipeline.sample_annotation.load_sample_annotation",
+            return_value=pd.DataFrame(
+                columns=[
+                    "Sample name",
+                    "Cohort",
+                    "Batch Name",
+                    "TMT Channel",
+                    "is_reference",
+                ]
+            ),
         )
         mock_filter_sample_annotation = mocker.patch(
-            "topas_pipeline.sample_annotation.filter_sample_annotation"
+            "topas_pipeline.sample_annotation.filter_sample_annotation",
+            return_value=pd.DataFrame(
+                columns=[
+                    "Sample name",
+                    "Cohort",
+                    "Batch Name",
+                    "TMT Channel",
+                    "is_reference",
+                ]
+            ),
         )
-        mock_sample_annotation.return_value = mocker.Mock()
-        mock_filter_sample_annotation.return_value = pd.DataFrame(
-            columns=["Sample name", "Cohort", "Batch Name", "TMT Channel"]
+        mocker.patch(
+            "os.path.isfile",
+            return_value=True,
         )
         mocker.patch(
             "pandas.read_excel",
             return_value=pd.DataFrame(columns=["Sample name"]),
         )
 
+        result_folder = "results_folder"
         sample_annotation_file = "sample_file.csv"
         metadata_annotation_file = "metadata_file.csv"
         in_metadata = mocker.Mock()
 
         result = prep.check_annot(
-            sample_annotation_file, metadata_annotation_file, in_metadata
+            result_folder, sample_annotation_file, metadata_annotation_file, in_metadata
         )
 
         mock_sample_annotation.assert_called_once_with(sample_annotation_file)
@@ -45,14 +67,11 @@ class TestCheckAnnot:
         # Check for duplicated sample names
 
     def test_check_duplicated_sample_names(self, mocker):
-        mock_load_sample_annotation = mocker.patch(
-            "topas_pipeline.sample_annotation.load_sample_annotation"
+        mock_logger_info = mocker.patch(
+            "topas_pipeline.preprocess.preprocess_tools.logger.info"
         )
-        mock_filter_sample_annotation = mocker.patch(
-            "topas_pipeline.sample_annotation.filter_sample_annotation"
-        )
-        mock_logger_info = mocker.patch("topas_pipeline.preprocess_tools.logger.info")
 
+        result_folder = "results_folder"
         sample_annotation_file = "sample_file.csv"
         metadata_annotation_file = "metadata_file.csv"
         in_metadata = mocker.Mock()
@@ -66,17 +85,32 @@ class TestCheckAnnot:
                 "Sample name": ["sample1", "sample2", "sample1"],
                 "Batch Name": ["batch1", "batch1", "batch1"],
                 "TMT Channel": [1, 2, 3],
+                "is_reference": ["", "", ""],
+                "Cohort": ["cohort_x", "cohort_x", "cohort_x"],
             }
         )
-        mock_load_sample_annotation.return_value = sample_annot_df_filtered
-        mock_filter_sample_annotation.return_value = sample_annot_df_filtered
+        mocker.patch(
+            "topas_pipeline.meta_input_file.check_metafiles",
+            return_value=True,
+        )
+        mocker.patch(
+            "topas_pipeline.sample_annotation.load_sample_annotation",
+            return_value=sample_annot_df_filtered,
+        )
+        mocker.patch(
+            "topas_pipeline.sample_annotation.filter_sample_annotation",
+            return_value=sample_annot_df_filtered,
+        )
 
         with pytest.raises(
             ValueError,
             match=r"Duplicated sample\(s\) in sample annotation:",
         ):
             prep.check_annot(
-                sample_annotation_file, metadata_annotation_file, in_metadata
+                result_folder,
+                sample_annotation_file,
+                metadata_annotation_file,
+                in_metadata,
             )
 
         mock_logger_info.assert_called_once()
@@ -122,10 +156,14 @@ class TestRemoveEmptyRefBatch:
 class TestGetFilesByType:
     # Correctly retrieves file paths based on provided data type and file type
     def test_correct_file_retrieval(self, mocker):
-        mock_sample_annotation = mocker.patch("topas_pipeline.preprocess_tools.sample_annotation")
-        mock_get_data_location = mocker.patch("topas_pipeline.preprocess_tools.get_data_location")
+        mock_sample_annotation = mocker.patch(
+            "topas_pipeline.preprocess.preprocess_tools.sample_annotation"
+        )
+        mock_get_data_location = mocker.patch(
+            "topas_pipeline.preprocess.preprocess_tools.get_data_location"
+        )
         mock_filter_evidence_files = mocker.patch(
-            "topas_pipeline.preprocess_tools.filter_evidence_files"
+            "topas_pipeline.preprocess.preprocess_tools.filter_evidence_files"
         )
 
         sample_annotation_df = pd.DataFrame({"batch": ["batch1", "batch2"]})
@@ -924,14 +962,20 @@ class TestGetDataLocation:
     def test_returns_list_of_file_paths(self, mocker):
         mocker.patch("os.path.isdir", return_value=True)
         mocker.patch(
-            "os.walk",
+            "glob.glob",
             return_value=[
-                ("/mocked_dir", ("subdir",), ("evidence.txt", "other.txt")),
-                ("/mocked_dir/subdir", (), ("evidence.txt",)),
+                "/mocked_dir/evidence.txt",
+                "/mocked_dir/subdir/evidence.txt",
             ],
         )
-        mocker.patch("topas_pipeline.preprocess_tools.is_valid_fp_file", return_value=True)
-        mocker.patch("topas_pipeline.preprocess_tools.is_valid_pp_file", return_value=True)
+        mocker.patch(
+            "topas_pipeline.preprocess.preprocess_tools.is_valid_fp_file",
+            return_value=True,
+        )
+        mocker.patch(
+            "topas_pipeline.preprocess.preprocess_tools.is_valid_pp_file",
+            return_value=True,
+        )
 
         result = prep.get_data_location("/mocked_dir", "fp")
         assert result == ["/mocked_dir/evidence.txt", "/mocked_dir/subdir/evidence.txt"]
