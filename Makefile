@@ -10,6 +10,9 @@ full_pipeline: save_git_hash
 simsi: rm_err_file save_git_hash
 	$(DOCKER_CMD) $(IMAGE) python3 -u -m topas_pipeline.simsi -c $(LOCAL_DIR)/$(CONFIG_FILE) || (echo "1" > $(DATA)/err.out; exit 1)
 
+maxquant_qc: rm_err_file save_git_hash
+	$(DOCKER_CMD) $(IMAGE) python3 -u -m topas_pipeline.search_qc.maxquant_qc -c $(LOCAL_DIR)/$(CONFIG_FILE) || (echo "1" > $(DATA)/err.out; exit 1)
+
 picked_group_fdr: save_git_hash
 	$(DOCKER_CMD) $(IMAGE) python3 -u -m topas_pipeline.picked_group -c $(LOCAL_DIR)/$(CONFIG_FILE) || (echo "1" > $(DATA)/err.out; exit 1)
 
@@ -31,7 +34,7 @@ all: full_pipeline
 
 # runs minimal test locally
 mintest: CONFIG_FILE=config_patients_minimal_test.toml
-mintest: DOCKER_CMD=
+mintest: DOCKER_CMD=poetry run
 mintest: IMAGE=
 mintest: LOCAL_DIR=.
 mintest: full_pipeline

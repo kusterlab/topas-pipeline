@@ -50,8 +50,8 @@ def load_sample_annotation(sample_annotation_file: Union[str, Path]) -> pd.DataF
             f"Cannot open sample annotation file, check if you have it open in Excel. {sample_annotation_file}"
         )
 
-    sample_annotation_df["is_reference"] = sample_annotation_df["is_reference"].fillna(
-        False
+    sample_annotation_df["is_reference"] = (
+        sample_annotation_df["is_reference"].astype("boolean").fillna(False)
     )
     if "QC Lot" not in sample_annotation_df.columns:
         logger.info(

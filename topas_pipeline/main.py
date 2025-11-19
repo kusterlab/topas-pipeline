@@ -8,11 +8,10 @@ import logging
 from . import __version__, __copyright__, __git_commit_hash__
 from .utils import init_file_logger, send_slack_message
 from . import config
+from .search_qc import maxquant_qc
 from . import simsi
 from .preprocess import preprocess
-from .preprocess import phosphopeptides
 from . import clinical_annotation
-from . import report_creation
 from . import metrics
 from .topas import protein_phosphorylation
 from .topas import ck_substrate_phosphorylation
@@ -60,6 +59,15 @@ def main(argv):
             data_types=configs.data_types,
         )
         logger.info("--- %.1f seconds --- simsi" % (time.time() - start_time))
+
+        start_time = time.time()
+        # 0) generate QC statistics and plots for MaxQuant results
+        maxquant_qc.maxquant_qc(
+            results_folder=configs.results_folder,
+            data_types=configs.data_types,
+            sample_annot=configs.sample_annotation,
+        )
+        logger.info("--- %.1f seconds --- maxquant qc" % (time.time() - start_time))
 
         start_time = time.time()
         # 1) preprocess data (~1.5 hours, mostly slow because of MaxLFQ)
