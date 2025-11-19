@@ -2,8 +2,9 @@ from pathlib import Path
 
 import pandas as pd
  
-from topas_pipeline import picked_group, config, sample_annotation
-from topas_pipeline import preprocess as prep
+from topas_pipeline import config, sample_annotation
+from topas_pipeline.preprocess import picked_group
+from topas_pipeline.preprocess import preprocess
 
 CONFIG_FILE_PATH = './data/test_config.json'
 
@@ -60,7 +61,7 @@ def test_do_quant():
         configs.sample_annotation
     )
 
-    df = prep.load_sample_data(
+    df = preprocess.load_sample_data(
         configs.results_folder,
         sample_annotation_df,
         configs.simsi.run_simsi,
@@ -103,7 +104,7 @@ def test_remap_gene_names():
         configs.sample_annotation
     )
 
-    df = prep.load_sample_data(
+    df = preprocess.load_sample_data(
         configs.results_folder,
         sample_annotation_df,
         configs.simsi.run_simsi,

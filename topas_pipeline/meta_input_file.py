@@ -37,3 +37,21 @@ def read_meta_input_file(meta_input_file: Path) -> pd.DataFrame:
     return pd.read_csv(
         meta_input_file, sep="\t", usecols=["mq_txt_folder", "raw_folder"]
     )
+
+
+def check_metafiles(results_folder):
+    results_folder = Path(results_folder)
+    meta_fp = read_meta_input_file(results_folder / "meta_input_file_FP.tsv")
+    meta_pp = read_meta_input_file(results_folder / "meta_input_file_PP.tsv")
+
+    # ADD potential for CL in between batch and digits
+    fp_batches = meta_fp["mq_txt_folder"].str.extract(r"Batch(\d+)")
+    pp_batches = meta_pp["mq_txt_folder"].str.extract(r"Batch(\d+)")
+
+    fp_batches_set = set(fp_batches[0].dropna())
+    pp_batches_set = set(pp_batches[0].dropna())
+
+    if fp_batches_set != pp_batches_set:
+        raise ValueError(
+            "The batches for FP and PP differ (meta_input_file content mismatch)."
+        )

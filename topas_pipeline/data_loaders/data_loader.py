@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 
 from ..utils import get_tmt_channels
-from ..preprocess_tools import merge_ms1_columns, median_centering
+from ..preprocess.preprocess_tools import merge_ms1_columns, median_centering
 
 logger = logging.getLogger(__name__)
 

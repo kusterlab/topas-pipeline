@@ -1,19 +1,18 @@
-from builtins import ValueError
-import sys
 import re
 import os
 from glob import glob
-from typing import List, Dict, Tuple, Union, Callable
+from typing import List, Tuple, Union, Callable
 from pathlib import Path
 import logging
 
 import pandas as pd
 import numpy as np
 
-from . import utils
-from . import sample_metadata
-from . import sample_annotation
-from . import identification_metadata as id_meta
+from .. import utils
+from .. import sample_metadata
+from .. import sample_annotation
+from .. import meta_input_file
+from .. import identification_metadata as id_meta
 
 logger = logging.getLogger(__name__)
 MQ_EVIDENCE_COLUMNS = [
@@ -57,30 +56,6 @@ MQ_EVIDENCE_COLUMNS_TYPES = {
 }
 
 
-def load_meta_file(results_folder):
-    results_folder = Path(results_folder)
-    # TODO replace with meta_input_file.read_meta_input_file
-    meta_fp = pd.read_csv(results_folder / "meta_input_file_FP.tsv", sep="\t")
-    meta_pp = pd.read_csv(results_folder / "meta_input_file_PP.tsv", sep="\t")
-    return meta_fp, meta_pp
-
-
-def check_metafiles(results_folder):
-    meta_fp, meta_pp = load_meta_file(results_folder)
-
-    # ADD potential for CL in between batch and digits
-    fp_batches = meta_fp["mq_txt_folder"].str.extract(r"Batch(\d+)")
-    pp_batches = meta_pp["mq_txt_folder"].str.extract(r"Batch(\d+)")
-
-    fp_batches_set = set(fp_batches[0].dropna())
-    pp_batches_set = set(pp_batches[0].dropna())
-
-    if fp_batches_set != pp_batches_set:
-        raise ValueError(
-            "The batches for FP and PP differ (meta_input_file content mismatch)."
-        )
-
-
 # TODO: move this to config validation
 def check_annot(
     results_folder: str,
@@ -108,7 +83,7 @@ def check_annot(
     logger.info("Checking sample annotation and metadata files")
 
     # load metafiles and check they contain same batches
-    check_metafiles(results_folder)
+    meta_input_file.check_metafiles(results_folder)
 
     sample_annot_df = sample_annotation.load_sample_annotation(sample_annotation_file)
     sample_annotation.validate_sample_annotation(sample_annot_df)
@@ -463,7 +438,7 @@ def save_qc_info(
 
 
 def retrieve_fp_qc_info(df, sample_annotation_df, results_folder, data_type):
-    print("Retrieving QC info for: ", data_type)
+    logger.info(f"Retrieving QC info for: {data_type}")
 
     df = filter_data(df, "fp")
 
@@ -486,7 +461,7 @@ def retrieve_fp_qc_info(df, sample_annotation_df, results_folder, data_type):
 
 
 def retrieve_pp_qc_info(df, sample_annotation_df, results_folder, data_type):
-    print("Retrieving QC info for: ", data_type)
+    logger.info(f"Retrieving QC info for: {data_type}")
     df = filter_data(
         df, "fp"
     )  # filter only reverse and contaminants no matter data type
@@ -742,48 +717,6 @@ def filter_data(df: pd.DataFrame, data_type: str) -> pd.DataFrame:
 
         df = df.drop("Modifications", axis=1)
 
-    return df
-
-
-def rename_columns_with_sample_ids(
-    df: pd.DataFrame,
-    channel_to_sample_id_dict: Dict[str, str],
-    index_cols: List[str],
-) -> pd.DataFrame:
-    """
-    Transform column names of the format 'Reporter intensity corrected <TMT_channel> <batch_name>' to the sample names
-    """
-    df = df.set_index(index_cols)
-    tmt_channels = list(channel_to_sample_id_dict.keys())
-    metadata_cols = list(map(id_meta.as_metadata_columns, tmt_channels))
-
-    keep_cols = tmt_channels + metadata_cols
-
-    # if not remove_ref:
-    #     ref_channels_cols = df.filter(regex='^Reporter intensity corrected (9|10|11)').columns.tolist()
-    #     keep_cols += ref_channels_cols
-    df = df.filter(items=keep_cols, axis=1)  # here it happens
-
-    # build dictionary to also rename the metadata columns with the sample ids
-    metadata_cols_with_sample_id = map(
-        lambda x: f"Identification metadata {x}", channel_to_sample_id_dict.values()
-    )
-    metadata_to_sample_id_dict = dict(zip(metadata_cols, metadata_cols_with_sample_id))
-
-    # add "pat_" prefix to patient intensity columns
-    channel_to_sample_id_dict_final = {
-        k: "pat_" + v
-        for k, v in channel_to_sample_id_dict.items()
-        if not v.startswith("ref_")
-    }
-    # keep "ref_" prefix for reference intensity columns
-    channel_to_sample_id_dict_final |= {
-        k: v for k, v in channel_to_sample_id_dict.items() if v.startswith("ref_")
-    }
-
-    rename_dict = {**channel_to_sample_id_dict_final, **metadata_to_sample_id_dict}
-    df = df.rename(columns=rename_dict)
-    df = df.reset_index()
     return df
 
 

@@ -5,7 +5,8 @@ import pytest
 import numpy as np
 import pandas as pd
 
-import topas_pipeline.preprocess_tools as prep
+import topas_pipeline.preprocess.preprocess_tools as prep
+from topas_pipeline.preprocess import sample_mapping
 from topas_pipeline.sample_annotation import get_unique_batches
 from topas_pipeline.identification_metadata import mark_num_peptides
 from topas_pipeline.data_loaders import data_loader, tmt_loader
@@ -911,7 +912,7 @@ class TestRenameColumnsWithSampleIds:
             "Reporter intensity corrected 2 batch1": "Sample2",
         }
         index_cols = ["Other column"]
-        result_df = prep.rename_columns_with_sample_ids(
+        result_df = sample_mapping.rename_columns_with_sample_ids(
             df, channel_to_sample_id_dict, index_cols
         )
         expected_columns = ["Other column", "pat_Sample1", "pat_Sample2"]

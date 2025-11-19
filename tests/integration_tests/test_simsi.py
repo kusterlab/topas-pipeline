@@ -1,6 +1,6 @@
 from pathlib import Path
 import topas_pipeline.simsi as simsi
-from topas_pipeline.preprocess_tools import MQ_EVIDENCE_COLUMNS
+from topas_pipeline.preprocess.preprocess_tools import MQ_EVIDENCE_COLUMNS
 from topas_pipeline.data_loaders.simsi_tmt_loader import SimsiTMTLoader
 from topas_pipeline import config
 

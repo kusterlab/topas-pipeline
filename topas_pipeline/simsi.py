@@ -14,7 +14,7 @@ import simsi_transfer.main as simsi
 from job_pool import JobPool
 
 from . import __version__, __copyright__, __git_commit_hash__
-import topas_pipeline.preprocess_tools as prep
+import topas_pipeline.preprocess.preprocess_tools as prep
 from . import meta_input_file as mi
 from . import config
 from .utils import init_file_logger

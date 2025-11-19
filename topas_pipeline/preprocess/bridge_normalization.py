@@ -1,4 +1,3 @@
-import os
 import sys
 import logging
 from pathlib import Path
@@ -15,8 +14,8 @@ import warnings
 warnings.simplefilter(action="ignore", category=FutureWarning)
 warnings.filterwarnings(action="ignore", category=RuntimeWarning)
 
-from . import sample_annotation
-from . import preprocess_tools as prep
+from .. import sample_annotation
+from . import sample_mapping
 from . import phospho_grouping
 
 # hacky way to get the package logger instead of just __main__ when running as a module
@@ -41,7 +40,9 @@ def apply_bridge_channel_normalization(
         sample_annotation_file
     )
 
-    phospho_df = phospho_grouping.read_cohort_intensities_df(results_folder)
+    phospho_df = phospho_grouping.read_cohort_intensities_df(
+        f"{results_folder}/preprocessed_pp2_agg.csv"
+    )
 
     sample_qc_lot_mapping_df = get_sample_qc_lot_mapping_df(
         phospho_df.columns, sample_annotation_df
@@ -119,8 +120,8 @@ def apply_bridge_channel_normalization(
         remove_replicates=False,
     )
 
-    index_cols = ["Modified sequence group", "Gene names"]
-    phospho_df_corrected2 = prep.rename_columns_with_sample_ids(
+    index_cols = ["Modified sequence group", "Gene names", "Proteins"]
+    phospho_df_corrected2 = sample_mapping.rename_columns_with_sample_ids(
         phospho_df_corrected2.reset_index(),
         channel_to_sample_id_dict,
         index_cols=index_cols,
@@ -227,8 +228,8 @@ def row_wise_normalize(
 
 def read_cohort_batch_corrected_df(results_folder: str, skiprows: pd.Series = None):
     phospho_batch_corrected = pd.read_csv(
-        results_folder / "preprocessed_pp2_agg_batchcorrected.csv",
-        index_col=[0, 1],
+        f"{results_folder}/preprocessed_pp2_agg_batchcorrected.csv",
+        index_col=["Modified sequence group", "Gene names", "Proteins"],
         skiprows=skiprows,
     )
     return phospho_batch_corrected
@@ -240,7 +241,7 @@ python3 -m topas_pipeline.bridge_normalization -c config_patients.json
 if __name__ == "__main__":
     import argparse
 
-    from . import config
+    from .. import config
 
     parser = argparse.ArgumentParser()
     parser.add_argument(

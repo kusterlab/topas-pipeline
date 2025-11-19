@@ -6,16 +6,18 @@ import pandas as pd
 from typing import Union
 from pathlib import Path
 
-from . import config
+from .. import config
 from . import preprocess_tools as prep
-from . import picked_group as picked
-from . import sample_annotation
-from . import sample_metadata
-from . import utils
-from . import identification_metadata as id_meta
-from .data_loaders.tmt_loader import TMTLoader
-from .data_loaders.simsi_tmt_loader import SimsiTMTLoader
-from .data_loaders.lfq_loader import LFQLoader
+from . import sample_mapping
+from . import picked_group
+from . import phosphopeptides
+from .. import sample_annotation
+from .. import sample_metadata
+from .. import utils
+from .. import identification_metadata as id_meta
+from ..data_loaders.tmt_loader import TMTLoader
+from ..data_loaders.simsi_tmt_loader import SimsiTMTLoader
+from ..data_loaders.lfq_loader import LFQLoader
 
 logger = logging.getLogger(__name__)
 
@@ -26,17 +28,22 @@ def preprocess_raw(**kwargs) -> None:
     metadata_annotation = kwargs.pop("metadata_annotation")
 
     sample_metadata.copy_metadata_file(metadata_annotation, kwargs["results_folder"])
-    sample_annotation.copy_sample_annotation_file(sample_annotation_file, kwargs["results_folder"])
+    sample_annotation.copy_sample_annotation_file(
+        sample_annotation_file, kwargs["results_folder"]
+    )
 
-    sample_annotation_df = prep.check_annot(kwargs["results_folder"],
-        sample_annotation_file, metadata_annotation, prep.in_metadata
-    )  # just for our pipeline
+    prep.check_annot(
+        kwargs["results_folder"],
+        sample_annotation_file,
+        metadata_annotation,
+        prep.in_metadata,
+    )
 
     data_types = kwargs.pop("data_types")
     for data_type in data_types:
         preprocess_raw_data_type(
             **kwargs,
-            sample_annotation_df=sample_annotation_df,
+            sample_annotation_file=sample_annotation_file,
             data_type=data_type,
         )
 
@@ -45,7 +52,7 @@ def preprocess_raw_data_type(
     results_folder: Union[str, Path],
     run_simsi: bool,
     simsi_folder: Union[str, Path],
-    sample_annotation_df: pd.DataFrame,
+    sample_annotation_file: Union[str, Path],
     preprocessing_config: config.Preprocessing,
     data_type: str,
 ) -> None:
@@ -82,6 +89,15 @@ def preprocess_raw_data_type(
         return
 
     logger.info(f"Preprocessing {data_type} starts")
+
+    sample_annotation_df = sample_annotation.load_sample_annotation(
+        sample_annotation_file
+    )
+    # TODO: remove these steps?
+    sample_annotation_df = sample_annotation.filter_sample_annotation(
+        sample_annotation_df, remove_qc_failed=True, remove_replicates=True
+    )
+    sample_annotation_df = sample_annotation_df.reset_index()
 
     preprocessed2_file = os.path.join(results_folder, f"preprocessed_{data_type}2.csv")
     if os.path.exists(preprocessed2_file):
@@ -120,22 +136,27 @@ def preprocess_raw_data_type(
         )
         df.to_csv(preprocessed2_file, index=False, float_format="%.6g")
 
-    filtered_sample_annotation_file = os.path.join(
-        results_folder, "sample_annot_filtered.csv"
-    )
-    channel_to_sample_id_dict = sample_annotation.get_channel_to_sample_id_dict(
-        sample_annotation_df,
-        filtered_sample_annotation_file,
-        remove_qc_failed=True,
-        remove_replicates=False,
-    )
+    if data_type == "fp":
+        filtered_sample_annotation_file = os.path.join(
+            results_folder, "sample_annot_filtered.csv"
+        )
+        channel_to_sample_id_dict = sample_annotation.get_channel_to_sample_id_dict(
+            sample_annotation_df,
+            filtered_sample_annotation_file,
+            remove_qc_failed=True,
+            remove_replicates=False,
+        )
 
-    index_cols = utils.get_index_cols(data_type)
-    df = prep.rename_columns_with_sample_ids(
-        df, channel_to_sample_id_dict, index_cols=index_cols
-    )
-
-    df = df.set_index("Gene names")
+        index_cols = utils.get_index_cols(data_type)
+        df = sample_mapping.rename_columns_with_sample_ids(
+            df, channel_to_sample_id_dict, index_cols=index_cols
+        )
+        df = df.set_index(index_cols)
+    elif data_type == "pp":
+        df = phosphopeptides.group_phosphopeptides_and_normalize(
+            results_folder=results_folder,
+            sample_annotation_file=sample_annotation_file,
+        )
 
     df.reset_index().to_csv(
         os.path.join(results_folder, f"preprocessed_{data_type}.csv"),
@@ -191,7 +212,7 @@ def preprocess_pp(
 
     # Re-map gene names based on uniprot identifiers in a fasta file. This is necessary
     # because MaxQuant uses their own uniprot->gene mapping file that cannot be changed.
-    df = picked.remap_gene_names(df, fasta_file)
+    df = picked_group.remap_gene_names(df, fasta_file)
 
     # create columns to store metadata about the identifications, e.g. imputed, detected in batch, single peptide id
     df = id_meta.create_metadata_columns(df)
@@ -267,7 +288,7 @@ def preprocess_fp(
     logger.info("Preprocess fp function")
 
     # Apply picked protein group on gene level and filter at 1% FDR
-    df = picked.picked_protein_grouping(
+    df = picked_group.picked_protein_grouping(
         df, results_folder, picked_fdr, fasta_file, fdr_num_threads
     )
 
@@ -297,7 +318,7 @@ def preprocess_fp(
 if __name__ == "__main__":
     import argparse
 
-    from . import config
+    from .. import config
 
     parser = argparse.ArgumentParser()
     parser.add_argument(

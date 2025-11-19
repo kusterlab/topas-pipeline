@@ -12,8 +12,8 @@ from tqdm import tqdm
 
 tqdm.pandas()
 
-from . import sample_annotation
-from . import preprocess_tools as prep
+from .. import sample_annotation
+from . import sample_mapping
 
 # hacky way to get the package logger instead of just __main__ when running as a module
 logger = logging.getLogger(__package__ + "." + Path(__file__).stem)
@@ -26,12 +26,8 @@ def aggregate_modified_sequences(results_folder: str) -> pd.DataFrame:
         results_folder (str): _description_
     """
     results_folder = Path(results_folder)
-    if os.path.exists(
-            results_folder / "preprocessed_pp2_agg.csv"
-    ):
-        logger.info(
-            f"Phospho grouping skipped - found file already processed"
-        )
+    if os.path.exists(results_folder / "preprocessed_pp2_agg.csv"):
+        logger.info(f"Phospho grouping skipped - found file already processed")
         return
     pp_df = read_preprocessed_pp2(results_folder)
 
@@ -69,7 +65,7 @@ def aggregate_modified_sequences(results_folder: str) -> pd.DataFrame:
     # 3.5 minutes for full matrix
     agg_pp_df.loc[:, agg_pp_df.filter(like="Identification metadata").columns] = (
         agg_pp_df.loc[:, agg_pp_df.filter(like="Identification metadata").columns]
-        .replace(r'^;+$|^$', np.nan, regex=True)
+        .replace(r"^;+$|^$", np.nan, regex=True)
         .map(aggregate_imputations, na_action="ignore")
     )
 
@@ -112,55 +108,58 @@ def summarize_annotations(annotations):
     if not has_quan_OOR(annotations):
         # just a fallback logic. Shoult not happen
         if not has_partially_imputed(annotations) and not has_empty(annotations):
-            return 'imputed;'
-        return 'partially imputed;'
+            return "imputed;"
+        return "partially imputed;"
 
     # has quan_OOR
-    annotations.discard('quan_OOR')
+    annotations.discard("quan_OOR")
 
     if not has_imputed(annotations) and not has_partially_imputed(annotations):
-        return 'partially quan_OOR;'
-    elif has_partially_imputed(annotations) or (has_imputed(annotations) and has_empty(annotations)):
-        return 'partially imputed;quan_OOR;'
-    elif annotations == {'imputed'}:
-        return 'imputed;quan_OOR;'
+        return "partially quan_OOR;"
+    elif has_partially_imputed(annotations) or (
+        has_imputed(annotations) and has_empty(annotations)
+    ):
+        return "partially imputed;quan_OOR;"
+    elif annotations == {"imputed"}:
+        return "imputed;quan_OOR;"
     else:
         raise ValueError(f"Unexpected annotation combination: {annotations}")
 
 
 def has_quan_OOR(annotations):
-    return 'quan_OOR' in annotations
+    return "quan_OOR" in annotations
 
 
 def has_imputed(annotations):
-    return 'imputed' in annotations
+    return "imputed" in annotations
 
 
 def has_partially_imputed(annotations):
-    return 'partially imputed' in annotations
+    return "partially imputed" in annotations
 
 
 def has_empty(annotations):
-    return '' in annotations
+    return "" in annotations
 
 
 def read_cohort_intensities_df(
-    results_folder: str,
+    grouped_phospho_file: str,
     sample_annotation_file: str = None,
     skiprows: pd.Series = None,
 ):
-    logger.info("Reading preprocessed_pp2_agg.csv")
-    header = pd.read_csv(
-        f"{results_folder}/preprocessed_pp2_agg.csv", index_col=0, nrows=1
-    )
+    logger.info(f"Reading {Path(grouped_phospho_file).name}")
+    header = pd.read_csv(grouped_phospho_file, index_col=0, nrows=1)
     intensity_cols = header.filter(like="Reporter intensity corrected").columns.tolist()
-    index_cols = ["Modified sequence group", "Gene names"]
+    if len(intensity_cols) == 0:
+        intensity_cols = header.filter(regex=r"(^pat_)|(^ref_)").columns.tolist()
+
+    index_cols = ["Modified sequence group", "Gene names", "Proteins"]
 
     dtype_dict = collections.defaultdict(lambda: "str")
     dtype_dict |= {c: "float64" for c in intensity_cols}
 
     intensities_df = pd.read_csv(
-        f"{results_folder}/preprocessed_pp2_agg.csv",
+        grouped_phospho_file,
         skiprows=skiprows,
         usecols=intensity_cols + index_cols,
         dtype=dtype_dict,
@@ -175,7 +174,7 @@ def read_cohort_intensities_df(
             remove_replicates=False,
         )
 
-        intensities_df = prep.rename_columns_with_sample_ids(
+        intensities_df = sample_mapping.rename_columns_with_sample_ids(
             intensities_df.reset_index(),
             channel_to_sample_id_dict,
             index_cols=index_cols,

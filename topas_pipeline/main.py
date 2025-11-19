@@ -9,16 +9,14 @@ from . import __version__, __copyright__, __git_commit_hash__
 from .utils import init_file_logger, send_slack_message
 from . import config
 from . import simsi
-from . import preprocess
+from .preprocess import preprocess
+from .preprocess import phosphopeptides
 from . import clinical_annotation
 from . import report_creation
 from . import metrics
-from . import phospho_grouping
-from . import bridge_normalization
 from .topas import protein_phosphorylation
 from .topas import ck_substrate_phosphorylation
 from .topas import rtk_substrate_phosphorylation
-from . import expression_correction
 from .topas import topas
 from . import portal_updater
 
@@ -76,53 +74,8 @@ def main(argv):
         )
         logger.info("--- %.1f seconds --- preprocessing" % (time.time() - start_time))
 
-        # 2) extra phospho processing (grouping, normalization, expression correction)
         start_time = time.time()
-        phospho_grouping.aggregate_modified_sequences(
-            results_folder=configs.results_folder
-        )
-        logger.info(
-            "--- %.1f seconds --- phospho grouping" % (time.time() - start_time)
-        )
-        start_time = time.time()
-
-        bridge_normalization.apply_bridge_channel_normalization(
-            results_folder=configs.results_folder,
-            sample_annotation_file=configs.sample_annotation,
-        )
-        logger.info(
-            "--- %.1f seconds --- bridge normalization" % (time.time() - start_time)
-        )
-
-        expression_correction.correct_phospho_for_protein_expression(
-            results_folder=configs.results_folder
-        )
-        logger.info(
-            "--- %.1f seconds --- expression correction" % (time.time() - start_time)
-        )
-
-        start_time = time.time()
-        # 2) add protein/p-site clinical annotations (~3 minutes)
-        clinical_annotation.add_clinical_annotations(
-            results_folder=configs.results_folder,
-            clinic_proc_config=configs.clinic_proc,
-            data_types=configs.data_types,
-        )
-        logger.info(
-            "--- %.1f seconds --- clinical processing" % (time.time() - start_time)
-        )
-
-        start_time = time.time()
-        # 3) compute rank, z-score, fold change and p-value (<1 minute)
-        metrics.compute_metrics(
-            results_folder=configs.results_folder,
-            debug=configs.preprocessing.debug,
-            data_types=configs.data_types,
-        )
-        logger.info("--- %.1f seconds --- metrics" % (time.time() - start_time))
-
-        start_time = time.time()
-        # 4) Run protein phosphorylation scoring (<1 minute)
+        # 2) Run protein phosphorylation scoring (<1 minute)
         protein_phosphorylation.protein_phospho_scoring_peptidoforms(
             results_folder=configs.results_folder,
             sample_annotation_file=configs.sample_annotation,
@@ -133,7 +86,27 @@ def main(argv):
         )
 
         start_time = time.time()
-        # 4) Run substrate phosphorylation scoring
+        # 3) add protein/p-site clinical annotations (~3 minutes)
+        clinical_annotation.add_clinical_annotations(
+            results_folder=configs.results_folder,
+            clinic_proc_config=configs.clinic_proc,
+            data_types=configs.data_types,
+        )
+        logger.info(
+            "--- %.1f seconds --- clinical processing" % (time.time() - start_time)
+        )
+
+        start_time = time.time()
+        # 4) compute rank, z-score, fold change and p-value (<1 minute)
+        metrics.compute_metrics(
+            results_folder=configs.results_folder,
+            debug=configs.preprocessing.debug,
+            data_types=configs.data_types,
+        )
+        logger.info("--- %.1f seconds --- metrics" % (time.time() - start_time))
+
+        start_time = time.time()
+        # 5) Run cytoplasmic kinase substrate phosphorylation scoring
         ck_substrate_phosphorylation.calculate_cytoplasmic_kinase_scores(
             results_folder=configs.results_folder,
             metadata_file=configs.metadata_annotation,
@@ -146,11 +119,11 @@ def main(argv):
         )
 
         start_time = time.time()
+        # 6) Run receptor tyrosine kinase substrate phosphorylation scoring
         rtk_substrate_phosphorylation.calculate_rtk_scores(
             results_folder=configs.results_folder,
             metadata_file=configs.metadata_annotation,
             extra_kinase_annot=configs.clinic_proc.extra_kinase_annot,
-            sample_annotation_file=configs.sample_annotation,
             fasta_file=configs.preprocessing.fasta_file,
         )
         logger.info(
@@ -159,7 +132,7 @@ def main(argv):
         )
 
         start_time = time.time()
-        # 5) compute TOPAS scores (<1 minute)
+        # 7) compute TOPAS scores (<1 minute)
         topas.compute_topas_scores(
             results_folder=configs.results_folder,
             topas_annotation_file=configs.clinic_proc.prot_baskets,

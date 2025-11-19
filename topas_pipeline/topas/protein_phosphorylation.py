@@ -9,10 +9,8 @@ import pandas as pd
 
 from .. import config
 from .. import utils
+from ..preprocess import phosphopeptides
 from . import scoring
-from topas_pipeline import phospho_grouping
-from topas_pipeline import bridge_normalization
-from . import rtk_substrate_phosphorylation as rtk_scoring
 from . import ck_substrate_phosphorylation as ck_scoring
 
 # hacky way to get the package logger instead of just __main__ when running as a module
@@ -33,16 +31,8 @@ def protein_phospho_scoring_peptidoforms(
         )
         return
 
-    cohort_intensities_df = phospho_grouping.read_cohort_intensities_df(
+    cohort_intensities_df = phosphopeptides.get_cohort_intensities_df(
         results_folder, sample_annotation_file
-    )
-
-    cohort_batch_corrected_df = bridge_normalization.read_cohort_batch_corrected_df(
-        results_folder
-    )
-
-    cohort_intensities_df = rtk_scoring.update_with_batch_corrected_intensities(
-        cohort_intensities_df, cohort_batch_corrected_df
     )
 
     annotation_df = cohort_intensities_df.index.to_frame().rename(
@@ -59,7 +49,9 @@ def protein_phospho_scoring_peptidoforms(
     )
     if metadata_file is not None and len(metadata_file) > 0:
         ck_scoring.save_scores(
-            protein_phosphorylation_score_df, protein_phosphorylation_file, metadata_file
+            protein_phosphorylation_score_df,
+            protein_phosphorylation_file,
+            metadata_file,
         )
 
 

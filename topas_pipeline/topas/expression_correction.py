@@ -234,7 +234,7 @@ python3 -m topas_pipeline.expression_correction -c config_patients.json
 if __name__ == "__main__":
     import argparse
 
-    from . import config
+    from .. import config
 
     parser = argparse.ArgumentParser()
     parser.add_argument(

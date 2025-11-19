@@ -4,15 +4,13 @@
 import sys
 import logging
 from pathlib import Path
-import os
 
 import pandas as pd
 import psite_annotation as pa
 
 from .. import utils
 from . import ck_substrate_phosphorylation
-from topas_pipeline import phospho_grouping
-from topas_pipeline import bridge_normalization
+from ..preprocess import phospho_grouping
 
 # hacky way to get the package logger instead of just __main__ when running as a module
 logger = logging.getLogger(__package__ + "." + Path(__file__).stem)
@@ -22,7 +20,6 @@ def calculate_rtk_scores(
     results_folder: str,
     metadata_file: str,
     extra_kinase_annot: str,
-    sample_annotation_file: str,
     fasta_file: str,
 ):
     results_folder = Path(results_folder)
@@ -44,21 +41,7 @@ def calculate_rtk_scores(
 
     annotated_cohort_intensities_df = read_annotated_cohort_intensities_df(
         results_folder,
-        sample_annotation_file,
         cohort_annotated_sites_df,
-    )
-
-    annotated_modified_sequence_groups = (
-        annotated_cohort_intensities_df.index.get_level_values(
-            "Modified sequence group"
-        )
-    )
-    annotated_cohort_batch_corrected_df = read_annotated_cohort_batch_corrected_df(
-        results_folder, annotated_modified_sequence_groups
-    )
-
-    annotated_cohort_intensities_df = update_with_batch_corrected_intensities(
-        annotated_cohort_intensities_df, annotated_cohort_batch_corrected_df
     )
 
     substrate_file = (
@@ -86,7 +69,7 @@ def get_annotated_modified_sequence_groups(
     logger.info("Reading cohort modified sequence groups")
     # loading only these three columns takes 20 sec instead of 4 minutes
     pp_df = pd.read_csv(
-        results_folder / "preprocessed_pp2_agg.csv",
+        results_folder / "preprocessed_pp.csv",
         usecols=["Gene names", "Modified sequence group", "Proteins"],
     )
 
@@ -133,7 +116,6 @@ def get_annotated_sites_mapping(df_patients_sites: pd.DataFrame):
 
 def read_annotated_cohort_intensities_df(
     results_folder: str,
-    sample_annotation_file: str,
     cohort_annotated_sites_df: pd.DataFrame,
 ):
     logger.info("Read cohort intensities for annotated sites")
@@ -146,43 +128,7 @@ def read_annotated_cohort_intensities_df(
     skip_rows += 1  # add 1 to the row numbers to account for the header line
 
     return phospho_grouping.read_cohort_intensities_df(
-        results_folder, sample_annotation_file, skip_rows
-    )
-
-
-def read_annotated_cohort_batch_corrected_df(
-    results_folder: str, annotated_modified_sequence_groups: pd.Series
-):
-    logger.info("Read batch corrected cohort intensities for annotated sites")
-    # only contains 6 out of ~50 annotated TOPAS-RTK sites
-    df_patients = pd.read_csv(
-        results_folder / "preprocessed_pp2_agg_batchcorrected.csv",
-        usecols=["Gene names", "Modified sequence group"],
-    )
-    df_patients = df_patients.reset_index()
-    skiprows = df_patients.loc[
-        ~df_patients["Modified sequence group"].isin(
-            annotated_modified_sequence_groups
-        ),
-        "index",
-    ]
-    skiprows += 1  # add 1 to the row numbers to account for the header line
-
-    return bridge_normalization.read_cohort_batch_corrected_df(results_folder, skiprows)
-
-
-def update_with_batch_corrected_intensities(
-    cohort_intensities_df: pd.DataFrame, cohort_batch_corrected_df: pd.DataFrame
-) -> pd.DataFrame:
-    return pd.concat(
-        [
-            cohort_intensities_df.loc[
-                ~cohort_intensities_df.index.isin(cohort_batch_corrected_df.index)
-            ],
-            cohort_batch_corrected_df.loc[
-                cohort_batch_corrected_df.index.isin(cohort_intensities_df.index)
-            ],
-        ]
+        f"{results_folder}/preprocessed_pp.csv", skiprows=skip_rows
     )
 
 
@@ -231,6 +177,5 @@ if __name__ == "__main__":
         results_folder=configs.results_folder,
         metadata_file=configs.metadata_annotation,
         extra_kinase_annot=configs.clinic_proc.extra_kinase_annot,
-        sample_annotation_file=configs.sample_annotation,
         fasta_file=configs.preprocessing.fasta_file,
     )

@@ -8,7 +8,7 @@ from picked_group_fdr.results import ProteinGroupResult, ProteinGroupResults
 from picked_group_fdr.protein_groups import ProteinGroups
 from picked_group_fdr.precursor_quant import PrecursorQuant
 
-from topas_pipeline import picked_group
+from topas_pipeline.preprocess import picked_group
 
 # from unittest.mock import patch
 #

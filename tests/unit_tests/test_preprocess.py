@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 import pandas as pd
 
-from topas_pipeline import preprocess
+from topas_pipeline.preprocess import preprocess
 from topas_pipeline import config
 
 
@@ -388,7 +388,7 @@ class TestPreprocessFp:
     # Preprocesses DataFrame correctly with valid inputs
     def test_preprocess_fp_valid_inputs(self, mocker):
         import pandas as pd
-        from topas_pipeline.preprocess import preprocess_fp
+        from topas_pipeline.preprocess.preprocess import preprocess_fp
 
         # Mocking dependencies
         mock_picked_protein_grouping = mocker.patch(

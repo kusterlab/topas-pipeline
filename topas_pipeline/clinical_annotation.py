@@ -46,7 +46,7 @@ def add_clinical_annotations_data_type(
         index_col = "Gene names"
         keep_default_na = True
     else:
-        index_col = "Modified sequence"
+        index_col = "Modified sequence group"
         keep_default_na = False
     preprocessed_df = pd.read_csv(
         os.path.join(results_folder, f"preprocessed_{data_type}.csv"),
@@ -55,6 +55,9 @@ def add_clinical_annotations_data_type(
     )
 
     if data_type == "pp":
+        preprocessed_df["Modified sequence"] = preprocessed_df.index.str.split(";")
+        preprocessed_df = preprocessed_df.explode("Modified sequence")
+
         logger.info("Annotating phospho sites")
         preprocessed_df = clinical_tools.add_phospho_annotations(
             preprocessed_df,

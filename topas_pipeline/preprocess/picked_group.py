@@ -10,10 +10,10 @@ import pandas as pd
 import numpy as np
 import argparse
 
-from . import config
-from . import utils
-from . import sample_annotation
-import topas_pipeline.preprocess as pre
+from .. import config
+from .. import utils
+from .. import sample_annotation
+from . import preprocess
 
 from picked_group_fdr import picked_group_fdr as picked
 from picked_group_fdr import peptide_protein_map
@@ -417,7 +417,7 @@ def main(argv):
         configs.sample_annotation
     )
 
-    df = pre.load_sample_data(
+    df = preprocess.load_sample_data(
         configs.results_folder,
         sample_annotation_df,
         configs.simsi.run_simsi,

@@ -13,6 +13,7 @@ from tqdm import tqdm
 import psite_annotation as pa
 
 from .. import sample_metadata
+from . import expression_correction
 
 tqdm.pandas()
 
@@ -411,10 +412,14 @@ def calculate_cytoplasmic_kinase_scores(
     topas_kinase_substrate_file: str,
     expression_corrected_input: bool = False,
 ):
-    results_folder = Path(results_folder)
     file_suffix = ""
     if expression_corrected_input:
+        expression_correction.correct_phospho_for_protein_expression(
+            results_folder=results_folder
+        )
         file_suffix = "_expressioncorrected"
+
+    results_folder = Path(results_folder)
     kinase_score_file = (
         results_folder
         / "topas_scores"
