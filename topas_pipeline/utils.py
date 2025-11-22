@@ -112,6 +112,48 @@ def explode_on_separated_string(df: pd.DataFrame, index_col: str, sep: str = ";"
     return df.explode(index_col_exploded), index_col_exploded
 
 
+def merge_by_delimited_field(
+    df: pd.DataFrame,
+    other_df: pd.DataFrame,
+    field_name: str,
+    delimiter: str = ";",
+    agg_func=None,
+    inplace: bool = False,
+) -> pd.DataFrame:
+    """
+    Merges two dataframe by a field which contains a delimited field in the left dataframe
+    """
+    if not agg_func:
+        agg_func = lambda x: delimiter.join(x.dropna())
+
+    df_with_row_idx = df.assign(row_id=range(len(df)))
+    if field_name not in df.columns and field_name in df.index.names:
+        df_with_row_idx = df_with_row_idx.reset_index()
+
+    key_df = df_with_row_idx[[field_name, "row_id"]]
+    merged_df = (
+        key_df.assign(exploded_field=key_df[field_name].str.split(delimiter))
+        .explode("exploded_field")
+        .drop(columns=field_name)
+        .merge(other_df, left_on="exploded_field", right_on=field_name, how="left")
+        .drop(columns=[field_name, "exploded_field"])
+        .groupby("row_id")
+        .agg(agg_func)
+        .reset_index()
+    )
+    if inplace:
+        merged_df = df_with_row_idx[["row_id"]].merge(
+            merged_df, on="row_id", how="left"
+        )
+        merged_df = merged_df.drop(columns="row_id")
+        merged_df.index = df.index
+        df.loc[:, merged_df.columns] = merged_df
+    else:
+        merged_df = df_with_row_idx.merge(merged_df, on="row_id", how="left")
+        merged_df = merged_df.drop(columns="row_id")
+        return merged_df
+
+
 def validate_file_access(func):
     """
     Decorator to check if the file exists and can be opened.

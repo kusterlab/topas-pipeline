@@ -50,14 +50,14 @@ def main(argv):
     try:
         start_time = time.time()
         # 0) process MaxQuant results with SIMSI (~10 hours)
-        simsi.run_simsi(
-            results_folder=configs.results_folder,
-            search_result_folder=configs.preprocessing.raw_data_location,
-            sample_annotation_file=configs.sample_annotation,
-            raw_file_folders=configs.raw_file_folders,
-            simsi_config=configs.simsi,
-            data_types=configs.data_types,
-        )
+        # simsi.run_simsi(
+        #     results_folder=configs.results_folder,
+        #     search_result_folder=configs.preprocessing.raw_data_location,
+        #     sample_annotation_file=configs.sample_annotation,
+        #     raw_file_folders=configs.raw_file_folders,
+        #     simsi_config=configs.simsi,
+        #     data_types=configs.data_types,
+        # )
         logger.info("--- %.1f seconds --- simsi" % (time.time() - start_time))
 
         start_time = time.time()

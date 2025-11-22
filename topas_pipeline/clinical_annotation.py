@@ -9,6 +9,7 @@ from typing import Union
 from . import config
 from . import clinical_tools
 from . import utils
+from .annotation import proteins_of_interest as poi
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +79,11 @@ def add_clinical_annotations_data_type(
             data_type=data_type,
             annot_type=annot_type,
         )
+    
+    if len(clinic_proc_config.proteins_of_interest_file) > 0:
+        poi_annotation_df = poi.load_poi_annotation_df(clinic_proc_config.proteins_of_interest_file)
+        poi.merge_with_poi_annotations_inplace(preprocessed_df, poi_annotation_df)
+
     preprocessed_df.to_csv(
         os.path.join(results_folder, f"annot_{data_type}.csv"), float_format="%.6g"
     )

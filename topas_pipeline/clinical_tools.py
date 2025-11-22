@@ -22,8 +22,6 @@ logger = logging.getLogger(__name__)
 TOPAS_SCORE_COLUMN = "TOPAS_score"
 TOPAS_SCORE_COLUMNS = {
     TOPAS_SCORE_COLUMN: "TOPAS annot",
-    "POI_category": "POI category",
-    "POI_category_protein": "POI category (protein level)",
 }
 TOPAS_SUBSCORE_COLUMN = "TOPAS_subscore"
 TOPAS_SUBSCORE_COLUMNS = {

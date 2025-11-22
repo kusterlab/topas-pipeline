@@ -44,6 +44,7 @@ class ClinicProc:
     prot_baskets: str
     extra_kinase_annot: str = ""
     topas_kinase_substrate_file: str = ""
+    proteins_of_interest_file: str = ""
 
 
 @dataclass
