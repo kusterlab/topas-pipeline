@@ -14,6 +14,7 @@ tqdm.pandas()
 
 from .. import sample_annotation
 from . import sample_mapping
+from .. import identification_metadata
 
 # hacky way to get the package logger instead of just __main__ when running as a module
 logger = logging.getLogger(__package__ + "." + Path(__file__).stem)
@@ -146,6 +147,7 @@ def read_cohort_intensities_df(
     grouped_phospho_file: str,
     sample_annotation_file: str = None,
     skiprows: pd.Series = None,
+    keep_identification_metadata_columns: bool = False,
 ):
     logger.info(f"Reading {Path(grouped_phospho_file).name}")
     header = pd.read_csv(grouped_phospho_file, index_col=0, nrows=1)
@@ -153,15 +155,22 @@ def read_cohort_intensities_df(
     if len(intensity_cols) == 0:
         intensity_cols = header.filter(regex=r"(^pat_)|(^ref_)").columns.tolist()
 
+    identification_metadata_cols = []
+    if keep_identification_metadata_columns:
+        identification_metadata_cols = header.filter(
+            like=identification_metadata.METADATA_COLUMN_PREFIX
+        ).columns.tolist()
+
     index_cols = ["Modified sequence group", "Gene names", "Proteins"]
 
     dtype_dict = collections.defaultdict(lambda: "str")
     dtype_dict |= {c: "float64" for c in intensity_cols}
+    dtype_dict |= {c: "string" for c in identification_metadata_cols}
 
     intensities_df = pd.read_csv(
         grouped_phospho_file,
         skiprows=skiprows,
-        usecols=intensity_cols + index_cols,
+        usecols=index_cols + intensity_cols + identification_metadata_cols,
         dtype=dtype_dict,
     )
     intensities_df = intensities_df.set_index(index_cols)
