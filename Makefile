@@ -44,7 +44,7 @@ mintest: full_pipeline
 #######################
 
 test:
-	python3 -m pytest --cov=topas_pipeline --cov-report html --cov-report term tests/unit_tests
+	poetry run python3 -m pytest --cov=topas_pipeline --cov-report html --cov-report term tests/unit_tests
 
 mprof:
 	mprof run --include-children --backend psutil_pss python3 -u -m topas_pipeline -c $(CONFIG_FILE)

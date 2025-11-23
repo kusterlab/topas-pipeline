@@ -13,6 +13,9 @@ import numpy as np
 
 from . import config
 
+PATIENT_PREFIX = "pat_"
+REF_CHANNEL_PREFIX = "ref_"
+
 
 def init_file_logger(results_folder, log_file_name):
     module_name = ".".join(__name__.split(".")[:-1])
@@ -103,7 +106,18 @@ def get_ref_channels(df: pd.DataFrame, ref_channel_df: pd.DataFrame):
 
 
 def keep_only_sample_columns(df: pd.DataFrame) -> pd.DataFrame:
-    return df.filter(regex=r"^(pat_)|(Reporter intensity corrected)")
+    return df.filter(regex=rf"^({PATIENT_PREFIX})|(Reporter intensity corrected)")
+
+
+def keep_only_sample_and_ref_columns(df: pd.DataFrame) -> pd.DataFrame:
+    return df.filter(regex=rf"(^{PATIENT_PREFIX})|(^{REF_CHANNEL_PREFIX})")
+
+
+def add_patient_prefix(patient_list: list[str]):
+    return [
+        PATIENT_PREFIX + x if not x.startswith(REF_CHANNEL_PREFIX) else x
+        for x in patient_list
+    ]
 
 
 def explode_on_separated_string(df: pd.DataFrame, index_col: str, sep: str = ";"):

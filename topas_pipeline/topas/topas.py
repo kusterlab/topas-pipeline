@@ -6,7 +6,9 @@ from typing import Union
 
 import pandas as pd
 
-from .. import metrics, sample_metadata
+from .. import metrics
+from .. import sample_metadata
+from .. import utils
 from . import annotation as topas_annotation
 from . import scoring
 from . import protein_phosphorylation
@@ -128,9 +130,9 @@ def compute_topas_scores(
     topas_scores_df = topas_scores_df.drop(
         topas_scores_df[topas_scores_df.index.str.startswith("targets")].index
     )
-    measures = metrics.get_metrics(topas_scores_df.T)
-    measures["z-score"].columns = measures["z-score"].columns.str.strip("zscore_")
-    zscores = measures["z-score"].T
+    measures = metrics.get_zscore(utils.keep_only_sample_columns(topas_scores_df.T))
+    measures.columns = measures.columns.str.strip("zscore_")
+    zscores = measures.T
 
     save_topas_scores(
         zscores,

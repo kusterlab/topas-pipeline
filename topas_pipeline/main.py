@@ -110,6 +110,7 @@ def main(argv):
             results_folder=configs.results_folder,
             debug=configs.preprocessing.debug,
             data_types=configs.data_types,
+            sample_annotation_file=configs.sample_annotation,
         )
         logger.info("--- %.1f seconds --- metrics" % (time.time() - start_time))
 

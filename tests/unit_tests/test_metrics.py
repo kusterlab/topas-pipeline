@@ -12,63 +12,6 @@ import topas_pipeline.metrics as metrics
 logger = logging.getLogger(__name__)
 
 
-class TestMetrics:
-
-    def test_rank(self, test_df):
-        test_df = metrics.Metrics.get_rank(test_df)
-        expect_result = pd.DataFrame(
-            [(1.0, 3.0, 2.0, 4.0, np.nan, 4), (5.0, 2.0, 1.0, 4.0, 3.0, 5)],
-            columns=["rank_0", "rank_1", "rank_2", "rank_3", "rank_4", "rank_max"],
-        )
-        pd.testing.assert_frame_equal(test_df, expect_result)
-
-    def test_fold_change(self, test_df):
-        test_df = metrics.Metrics.get_fold_change(test_df)
-        expect_result = pd.DataFrame(
-            [(1e99, 0.1, 10.0, 0.01, np.nan), (0.0, 122.63, 12262.74, 0.01, 0.02)],
-            columns=["fc_0", "fc_1", "fc_2", "fc_3", "fc_4"],
-        )
-        pd.testing.assert_frame_equal(test_df, expect_result, atol=0.01)
-
-    def test_zscore(self, test_df):
-        test_df = metrics.Metrics.get_zscore(test_df)
-        expect_result = pd.DataFrame(
-            [
-                (104.162, -0.017, 0.017, -0.033, np.nan),
-                (-0.812, 0.977, 3.533, -0.574, -0.422),
-            ],
-            columns=["zscore_0", "zscore_1", "zscore_2", "zscore_3", "zscore_4"],
-        )
-        pd.testing.assert_frame_equal(test_df, expect_result, atol=0.001)
-
-    def test_pvalue(self):
-        test_df = pd.DataFrame(
-            [
-                (104.162, -0.017, 0.017, -0.033, np.nan),
-                (-0.812, 0.977, 3.533, -0.574, -0.422),
-            ],
-            columns=["zscore_0", "zscore_1", "zscore_2", "zscore_3", "zscore_4"],
-        )
-        test_df = metrics.Metrics.get_pvalues(test_df)
-        expect_result = pd.DataFrame(
-            [(0.000, 0.986, 0.986, 0.973, np.nan), (0.416, 0.328, 0.000, 0.565, 0.673)],
-            columns=[
-                "pvalue_zscore_0",
-                "pvalue_zscore_1",
-                "pvalue_zscore_2",
-                "pvalue_zscore_3",
-                "pvalue_zscore_4",
-            ],
-        )
-        pd.testing.assert_frame_equal(test_df, expect_result, atol=0.001)
-
-
-@pytest.fixture
-def test_df():
-    # log10 intensity values of 2 genes across 5 samples
-    return pd.DataFrame([(100, 1, 2, 0.1, np.nan), (0.4, 3, 5, 0.8, 1)])
-
-
 class TestComputeMetrics:
     def test_compute_metrics_with_existing_files_fp(self, mocker):
         # Mocking dependencies
@@ -91,14 +34,28 @@ class TestComputeMetrics:
                 )
             ),
         )
+        mocker.patch(
+            "topas_pipeline.metrics.sample_annotation.load_sample_annotation",
+            return_value=(
+                pd.DataFrame(
+                    {
+                        "Sample name": ["A", "B", "C"],
+                        "Batch_No": ["1", "1", "2"],
+                    }
+                )
+            ),
+        )
 
         mock_save_measures = mocker.patch("topas_pipeline.metrics.save_measures")
 
         results_folder = Path("/path/to/results")
         debug = False
         data_types = ["fp"]
+        sample_annotation_file = "sample_annotation_file.csv"
 
-        metrics.compute_metrics(results_folder, debug, data_types)
+        metrics.compute_metrics(
+            results_folder, debug, data_types, sample_annotation_file
+        )
 
         # Assertions to ensure the functions were called correctly
         assert metrics.check_measures_computed.call_count == len(data_types)
@@ -110,10 +67,9 @@ class TestComputeMetrics:
 
         assert list(mock_save_measures.call_args[0][2].keys()) == [
             "rank",
+            "batchrank",
             "fold_change",
             "z-score",
-            "p-value",
-            "occurrence",
         ]
 
 
@@ -331,7 +287,7 @@ class TestLooStd:
 
 
 @pytest.fixture
-def metrics_instance():
+def intensity_df():
     # Sample DataFrame for testing
     data = {
         "protein1": [1.0, 2.0, 3.0, 4.0],
@@ -339,10 +295,10 @@ def metrics_instance():
         "protein3": [3.0, 4.0, 5.0, 6.0],
     }
     df = pd.DataFrame(data, index=["patient1", "patient2", "patient3", "patient4"])
-    return metrics.Metrics(df.T)
+    return df.T
 
 
-def test_get_rank(metrics_instance):
+def test_get_rank(intensity_df):
     expected_rank = pd.DataFrame(
         {
             "rank_patient1": [4.0, 3.0, 4.0],
@@ -353,11 +309,31 @@ def test_get_rank(metrics_instance):
         },
         index=["protein1", "protein2", "protein3"],
     )
-    result = metrics.Metrics.get_rank(metrics_instance.df)
+    result = metrics.get_rank(intensity_df)
     pd.testing.assert_frame_equal(result, expected_rank)
 
 
-def test_get_fold_change(metrics_instance):
+def test_get_within_batch_rank(intensity_df):
+    expected_rank = pd.DataFrame(
+        {
+            "batchrank_patient1": [2.0, 2.0, 2.0],
+            "batchrank_patient2": [1.0, 1.0, 1.0],
+            "batchrank_patient3": [2.0, 1.0, 2.0],
+            "batchrank_patient4": [1.0, np.nan, 1.0],
+        },
+        index=["protein1", "protein2", "protein3"],
+    )
+    sample_annotation_df = pd.DataFrame(
+        {
+            "Sample name": ["patient1", "patient2", "patient3", "patient4"],
+            "Batch_No": ["1", "1", "2", "2"],
+        }
+    )
+    result = metrics.get_within_batch_rank(intensity_df, sample_annotation_df)
+    pd.testing.assert_frame_equal(result, expected_rank)
+
+
+def test_get_fold_change(intensity_df):
     # Define expected results manually or calculate based on the leave-one-out approach
     expected_fold_change = pd.DataFrame(
         {
@@ -368,11 +344,11 @@ def test_get_fold_change(metrics_instance):
         },
         index=["protein1", "protein2", "protein3"],
     )
-    result = metrics.Metrics.get_fold_change(metrics_instance.df)
+    result = metrics.get_fold_change(intensity_df)
     pd.testing.assert_frame_equal(result, expected_fold_change)
 
 
-def test_get_zscore(metrics_instance):
+def test_get_zscore(intensity_df):
     # Manually calculate expected z-scores for verification
     expected_zscore = pd.DataFrame(
         {
@@ -391,49 +367,8 @@ def test_get_zscore(metrics_instance):
         },
         index=["protein1", "protein2", "protein3"],
     )
-    result = metrics.Metrics.get_zscore(metrics_instance.df)
+    result = metrics.get_zscore(intensity_df)
     pd.testing.assert_frame_equal(result, expected_zscore)
-
-
-def test_get_pvalues(metrics_instance):
-    z_scores = metrics.Metrics.get_zscore(metrics_instance.df)
-    expected_pvalues = pd.DataFrame(
-        {
-            "pvalue_zscore_patient1": [
-                0.04550026389635839,
-                0.03389485352468927,
-                0.04550026389635839,
-            ],
-            "pvalue_zscore_patient2": [
-                0.5126907602619233,
-                1.0,
-                0.5126907602619233,
-            ],
-            "pvalue_zscore_patient3": [
-                0.5126907602619233,
-                0.03389485352468927,
-                0.5126907602619233,
-            ],
-            "pvalue_zscore_patient4": [
-                0.04550026389635839,
-                np.nan,
-                0.04550026389635839,
-            ],
-        },
-        index=["protein1", "protein2", "protein3"],
-    )
-    result = metrics.Metrics.get_pvalues(z_scores)
-    pd.testing.assert_frame_equal(result, expected_pvalues)
-
-
-def test_calc(metrics_instance):
-    metrics_instance.calc()
-    assert "rank" in metrics_instance.metrics_df
-    assert "fold_change" in metrics_instance.metrics_df
-    assert "z-score" in metrics_instance.metrics_df
-    assert "p-value" in metrics_instance.metrics_df
-    assert "occurrence" in metrics_instance.metrics_df
-    assert metrics_instance.metrics_df["occurrence"].shape == (3, 1)
 
 
 if __name__ == "__main__":
