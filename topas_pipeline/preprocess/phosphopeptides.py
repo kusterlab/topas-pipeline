@@ -53,7 +53,10 @@ def get_cohort_intensities_df(results_folder: str, sample_annotation_file: str):
 def group_phosphopeptides_and_normalize(
     results_folder: str, sample_annotation_file: str
 ):
-    # extra phospho processing (grouping, normalization, expression correction)
+    """
+    extra phospho processing (grouping, normalization, expression correction)
+    """
+    # ~15 minutes for 2000 samples
     start_time = time.time()
     phospho_grouping.aggregate_modified_sequences(results_folder=results_folder)
     logger.info("--- %.1f seconds --- phospho grouping" % (time.time() - start_time))
@@ -67,4 +70,10 @@ def group_phosphopeptides_and_normalize(
         "--- %.1f seconds --- bridge normalization" % (time.time() - start_time)
     )
 
-    return get_cohort_intensities_df(results_folder, sample_annotation_file)
+    start_time = time.time()
+    df = get_cohort_intensities_df(results_folder, sample_annotation_file)
+    logger.info(
+        "--- %.1f seconds --- combining non-normalized and bridge normalized p-peptide groups" % (time.time() - start_time)
+    )
+
+    return df

@@ -118,13 +118,10 @@ def preprocess_raw_data_type(
             normalize_to_reference=preprocessing_config.normalize_to_reference,
         )
 
-        preprocess_function = preprocess_fp
-        if data_type == "pp":
-            preprocess_function = preprocess_pp
-
         # ~5 minutes for pp, ~1 hour for fp, of which 1 hour is LFQ
         # returns dataframe in "wide format", i.e. patients as columns
-        df = preprocess_function(
+        preprocess_functions = {"fp": preprocess_fp, "pp": preprocess_pp}
+        df = preprocess_functions[data_type](
             df,
             results_folder,
             preprocessing_config.picked_fdr,

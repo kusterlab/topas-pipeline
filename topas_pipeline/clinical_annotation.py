@@ -59,19 +59,18 @@ def add_clinical_annotations_data_type(
         preprocessed_df["Modified sequence"] = preprocessed_df.index.str.split(";")
         preprocessed_df = preprocessed_df.explode("Modified sequence")
 
+        # ~30 minutes for 3000 samples
         logger.info("Annotating phospho sites")
         preprocessed_df = clinical_tools.add_phospho_annotations(
             preprocessed_df,
             clinic_proc_config,
         )
 
-        logger.info("Adding PhosphoSitePlus URLs")
-        preprocessed_df = clinical_tools.add_psp_urls(preprocessed_df)
-
     annot_levels = list(TOPAS_SCORE_COLUMNS.keys()) + list(
         TOPAS_SUBSCORE_COLUMNS.keys()
     )
 
+    # ~20 minutes for 3000 samples for phospho
     for annot_type in annot_levels:
         preprocessed_df = clinical_tools.add_topas_annotations(
             preprocessed_df,
