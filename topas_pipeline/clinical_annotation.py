@@ -7,14 +7,11 @@ from pathlib import Path
 from typing import Union
 
 from . import config
-from . import clinical_tools
 from . import utils
 from .annotation import proteins_of_interest as poi
+from .annotation import phosphosite
 
 logger = logging.getLogger(__name__)
-
-TOPAS_SCORE_COLUMNS = clinical_tools.TOPAS_SCORE_COLUMNS
-TOPAS_SUBSCORE_COLUMNS = clinical_tools.TOPAS_SUBSCORE_COLUMNS
 
 
 def add_clinical_annotations(*args, **kwargs) -> None:
@@ -61,22 +58,9 @@ def add_clinical_annotations_data_type(
 
         # ~30 minutes for 3000 samples
         logger.info("Annotating phospho sites")
-        preprocessed_df = clinical_tools.add_phospho_annotations(
+        preprocessed_df = phosphosite.add_phospho_annotations(
             preprocessed_df,
             clinic_proc_config,
-        )
-
-    annot_levels = list(TOPAS_SCORE_COLUMNS.keys()) + list(
-        TOPAS_SUBSCORE_COLUMNS.keys()
-    )
-
-    # ~20 minutes for 3000 samples for phospho
-    for annot_type in annot_levels:
-        preprocessed_df = clinical_tools.add_topas_annotations(
-            preprocessed_df,
-            clinic_proc_config.prot_baskets,
-            data_type=data_type,
-            annot_type=annot_type,
         )
     
     if len(clinic_proc_config.proteins_of_interest_file) > 0:
