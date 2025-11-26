@@ -62,9 +62,17 @@ def add_clinical_annotations_data_type(
             preprocessed_df,
             clinic_proc_config,
         )
-    
+
+        preprocessed_df = phosphosite.add_ck_substrate_annotations(
+            preprocessed_df,
+            results_folder,
+            clinic_proc_config.topas_kinase_substrate_file,
+        )
+
     if len(clinic_proc_config.proteins_of_interest_file) > 0:
-        poi_annotation_df = poi.load_poi_annotation_df(clinic_proc_config.proteins_of_interest_file)
+        poi_annotation_df = poi.load_poi_annotation_df(
+            clinic_proc_config.proteins_of_interest_file
+        )
         poi.merge_with_poi_annotations_inplace(preprocessed_df, poi_annotation_df)
 
     preprocessed_df.to_csv(

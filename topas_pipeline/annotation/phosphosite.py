@@ -7,7 +7,8 @@ import pandas as pd
 import numpy as np
 import psite_annotation as pa
 
-from . import config
+from .. import config
+from ..topas import ck_substrate_phosphorylation as ck_scoring
 
 logger = logging.getLogger(__name__)
 
@@ -17,8 +18,7 @@ def add_phospho_annotations(
     clinic_proc_config: config.ClinicProc,
 ) -> pd.DataFrame:
     """
-    Phospho-site annotation of experimental data using in-house developed tool (MT) based mainly on Phosphosite Plus but also in vitro
-    experiments from the lab of Ishihama.
+    Phospho-site annotation of experimental data using in-house developed tool (MT) based mainly on Phosphosite Plus
 
     :param df: dataframe with measured peptide intensities
     :param clinic_proc_config: paths to files with PSP and TOPAS gene annotations
@@ -32,6 +32,9 @@ def add_phospho_annotations(
         pspInput=True,
         returnAllPotentialSites=False,
     )
+
+    df = pa.addPSPKinaseSubstrateAnnotations(df, clinic_proc_config.extra_kinase_annot)
+    df = df.rename(columns={"PSP Kinases": "Kinases (TOPAS)"})
 
     df = pa.addPSPKinaseSubstrateAnnotations(
         df, clinic_proc_config.pspKinaseSubstrateFile, gene_name=True
@@ -47,5 +50,35 @@ def add_phospho_annotations(
     df = pa.addPeptideAndPsitePositions(
         df, clinic_proc_config.pspFastaFile, pspInput=True, returnAllPotentialSites=True
     )
+    df = df.set_index("Modified sequence", drop=True)
+    return df
+
+
+def add_ck_substrate_annotations(
+    df: pd.DataFrame, results_folder: str, topas_kinase_substrate_file: str
+):
+    peptidoform_groups = ck_scoring.get_joint_modified_sequence_groups(
+        Path(results_folder), topas_kinase_substrate_file
+    )
+
+    automated_sites = ck_scoring.load_decryptM_annotations(topas_kinase_substrate_file)
+    automated_sites = ck_scoring.aggregate_decryptm_modified_sequence_groups(
+        automated_sites, peptidoform_groups
+    )
+
+    decryptM_annotations = peptidoform_groups.merge(
+        automated_sites, on="Modified sequence group"
+    )
+    df = df.merge(
+        decryptM_annotations[["Modified sequence", "Kinase Families"]],
+        on="Modified sequence",
+        how="left",
+    )
+    df["Kinases (TOPAS)"] = (
+        df[["Kinases (TOPAS)", "Kinase Families"]]
+        .replace("", pd.NA)
+        .agg(lambda x: ";".join(x.dropna()), axis=1)
+    )
+    df = df.drop(columns=["Kinase Families"])
     df = df.set_index("Modified sequence", drop=True)
     return df
