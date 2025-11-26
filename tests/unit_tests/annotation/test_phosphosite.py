@@ -3,7 +3,7 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 
-from topas_pipeline import phosphosite
+from topas_pipeline.annotation import phosphosite
 from topas_pipeline import config
 
 
@@ -19,18 +19,18 @@ class TestPhosphoAnnot:
             }
         )
         mock_add_positions = mocker.patch(
-            "topas_pipeline.clinical_tools.pa.addPeptideAndPsitePositions",
+            "psite_annotation.addPeptideAndPsitePositions",
             return_value=mock_df,
         )
         mock_add_substrates = mocker.patch(
-            "topas_pipeline.clinical_tools.pa.addPSPKinaseSubstrateAnnotations",
+            "psite_annotation.addPSPKinaseSubstrateAnnotations",
             return_value=mock_df,
         )
         mock_add_annotation = mocker.patch(
-            "topas_pipeline.clinical_tools.pa.addPSPAnnotations", return_value=mock_df
+            "psite_annotation.addPSPAnnotations", return_value=mock_df
         )
         mock_add_regulatory_annotations = mocker.patch(
-            "topas_pipeline.clinical_tools.pa.addPSPRegulatoryAnnotations",
+            "psite_annotation.addPSPRegulatoryAnnotations",
             return_value=mock_df,
         )
 
@@ -50,6 +50,6 @@ class TestPhosphoAnnot:
 
         assert not result_df.empty
         assert mock_add_positions.call_count == 2
-        mock_add_substrates.assert_called_once()
+        assert mock_add_substrates.call_count == 2
         mock_add_annotation.assert_called_once()
         mock_add_regulatory_annotations.assert_called_once()

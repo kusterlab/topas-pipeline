@@ -40,9 +40,9 @@ class TestComputeMetrics:
                 pd.DataFrame(
                     {
                         "Sample name": ["A", "B", "C"],
-                        "Batch_No": ["1", "1", "2"],
+                        "Batch Name": ["1", "1", "2"],
                     }
-                )
+                ).set_index("Sample name")
             ),
         )
 
@@ -294,17 +294,19 @@ def intensity_df():
         "protein2": [2.0, 3.0, 4.0, np.nan],
         "protein3": [3.0, 4.0, 5.0, 6.0],
     }
-    df = pd.DataFrame(data, index=["patient1", "patient2", "patient3", "patient4"])
+    df = pd.DataFrame(
+        data, index=["pat_patient1", "pat_patient2", "pat_patient3", "pat_patient4"]
+    )
     return df.T
 
 
 def test_get_rank(intensity_df):
     expected_rank = pd.DataFrame(
         {
-            "rank_patient1": [4.0, 3.0, 4.0],
-            "rank_patient2": [3.0, 2.0, 3.0],
-            "rank_patient3": [2.0, 1.0, 2.0],
-            "rank_patient4": [1.0, np.nan, 1.0],
+            "rank_pat_patient1": [4.0, 3.0, 4.0],
+            "rank_pat_patient2": [3.0, 2.0, 3.0],
+            "rank_pat_patient3": [2.0, 1.0, 2.0],
+            "rank_pat_patient4": [1.0, np.nan, 1.0],
             "rank_max": [4, 3, 4],
         },
         index=["protein1", "protein2", "protein3"],
@@ -316,19 +318,20 @@ def test_get_rank(intensity_df):
 def test_get_within_batch_rank(intensity_df):
     expected_rank = pd.DataFrame(
         {
-            "batchrank_patient1": [2.0, 2.0, 2.0],
-            "batchrank_patient2": [1.0, 1.0, 1.0],
-            "batchrank_patient3": [2.0, 1.0, 2.0],
-            "batchrank_patient4": [1.0, np.nan, 1.0],
+            "batchrank_pat_patient1": [2.0, 2.0, 2.0],
+            "batchrank_pat_patient2": [1.0, 1.0, 1.0],
+            "batchrank_pat_patient3": [2.0, 1.0, 2.0],
+            "batchrank_pat_patient4": [1.0, np.nan, 1.0],
         },
         index=["protein1", "protein2", "protein3"],
     )
     sample_annotation_df = pd.DataFrame(
         {
             "Sample name": ["patient1", "patient2", "patient3", "patient4"],
-            "Batch_No": ["1", "1", "2", "2"],
+            "Batch Name": ["1", "1", "2", "2"],
         }
-    )
+    ).set_index("Sample name")
+
     result = metrics.get_within_batch_rank(intensity_df, sample_annotation_df)
     pd.testing.assert_frame_equal(result, expected_rank)
 
@@ -337,10 +340,10 @@ def test_get_fold_change(intensity_df):
     # Define expected results manually or calculate based on the leave-one-out approach
     expected_fold_change = pd.DataFrame(
         {
-            "fc_patient1": [0.01, 0.01818181818181818, 0.01],  # 0.01 = 10**(1.0-3.0)
-            "fc_patient2": [0.1, 0.19801980198019803, 0.1],
-            "fc_patient3": [10.0, 18.181818181818183, 10.0],
-            "fc_patient4": [100.0, np.nan, 100.0],
+            "fc_pat_patient1": [0.01, 0.01818181818181818, 0.01],  # 0.01 = 10**(1.0-3.0)
+            "fc_pat_patient2": [0.1, 0.19801980198019803, 0.1],
+            "fc_pat_patient3": [10.0, 18.181818181818183, 10.0],
+            "fc_pat_patient4": [100.0, np.nan, 100.0],
         },
         index=["protein1", "protein2", "protein3"],
     )
@@ -352,18 +355,18 @@ def test_get_zscore(intensity_df):
     # Manually calculate expected z-scores for verification
     expected_zscore = pd.DataFrame(
         {
-            "zscore_patient1": [-2.0, -2.1213203435596424, -2.0],
-            "zscore_patient2": [
+            "zscore_pat_patient1": [-2.0, -2.1213203435596424, -2.0],
+            "zscore_pat_patient2": [
                 -0.6546536707079772,
                 0.0,
                 -0.6546536707079772,
             ],
-            "zscore_patient3": [
+            "zscore_pat_patient3": [
                 0.6546536707079772,
                 2.1213203435596424,
                 0.6546536707079772,
             ],
-            "zscore_patient4": [2.0, np.nan, 2.0],
+            "zscore_pat_patient4": [2.0, np.nan, 2.0],
         },
         index=["protein1", "protein2", "protein3"],
     )
