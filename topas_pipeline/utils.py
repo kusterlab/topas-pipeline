@@ -4,7 +4,6 @@ import sys
 from pathlib import Path
 import logging
 import requests
-import time
 import json
 from typing import List
 

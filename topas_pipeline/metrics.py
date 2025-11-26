@@ -39,6 +39,9 @@ def compute_metrics(
         sample_annotation_file
     )
 
+    if "pp" in data_types:
+        data_types.append("phospho_score")
+
     for data_type in data_types:
         if check_measures_computed(results_folder, data_type, measure_names):
             logger.info(f"Skipping compute_metrics {data_type} - already computed")
@@ -179,10 +182,9 @@ def get_within_batch_rank(df: pd.DataFrame, sample_annotation_df: pd.DataFrame):
     sample_to_batch_mapping.index = utils.add_patient_prefix(
         sample_to_batch_mapping.index
     )
-    batch_rank_df: pd.DataFrame = df.groupby(
+    batch_rank_df: pd.DataFrame = df.T.groupby(
         by=df.columns.map(sample_to_batch_mapping),
-        axis=1,
-    ).rank(method="min", ascending=False)
+    ).rank(method="min", ascending=False).T
     return batch_rank_df.add_prefix("batchrank_")
 
 
@@ -208,6 +210,8 @@ def get_data_type_long(data_type: str):
         return "phospho"
     elif data_type.startswith("fp"):
         return "full_proteome"
+    elif data_type.startswith("phospho_score"):
+        return "phospho_score"
     raise ValueError(f"Unknown data type {data_type}")
 
 
@@ -289,4 +293,5 @@ if __name__ == "__main__":
         configs.results_folder,
         configs.preprocessing.debug,
         data_types=configs.data_types,
+        sample_annotation_file=configs.sample_annotation,
     )

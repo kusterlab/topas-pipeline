@@ -86,7 +86,6 @@ def main(argv):
         # 2) Run protein phosphorylation scoring (<1 minute)
         protein_phosphorylation.protein_phospho_scoring(
             results_folder=configs.results_folder,
-            sample_annotation_file=configs.sample_annotation,
             metadata_file=configs.metadata_annotation,
         )
         logger.info(

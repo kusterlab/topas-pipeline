@@ -29,8 +29,13 @@ class TestClinicalProcessDataType:
     def test_processes_data_with_all_files_present(self, mocker):
         # Mocking dependencies
         mocker.patch("os.path.exists", return_value=False)
-        mock_read_csv = mocker.patch(
-            "pandas.read_csv", return_value=pd.DataFrame(index=[""])
+        mocker.patch(
+            "topas_pipeline.preprocess.phospho_grouping.read_cohort_intensities_df",
+            return_value=pd.DataFrame(),
+        )
+        mocker.patch(
+            "topas_pipeline.clinical_annotation.build_index_annotation_df",
+            return_value=pd.DataFrame(),
         )
         mock_add_phospho = mocker.patch(
             "topas_pipeline.annotation.phosphosite.add_phospho_annotations",
@@ -38,6 +43,10 @@ class TestClinicalProcessDataType:
         )
         mock_add_ck_phospho = mocker.patch(
             "topas_pipeline.annotation.phosphosite.add_ck_substrate_annotations",
+            return_value=pd.DataFrame(),
+        )
+        mocker.patch(
+            "topas_pipeline.clinical_annotation.merge_intensities_and_annotation_dfs",
             return_value=pd.DataFrame(),
         )
         mock_poi_annotation_load = mocker.patch(
@@ -48,7 +57,7 @@ class TestClinicalProcessDataType:
             "topas_pipeline.annotation.proteins_of_interest.merge_with_poi_annotations_inplace",
             return_value=pd.DataFrame(),
         )
-        
+
         mocker.patch("json.dump")
         mocker.patch("pandas.DataFrame.to_csv")
         mocker.patch("builtins.open", mocker.mock_open())
@@ -74,7 +83,6 @@ class TestClinicalProcessDataType:
         )
 
         # # Assertions
-        mock_read_csv.assert_called()
         mock_add_phospho.assert_called()
         mock_add_ck_phospho.assert_called()
         mock_poi_annotation_load.assert_called()

@@ -21,7 +21,7 @@ class TestProteinPhosphoScoring:
         ).set_index("Gene names")
 
         mocker.patch(
-            "topas_pipeline.preprocess.phosphopeptides.get_cohort_intensities_df",
+            "topas_pipeline.preprocess.phospho_grouping.read_cohort_intensities_df",
             return_value=mock_cohort_df,
         )
 
@@ -39,7 +39,6 @@ class TestProteinPhosphoScoring:
         # Run function
         protein_phosphorylation.protein_phospho_scoring(
             "dummy_results_folder",
-            sample_annotation_file="dummy_annotation.tsv",
             metadata_file="dummy_meta.tsv",
         )
 
