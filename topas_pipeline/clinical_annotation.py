@@ -53,7 +53,6 @@ def add_clinical_annotations_data_type(
         annot_df = build_index_annotation_df(preprocessed_df)
 
         # ~30 minutes for 3000 samples
-        logger.info("Annotating phospho sites")
         annot_df = phosphosite.add_phospho_annotations(
             annot_df,
             clinic_proc_config,
@@ -79,13 +78,13 @@ def add_clinical_annotations_data_type(
         raise ValueError(f"Unknown data type {data_type}")
 
     if len(clinic_proc_config.proteins_of_interest_file) > 0:
-        logger.info("Annotating proteins of interest")
+        logger.info(f"Annotating proteins of interest for {data_type}")
         poi_annotation_df = poi.load_poi_annotation_df(
             clinic_proc_config.proteins_of_interest_file
         )
         poi.merge_with_poi_annotations_inplace(annot_df, poi_annotation_df)
 
-    logger.info("Writing annotated table")
+    logger.info(f"Writing annotated table for {data_type}")
     annot_df.to_csv(
         os.path.join(results_folder, f"annot_{data_type}.csv"), float_format="%.6g"
     )

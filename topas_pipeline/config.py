@@ -1,4 +1,6 @@
 import json
+import os
+import datetime
 from typing import List
 
 from dataclasses import dataclass, field, asdict
@@ -102,7 +104,7 @@ class Config:
         return toml.dumps(self.asdict())
 
 
-def load(config_file: str):
+def load(config_file: str) -> Config:
     """Reads a JSON file and updates the provided Config dataclass instance."""
     with open(config_file, "r") as f:
         if config_file.endswith(".json"):
@@ -110,11 +112,25 @@ def load(config_file: str):
         elif config_file.endswith(".toml"):
             config_data = toml.load(f)
         else:
-            raise ValueError("Unknown config file format, should be either .json or .toml")
+            raise ValueError(
+                "Unknown config file format, should be either .json or .toml"
+            )
 
     config = Config(**config_data)
 
     return config
+
+
+def save_copy(configs: Config, results_folder: str) -> str:
+    toml_file_path = os.path.join(results_folder, "configs.toml")
+    if os.path.isfile(toml_file_path):
+        today = datetime.datetime.today().date()
+        toml_file_path = os.path.join(results_folder, f"configs_{today}.toml")
+
+    with open(toml_file_path, "w") as toml_file:
+        toml_file.write(configs.astoml())
+
+    return toml_file_path
 
 
 # def validate_sample_annot(configs):

@@ -42,8 +42,7 @@ def main(argv):
     )
     logger.info("Pipeline started")
 
-    with open(os.path.join(configs.results_folder, "configs.json"), "w") as jsonFile:
-        jsonFile.write(configs.asjson())
+    config.save_copy(configs, configs.results_folder)
 
     t0 = time.time()
 

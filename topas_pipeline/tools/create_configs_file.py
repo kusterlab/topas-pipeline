@@ -64,8 +64,8 @@ def main(argv):
     configs.sample_annotation = sample_annotation_file
     configs.metadata_annotation = metadata_file
 
-    with open(results_folder / "configs.toml", "w") as toml_file:
-        toml_file.write(configs.astoml())
+    config_file_path = config.save_copy(configs, results_folder)
+    print(f"Written config file to: {config_file_path}")
 
 
 def create_sample_annotation(
