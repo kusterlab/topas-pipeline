@@ -32,11 +32,15 @@ def update_with_batch_corrected_intensities(
     )
 
 
-def get_cohort_intensities_df(results_folder: str, sample_annotation_file: str):
+def get_cohort_intensities_df(
+    results_folder: str,
+    sample_annotation_file: str,
+    keep_identification_metadata_columns: bool = True,
+):
     cohort_intensities_df = phospho_grouping.read_cohort_intensities_df(
         f"{results_folder}/preprocessed_pp2_agg.csv",
         sample_annotation_file,
-        keep_identification_metadata_columns=True,
+        keep_identification_metadata_columns=keep_identification_metadata_columns,
     )
 
     cohort_batch_corrected_df = bridge_normalization.read_cohort_batch_corrected_df(
@@ -73,7 +77,8 @@ def group_phosphopeptides_and_normalize(
     start_time = time.time()
     df = get_cohort_intensities_df(results_folder, sample_annotation_file)
     logger.info(
-        "--- %.1f seconds --- combining non-normalized and bridge normalized p-peptide groups" % (time.time() - start_time)
+        "--- %.1f seconds --- combining non-normalized and bridge normalized p-peptide groups"
+        % (time.time() - start_time)
     )
 
     return df

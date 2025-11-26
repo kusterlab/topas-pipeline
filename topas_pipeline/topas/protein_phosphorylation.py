@@ -29,7 +29,9 @@ def protein_phospho_scoring(
         return
 
     cohort_intensities_df = phosphopeptides.get_cohort_intensities_df(
-        results_folder, sample_annotation_file
+        results_folder,
+        sample_annotation_file,
+        keep_identification_metadata_columns=False,
     )
 
     annotation_df = cohort_intensities_df.index.to_frame().rename(
@@ -50,6 +52,7 @@ def protein_phospho_scoring(
             protein_phosphorylation_file,
             metadata_file,
         )
+
 
 @utils.validate_file_access
 def load_protein_phosphorylation(
