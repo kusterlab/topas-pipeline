@@ -1,5 +1,4 @@
 import io
-import re
 import os
 import sys
 import argparse
@@ -115,8 +114,6 @@ def run_simsi_data_type(
         simsi_config.correction_factor_mapping_file,
     )
 
-    meta_input_df = pd.read_csv(meta_input_file, sep="\t")
-
     result_folder_name = Path(results_folder).name
     simsi_output_folder = get_simsi_output_folder(
         simsi_config.simsi_folder, data_type, result_folder_name
@@ -185,6 +182,7 @@ def find_matching_summaries_folder(simsi_cache_folder: Path, meta_input_file: Pa
                 archive = zipfile.ZipFile(s, "r")
             except zipfile.BadZipFile:
                 logger.warning(f"Encountered corrupt zip file: {s}")
+                continue
 
             file_path_in_archive = s.with_suffix("").name + "/" + meta_input_file.name
             if not file_path_in_archive in archive.namelist():
