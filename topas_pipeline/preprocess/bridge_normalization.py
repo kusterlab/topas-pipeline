@@ -120,11 +120,10 @@ def apply_bridge_channel_normalization(
         remove_replicates=False,
     )
 
-    index_cols = ["Modified sequence group", "Gene names", "Proteins"]
     phospho_df_corrected2 = sample_mapping.rename_columns_with_sample_ids(
         phospho_df_corrected2.reset_index(),
         channel_to_sample_id_dict,
-        index_cols=index_cols,
+        index_cols=phospho_grouping.INDEX_COLS,
     )
 
     logger.info(f"Writing results to {batch_corrected_file}")
@@ -224,15 +223,6 @@ def row_wise_normalize(
     # Correct intensity values
     vals["intensity corrected"] = vals["intensity raw"] + vals["ref correction"]
     return vals["intensity corrected"]
-
-
-def read_cohort_batch_corrected_df(results_folder: str, skiprows: pd.Series = None):
-    phospho_batch_corrected = pd.read_csv(
-        f"{results_folder}/preprocessed_pp2_agg_batchcorrected.csv",
-        index_col=["Modified sequence group", "Gene names", "Proteins"],
-        skiprows=skiprows,
-    )
-    return phospho_batch_corrected
 
 
 """

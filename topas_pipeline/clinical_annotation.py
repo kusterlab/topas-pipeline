@@ -10,8 +10,10 @@ from . import config
 from . import utils
 from .annotation import proteins_of_interest as poi
 from .annotation import phosphosite
+from .preprocess import phospho_grouping
 
-logger = logging.getLogger(__name__)
+# hacky way to get the package logger instead of just __main__ when running as python -m topas_pipeline.simsi ...
+logger = logging.getLogger(__package__ + "." + __file__)
 
 
 def add_clinical_annotations(*args, **kwargs) -> None:
@@ -31,7 +33,7 @@ def add_clinical_annotations_data_type(
 
     :param results_folder: path to results folder to which preprocessed data can be found and clinically processed data saved
     :param debug:
-    :param clinic_proc_config: paths to file used for annotating to phospho and TOPAS scpres
+    :param clinic_proc_config: paths to file used for annotating to phospho and TOPAS scores
     :param data_type: 'fp' for full proteome, 'pp' for phospho proteome
     """
     if os.path.exists(os.path.join(results_folder, f"annot_{data_type}.csv")):
@@ -40,42 +42,52 @@ def add_clinical_annotations_data_type(
         )
         return
 
-    if data_type.startswith("fp"):
-        index_col = "Gene names"
-        keep_default_na = True
-    else:
-        index_col = "Modified sequence group"
-        keep_default_na = False
-    preprocessed_df = pd.read_csv(
-        os.path.join(results_folder, f"preprocessed_{data_type}.csv"),
-        index_col=index_col,
-        keep_default_na=keep_default_na,
-    )
-
     if data_type == "pp":
-        preprocessed_df["Modified sequence"] = preprocessed_df.index.str.split(";")
-        preprocessed_df = preprocessed_df.explode("Modified sequence")
+        preprocessed_df = phospho_grouping.read_cohort_intensities_df(
+            os.path.join(results_folder, "preprocessed_pp.csv"),
+            keep_identification_metadata_columns=True,
+        )
+        keep_cols = phospho_grouping.INDEX_COLS
+        keep_cols.remove("Modified sequence group")
+
+        annot_df = pd.DataFrame(index=preprocessed_df.index)
+        annot_df = annot_df.reset_index(keep_cols)
+        annot_df["Modified sequence"] = annot_df.index.str.split(";")
+        annot_df = annot_df.explode("Modified sequence")
 
         # ~30 minutes for 3000 samples
         logger.info("Annotating phospho sites")
-        preprocessed_df = phosphosite.add_phospho_annotations(
-            preprocessed_df,
+        annot_df = phosphosite.add_phospho_annotations(
+            annot_df,
             clinic_proc_config,
         )
 
-        preprocessed_df = phosphosite.add_ck_substrate_annotations(
-            preprocessed_df,
+        annot_df = phosphosite.add_ck_substrate_annotations(
+            annot_df,
             results_folder,
             clinic_proc_config.topas_kinase_substrate_file,
+        )
+        annot_df = (
+            annot_df.reset_index()
+        )  # make "Modified sequence a regular column to keep it during merging
+
+        annot_df = preprocessed_df.reset_index(keep_cols, drop=True).merge(
+            annot_df, on="Modified sequence group"
+        )
+        annot_df = annot_df.set_index("Modified sequence")
+    else:
+        annot_df = pd.read_csv(
+            os.path.join(results_folder, f"preprocessed_fp.csv"),
+            index_col="Gene names",
         )
 
     if len(clinic_proc_config.proteins_of_interest_file) > 0:
         poi_annotation_df = poi.load_poi_annotation_df(
             clinic_proc_config.proteins_of_interest_file
         )
-        poi.merge_with_poi_annotations_inplace(preprocessed_df, poi_annotation_df)
+        poi.merge_with_poi_annotations_inplace(annot_df, poi_annotation_df)
 
-    preprocessed_df.to_csv(
+    annot_df.to_csv(
         os.path.join(results_folder, f"annot_{data_type}.csv"), float_format="%.6g"
     )
 

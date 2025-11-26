@@ -7,7 +7,7 @@ import pandas as pd
 
 from .. import config
 from .. import utils
-from ..preprocess import phosphopeptides
+from ..preprocess import phospho_grouping
 from . import ck_substrate_phosphorylation as ck_scoring
 
 # hacky way to get the package logger instead of just __main__ when running as a module
@@ -15,7 +15,7 @@ logger = logging.getLogger(__package__ + "." + Path(__file__).stem)
 
 
 def protein_phospho_scoring(
-    results_folder: str, sample_annotation_file: str, metadata_file: str
+    results_folder: str, metadata_file: str
 ):
     logger.info("Running protein phosphorylation scoring module")
     results_folder = Path(results_folder)
@@ -28,9 +28,8 @@ def protein_phospho_scoring(
         )
         return
 
-    cohort_intensities_df = phosphopeptides.get_cohort_intensities_df(
-        results_folder,
-        sample_annotation_file,
+    cohort_intensities_df = phospho_grouping.read_cohort_intensities_df(
+        f"{results_folder}/preprocessed_pp.csv",
         keep_identification_metadata_columns=False,
     )
 
@@ -83,5 +82,5 @@ if __name__ == "__main__":
     configs = config.load(args.config)
 
     protein_phospho_scoring(
-        configs.results_folder, configs.sample_annotation, configs.metadata_annotation
+        configs.results_folder, configs.metadata_annotation
     )

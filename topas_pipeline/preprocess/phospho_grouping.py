@@ -20,6 +20,14 @@ from .. import identification_metadata
 logger = logging.getLogger(__package__ + "." + Path(__file__).stem)
 
 
+INDEX_COLS = [
+    "Modified sequence group",
+    "Modified sequence representative",
+    "Gene names",
+    "Proteins",
+]
+
+
 def aggregate_modified_sequences(results_folder: str) -> pd.DataFrame:
     """Aggregate modified sequence rows with localization within +/-2 amino acids.
 
@@ -149,6 +157,9 @@ def read_cohort_intensities_df(
     skiprows: pd.Series = None,
     keep_identification_metadata_columns: bool = False,
 ):
+    """
+    Read in preprocessed_pp.csv or preprocessed_pp2_agg.csv
+    """
     logger.info(f"Reading {Path(grouped_phospho_file).name}")
     header = pd.read_csv(grouped_phospho_file, index_col=0, nrows=1)
     intensity_cols = header.filter(like="Reporter intensity corrected").columns.tolist()
@@ -161,8 +172,6 @@ def read_cohort_intensities_df(
             like=identification_metadata.METADATA_COLUMN_PREFIX
         ).columns.tolist()
 
-    index_cols = ["Modified sequence group", "Gene names", "Proteins"]
-
     dtype_dict = collections.defaultdict(lambda: "str")
     dtype_dict |= {c: "float64" for c in intensity_cols}
     dtype_dict |= {c: "string" for c in identification_metadata_cols}
@@ -170,10 +179,10 @@ def read_cohort_intensities_df(
     intensities_df = pd.read_csv(
         grouped_phospho_file,
         skiprows=skiprows,
-        usecols=index_cols + intensity_cols + identification_metadata_cols,
+        usecols=INDEX_COLS + intensity_cols + identification_metadata_cols,
         dtype=dtype_dict,
     )
-    intensities_df = intensities_df.set_index(index_cols)
+    intensities_df = intensities_df.set_index(INDEX_COLS)
 
     if sample_annotation_file:
         sample_annotation_df = pd.read_csv(sample_annotation_file)
@@ -186,9 +195,9 @@ def read_cohort_intensities_df(
         intensities_df = sample_mapping.rename_columns_with_sample_ids(
             intensities_df.reset_index(),
             channel_to_sample_id_dict,
-            index_cols=index_cols,
+            index_cols=INDEX_COLS,
         )
-        intensities_df = intensities_df.set_index(index_cols)
+        intensities_df = intensities_df.set_index(INDEX_COLS)
 
     return intensities_df
 

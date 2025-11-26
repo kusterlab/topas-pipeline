@@ -43,8 +43,9 @@ def get_cohort_intensities_df(
         keep_identification_metadata_columns=keep_identification_metadata_columns,
     )
 
-    cohort_batch_corrected_df = bridge_normalization.read_cohort_batch_corrected_df(
-        results_folder
+    cohort_batch_corrected_df = phospho_grouping.read_cohort_intensities_df(
+        f"{results_folder}/preprocessed_pp2_agg_batchcorrected.csv",
+        keep_identification_metadata_columns=False,
     )
 
     cohort_intensities_df = update_with_batch_corrected_intensities(
