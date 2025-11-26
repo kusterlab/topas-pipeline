@@ -172,7 +172,7 @@ def read_cohort_intensities_df(
             like=identification_metadata.METADATA_COLUMN_PREFIX
         ).columns.tolist()
 
-    dtype_dict = collections.defaultdict(lambda: "str")
+    dtype_dict = collections.defaultdict(lambda: "string")
     dtype_dict |= {c: "float64" for c in intensity_cols}
     dtype_dict |= {c: "string" for c in identification_metadata_cols}
 
@@ -182,6 +182,9 @@ def read_cohort_intensities_df(
         usecols=INDEX_COLS + intensity_cols + identification_metadata_cols,
         dtype=dtype_dict,
     )
+    # fill na values in the Gene names and Proteins columns
+    intensities_df[INDEX_COLS] = intensities_df[INDEX_COLS].fillna("")
+
     intensities_df = intensities_df.set_index(INDEX_COLS)
 
     if sample_annotation_file:
