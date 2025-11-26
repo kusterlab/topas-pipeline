@@ -79,11 +79,13 @@ def add_clinical_annotations_data_type(
         raise ValueError(f"Unknown data type {data_type}")
 
     if len(clinic_proc_config.proteins_of_interest_file) > 0:
+        logger.info("Annotating proteins of interest")
         poi_annotation_df = poi.load_poi_annotation_df(
             clinic_proc_config.proteins_of_interest_file
         )
         poi.merge_with_poi_annotations_inplace(annot_df, poi_annotation_df)
 
+    logger.info("Writing annotated table")
     annot_df.to_csv(
         os.path.join(results_folder, f"annot_{data_type}.csv"), float_format="%.6g"
     )
