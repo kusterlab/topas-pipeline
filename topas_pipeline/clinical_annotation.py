@@ -90,7 +90,7 @@ def add_clinical_annotations_data_type(
 
 
 def build_index_annotation_df(preprocessed_df: pd.DataFrame) -> pd.DataFrame:
-    keep_cols = phospho_grouping.INDEX_COLS
+    keep_cols = phospho_grouping.INDEX_COLS.copy()
     keep_cols.remove("Modified sequence group")
 
     annot_df = pd.DataFrame(index=preprocessed_df.index)
@@ -104,7 +104,7 @@ def build_index_annotation_df(preprocessed_df: pd.DataFrame) -> pd.DataFrame:
 def merge_intensities_and_annotation_dfs(
     annot_df: pd.DataFrame, preprocessed_df: pd.DataFrame
 ) -> pd.DataFrame:
-    keep_cols = phospho_grouping.INDEX_COLS
+    keep_cols = phospho_grouping.INDEX_COLS.copy()
     keep_cols.remove("Modified sequence group")
 
     annot_df = (
