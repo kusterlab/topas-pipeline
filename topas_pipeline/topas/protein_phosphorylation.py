@@ -7,7 +7,6 @@ import pandas as pd
 
 from .. import config
 from .. import utils
-from .. import metrics
 from ..preprocess import phospho_grouping
 from . import ck_substrate_phosphorylation as ck_scoring
 
@@ -23,11 +22,7 @@ def protein_phospho_scoring(
     protein_phosphorylation_file = (
         results_folder / "topas_scores" / "protein_phosphorylation_scores.tsv"
     )
-    measure_names = metrics.MEASURE_NAMES
-    data_type = "phospho_score"
-    if protein_phosphorylation_file.is_file() and metrics.check_measures_computed(
-        results_folder, data_type, measure_names
-    ):
+    if protein_phosphorylation_file.is_file():
         logger.info(
             f"Protein phosphorylation scoring skipped - found files already processed"
         )
