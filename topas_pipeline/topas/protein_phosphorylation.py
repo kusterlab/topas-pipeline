@@ -14,9 +14,7 @@ from . import ck_substrate_phosphorylation as ck_scoring
 logger = logging.getLogger(__package__ + "." + Path(__file__).stem)
 
 
-def protein_phospho_scoring(
-    results_folder: str, metadata_file: str
-):
+def protein_phospho_scoring(results_folder: str, metadata_file: str):
     logger.info("Running protein phosphorylation scoring module")
     results_folder = Path(results_folder)
     protein_phosphorylation_file = (
@@ -36,6 +34,7 @@ def protein_phospho_scoring(
     annotation_df = cohort_intensities_df.index.to_frame().rename(
         columns={"Gene names": "Phosphoprotein"}
     )["Phosphoprotein"]
+    annotation_df = annotation_df.replace("", pd.NA).dropna()  # remove empty gene names
     protein_phosphorylation_score_df = (
         ck_scoring.compute_substrate_phosphorylation_scores(
             cohort_intensities_df, annotation_df, explode=False
@@ -81,6 +80,4 @@ if __name__ == "__main__":
     args = parser.parse_args(sys.argv[1:])
     configs = config.load(args.config)
 
-    protein_phospho_scoring(
-        configs.results_folder, configs.metadata_annotation
-    )
+    protein_phospho_scoring(configs.results_folder, configs.metadata_annotation)
