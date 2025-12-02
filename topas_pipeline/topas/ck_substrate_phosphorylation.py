@@ -171,7 +171,7 @@ def merge_scores_with_sample_metadata(
 
 def get_joint_modified_sequence_groups(
     results_folder: str, topas_kinase_substrate_file: str
-):
+) -> pd.DataFrame:
     df_patients = read_cohort_modified_sequence_groups(results_folder)
     df_annot = get_decryptm_modified_sequence_groups(topas_kinase_substrate_file)
 
@@ -179,7 +179,6 @@ def get_joint_modified_sequence_groups(
     df_annot["Data set"] = "Annotated"
     df_combined = pd.concat([df_patients, df_annot])
     df_combined = explode_modified_sequence_groups(df_combined)
-    df_combined
 
     # Aggregate duplicates
     df_combined = df_combined.groupby(["Modified sequence"])["Data set"].apply(set)
@@ -202,6 +201,7 @@ def get_joint_modified_sequence_groups(
     )
 
     peptidoform_groups = df_combined[["Modified sequence group"]]
+    peptidoform_groups = peptidoform_groups.drop_duplicates()
     peptidoform_groups["Modified sequence"] = peptidoform_groups[
         "Modified sequence group"
     ].str.split(";")

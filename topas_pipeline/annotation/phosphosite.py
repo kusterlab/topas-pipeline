@@ -1,10 +1,7 @@
 import logging
-from itertools import compress
 from pathlib import Path
-from typing import List, Dict, Tuple, Union
 
 import pandas as pd
-import numpy as np
 import psite_annotation as pa
 
 from .. import config
@@ -57,17 +54,21 @@ def add_phospho_annotations(
 def add_ck_substrate_annotations(
     df: pd.DataFrame, results_folder: str, topas_kinase_substrate_file: str
 ):
-    peptidoform_groups = ck_scoring.get_joint_modified_sequence_groups(
+    joint_peptidoform_groups = ck_scoring.get_joint_modified_sequence_groups(
         Path(results_folder), topas_kinase_substrate_file
     )
 
-    automated_sites = ck_scoring.load_decryptM_annotations(topas_kinase_substrate_file)
-    automated_sites = ck_scoring.aggregate_decryptm_modified_sequence_groups(
-        automated_sites, peptidoform_groups
+    decryptm_peptidoforms = ck_scoring.load_decryptM_annotations(
+        topas_kinase_substrate_file
+    )
+    decryptm_peptidoform_groups = (
+        ck_scoring.aggregate_decryptm_modified_sequence_groups(
+            decryptm_peptidoforms, joint_peptidoform_groups
+        )
     )
 
-    decryptM_annotations = peptidoform_groups.merge(
-        automated_sites, on="Modified sequence group"
+    decryptM_annotations = joint_peptidoform_groups.merge(
+        decryptm_peptidoform_groups, on="Modified sequence group"
     )
     df = df.merge(
         decryptM_annotations[["Modified sequence", "Kinase Families"]],
