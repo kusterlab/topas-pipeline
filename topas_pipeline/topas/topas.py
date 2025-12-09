@@ -159,7 +159,6 @@ def save_rtk_scores_w_metadata(
 
         # topas_scores_df = topas_scores_df.rename(index=lambda x: x.replace("score_", ""))
         topas_scores_df.index.name = "Sample name"
-    topas_scores_df = topas_scores_df.fillna(0)
     topas_scores_df.to_csv(out_file, sep="\t", float_format="%.4g")
 
 
@@ -184,7 +183,6 @@ def map_index_to_df(df1, df2):
 def save_topas_scores(topas_scores_df: pd.DataFrame, out_file: str):
     topas_scores_df = topas_scores_df.rename(index=lambda x: x.replace("score_", ""))
     topas_scores_df.index.name = "Sample"
-    topas_scores_df = topas_scores_df.fillna(0)
     topas_scores_df.to_csv(out_file, sep="\t", float_format="%.4g")
 
 
