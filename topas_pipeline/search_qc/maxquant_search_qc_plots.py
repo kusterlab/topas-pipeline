@@ -519,8 +519,20 @@ def write_batch_statistics_table(
         | ppeptide_stats,
         index=peptide_intensities_per_fraction.columns,
     )
-    stats_by_fraction_df = pd.concat(
-        [stats_by_fraction_summary_df, stats_by_fraction_df], axis=1
+    # make indices strings
+    stats_by_fraction_df.index = stats_by_fraction_df.index.astype(str)
+    stats_by_fraction_summary_df.index = stats_by_fraction_summary_df.index.astype(str)
+
+    # we had a case of a fraction split into 2 raw files as machine stopped:
+    if stats_by_fraction_summary_df.index.tolist() != stats_by_fraction_df.index.tolist():
+        stats_by_fraction_summary_df = add_postfix_to_fraction_duplicates(stats_by_fraction_summary_df)
+
+    stats_by_fraction_df = pd.merge(
+        stats_by_fraction_summary_df,
+        stats_by_fraction_df,
+        left_index=True,
+        right_index=True,
+        how="outer"
     )
     stats_by_fraction_df = stats_by_fraction_df.reset_index()
     stats_by_fraction_df.insert(1, "Channel", np.nan)
@@ -586,6 +598,26 @@ def write_batch_statistics_table(
         index=False,
         float_format="%.1f",
     )
+
+
+def add_postfix_to_fraction_duplicates(stats_by_fraction_summary_df: pd.DataFrame):
+    # find the duplicated indices
+    duplicated_indices = stats_by_fraction_summary_df.index[
+        stats_by_fraction_summary_df.index.duplicated()
+    ].unique()
+    logger.warning(
+        f"Duplication in fraction indices found: {duplicated_indices.tolist()}."
+    )
+    # add postfix to duplicated indices
+    for dup_index in duplicated_indices:
+        dup_count = 0
+        for i in range(len(stats_by_fraction_summary_df.index)):
+            if stats_by_fraction_summary_df.index[i] == dup_index:
+                dup_count += 1
+                stats_by_fraction_summary_df.index.values[i] = (
+                    f"{dup_index}_{dup_count}"
+                )
+    return stats_by_fraction_summary_df
 
 
 def append_channel_statistics_to_tracking_table(
