@@ -63,8 +63,7 @@ def compute_topas_scores(
 
     results_folder = Path(results_folder)
 
-    if os.path.exists(
-        results_folder / topas_results_folder / "topas_rtk_scores.tsv"):
+    if os.path.exists(results_folder / topas_results_folder / "topas_rtk_scores.tsv"):
         logger.info(f"TOPAS scoring skipped - found files already preprocessed")
         return
 
@@ -72,7 +71,7 @@ def compute_topas_scores(
     topas_annotation_df = topas_annotation_df[topas_annotation_df["group"] != "OTHER"]
 
     z_scores_fp_df = scoring.load_z_scores_fp(results_folder)
-    z_scores_pp_df = None # scoring.load_z_scores_pp(results_folder) # no longer used
+    z_scores_pp_df = None  # scoring.load_z_scores_pp(results_folder) # no longer used
     protein_phosphorylation_df = protein_phosphorylation.load_protein_phosphorylation(
         results_folder, remove_multi_gene_groups=True
     )
@@ -102,7 +101,7 @@ def compute_topas_scores(
 
         topas_subscores_df = pd.DataFrame.from_dict(topas_subscores)
         topas_subscores_df[f"{topas_name}_total_basket_score"] = topas_subscores_df.sum(
-            axis=1
+            axis=1, min_count=1
         )
         topas_scores_dict[topas_name] = topas_subscores_df[
             f"{topas_name}_total_basket_score"
@@ -143,7 +142,8 @@ def compute_topas_scores(
     if os.path.isfile(metadata_file):
         metadata_df = sample_metadata.load(metadata_file)
         save_rtk_scores_w_metadata(
-            zscores, metadata_df, results_folder / "topas_scores" /"rtk_landscape.tsv")
+            zscores, metadata_df, results_folder / topas_results_folder / "rtk_landscape.tsv"
+        )
 
 
 def save_rtk_scores_w_metadata(
@@ -256,7 +256,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-b",
         "--topas_results_folder",
-        default="",
+        default="topas_scores",
         help="Relative path to TOPAS results folder inside the results folder.",
     )
     args = parser.parse_args(sys.argv[1:])

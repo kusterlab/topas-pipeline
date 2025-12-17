@@ -5,7 +5,7 @@ import pandas as pd
 
 PIPELINE_OUTPUT_FILES = [
     "preprocessed_fp.csv",
-    # "preprocessed_pp.csv",
+    "preprocessed_pp.csv",
     "annot_fp.csv",
     # "annot_pp.csv",
     "full_proteome_measures_rank.tsv",
@@ -17,6 +17,7 @@ PIPELINE_OUTPUT_FILES = [
     "topas_scores/ck_substrate_phosphorylation_scores_expressioncorrected.tsv",
     "topas_scores/rtk_substrate_phosphorylation_scores.tsv",
     "topas_scores/protein_phosphorylation_scores.tsv",
+    # "topas_scores/topas_rtk_scores.tsv",
     "topas_scores/topas_rtk_scores_zscored.tsv",
 ]
 

@@ -17,6 +17,7 @@ PATIENT_PREFIX = "pat_"
 REF_CHANNEL_PREFIX = "ref_"
 
 
+# TODO: change "pp" and "fp" string values to these Enums!
 # remember to update the corresponding constants in topas-portal/flask-backend/topas_portal/utils.py
 class DataType(str, Enum):
     FULL_PROTEOME = "protein"
