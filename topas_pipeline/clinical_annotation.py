@@ -30,6 +30,7 @@ def add_clinical_annotations_data_type(
     results_folder: Union[str, Path],
     clinic_proc_config: config.ClinicProc,
     data_type: str,
+    overwrite: bool = False,
 ) -> None:
     """
     Opens preprocessed data, annotates phospho and TOPAS scores
@@ -40,10 +41,12 @@ def add_clinical_annotations_data_type(
     :param data_type: 'fp' for full proteome, 'pp' for phospho proteome
     """
     if os.path.exists(os.path.join(results_folder, f"annot_{data_type}.csv")):
-        logger.info(
-            f"Clinical processing {data_type} skipped - found files already preprocessed"
-        )
-        return
+        if not overwrite:
+            logger.info(
+                f"Clinical processing {data_type} skipped - found files already preprocessed"
+            )
+            return
+        logger.info(f"Found existing results but overwrite flag was set.")
 
     if data_type == "pp":
         preprocessed_df = phospho_grouping.read_cohort_intensities_df(
@@ -153,6 +156,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "-c", "--config", required=True, help="Absolute path to configuration file."
     )
+    parser.add_argument(
+        "-o",
+        "--overwrite",
+        action="store_true",
+        help="Ignore existing results and recompute outputs.",
+    )
     args = parser.parse_args(sys.argv[1:])
 
     configs = config.load(args.config)
@@ -161,4 +170,5 @@ if __name__ == "__main__":
         results_folder=configs.results_folder,
         clinic_proc_config=configs.clinic_proc,
         data_types=configs.data_types,
+        overwrite=args.overwrite,
     )

@@ -78,6 +78,7 @@ def calculate_cytoplasmic_kinase_scores(
     metadata_file: str,
     topas_kinase_substrate_file: str,
     expression_corrected_input: bool = False,
+    overwrite: bool = False,
 ):
     file_suffix = ""
     if expression_corrected_input:
@@ -93,10 +94,12 @@ def calculate_cytoplasmic_kinase_scores(
         / f"ck_substrate_phosphorylation_scores{file_suffix}.tsv"
     )
     if kinase_score_file.is_file():
-        logger.info(
-            f"Cytoplasmic kinase scoring skipped - found files already processed"
-        )
-        return
+        if not overwrite:
+            logger.info(
+                f"Cytoplasmic kinase scoring skipped - found files already processed"
+            )
+            return
+        logger.info(f"Found existing results but overwrite flag was set.")
 
     logger.info("Construct joint modified sequence groups between cohort and decryptM")
     peptidoform_groups = get_joint_modified_sequence_groups(
@@ -452,6 +455,12 @@ if __name__ == "__main__":
         "-c", "--config", required=True, help="Absolute path to configuration file."
     )
     parser.add_argument(
+        "-o",
+        "--overwrite",
+        action="store_true",
+        help="Ignore existing results and recompute outputs.",
+    )
+    parser.add_argument(
         "-e",
         "--expression-corrected",
         help="Use expression corrected phospho input.",
@@ -466,4 +475,5 @@ if __name__ == "__main__":
         metadata_file=configs.metadata_annotation,
         topas_kinase_substrate_file=configs.clinic_proc.topas_kinase_substrate_file,
         expression_corrected_input=args.expression_corrected,
+        overwrite=args.overwrite,
     )

@@ -51,6 +51,7 @@ def compute_topas_scores(
     metadata_file: Union[str, Path],
     topas_annotation_file: Union[str, Path],
     topas_results_folder: str = "topas_scores",
+    overwrite: bool = False,
 ) -> None:
     """
     Computes TOPAS subscores and TOPAS scores
@@ -64,8 +65,10 @@ def compute_topas_scores(
     results_folder = Path(results_folder)
 
     if os.path.exists(results_folder / topas_results_folder / "topas_rtk_scores.tsv"):
-        logger.info(f"TOPAS scoring skipped - found files already preprocessed")
-        return
+        if not overwrite:
+            logger.info(f"TOPAS scoring skipped - found files already preprocessed")
+            return
+        logger.info(f"Found existing results but overwrite flag was set.")
 
     topas_annotation_df = topas_annotation.read_topas_annotations(topas_annotation_file)
     topas_annotation_df = topas_annotation_df[topas_annotation_df["group"] != "OTHER"]
@@ -142,7 +145,9 @@ def compute_topas_scores(
     if os.path.isfile(metadata_file):
         metadata_df = sample_metadata.load(metadata_file)
         save_rtk_scores_w_metadata(
-            zscores, metadata_df, results_folder / topas_results_folder / "rtk_landscape.tsv"
+            zscores,
+            metadata_df,
+            results_folder / topas_results_folder / "rtk_landscape.tsv",
         )
 
 
@@ -254,6 +259,12 @@ if __name__ == "__main__":
         "-c", "--config", required=True, help="Absolute path to configuration file."
     )
     parser.add_argument(
+        "-o",
+        "--overwrite",
+        action="store_true",
+        help="Ignore existing results and recompute outputs.",
+    )
+    parser.add_argument(
         "-b",
         "--topas_results_folder",
         default="topas_scores",
@@ -273,4 +284,5 @@ if __name__ == "__main__":
         topas_annotation_file=configs.clinic_proc.prot_baskets,
         metadata_file=configs.metadata_annotation,
         topas_results_folder=args.topas_results_folder,
+        overwrite=args.overwrite,
     )
