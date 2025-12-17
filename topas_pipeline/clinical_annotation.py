@@ -52,17 +52,19 @@ def add_clinical_annotations_data_type(
         )
         annot_df = build_index_annotation_df(preprocessed_df)
 
+        annot_df = phosphosite.add_ck_substrate_annotations(
+            annot_df,
+            results_folder,
+            clinic_proc_config.topas_kinase_substrate_file,
+        )
+
         # ~30 minutes for 3000 samples
         annot_df = phosphosite.add_phospho_annotations(
             annot_df,
             clinic_proc_config,
         )
 
-        annot_df = phosphosite.add_ck_substrate_annotations(
-            annot_df,
-            results_folder,
-            clinic_proc_config.topas_kinase_substrate_file,
-        )
+        annot_df = phosphosite.combine_topas_annotations(annot_df)
 
         annot_df = merge_intensities_and_annotation_dfs(annot_df, preprocessed_df)
     elif data_type == "phospho_score":
@@ -115,7 +117,7 @@ def merge_intensities_and_annotation_dfs(
     annot_df = preprocessed_df.reset_index(keep_cols, drop=True).merge(
         annot_df, on="Modified sequence group"
     )
-    annot_df = annot_df.set_index("Modified sequence")
+    annot_df = annot_df.set_index("Modified sequence group")
     return annot_df
 
 
@@ -123,9 +125,19 @@ def read_annotated_expression_file(
     results_folder: Union[str, Path],
     data_type: str,
 ) -> pd.DataFrame:
+    if data_type == "pp":
+        data_type_enum = utils.DataType.PHOSPHO_PROTEOME_ANNOTATED
+    elif data_type == "fp":
+        data_type_enum = utils.DataType.FULL_PROTEOME_ANNOTATED
+    elif data_type == "phospho_score":
+        data_type_enum = utils.DataType.PHOSPHO_SCORE
+    else:
+        raise ValueError(
+            f"Unknown data type '{data_type}' for read_annotated_expression_file"
+        )
     return pd.read_csv(
         os.path.join(results_folder, f"annot_{data_type}.csv"),
-        index_col=utils.get_index_cols(data_type),
+        index_col=utils.INDEX_COLS[data_type_enum],
     )
 
 

@@ -107,7 +107,7 @@ class TestReadAnnotationFiles:
         mocker.patch("pandas.read_csv", return_value=mock_annot)
 
         results_folder = "test_folder"
-        data_type = "test_type"
+        data_type = "fp"
 
         annot = cp.read_annotated_expression_file(results_folder, data_type)
 

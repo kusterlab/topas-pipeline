@@ -6,6 +6,7 @@ import logging
 import requests
 import json
 from typing import List
+from enum import Enum
 
 import pandas as pd
 import numpy as np
@@ -14,6 +15,52 @@ from . import config
 
 PATIENT_PREFIX = "pat_"
 REF_CHANNEL_PREFIX = "ref_"
+
+
+# remember to update the corresponding constants in topas-portal/flask-backend/topas_portal/utils.py
+class DataType(str, Enum):
+    FULL_PROTEOME = "protein"
+    FULL_PROTEOME_ANNOTATED = "protein_annotated"
+    FULL_PROTEOME_NUM_PEPTIDES = "num_peptides"
+    PHOSPHO_PROTEOME = "psite"
+    FP_PP = "FP_PP"
+    PHOSPHO_PROTEOME_ANNOTATED = "psite_annotated"
+    PHOSPHO_SCORE = "phospho_score"
+    PHOSPHO_SCORE_PSITE = "phospho_psite"
+    KINASE_SCORE = "kinase"
+    KINASE_SUBSTRATE = "kinase_substrate"
+    TOPAS_KINASE_SCORE = "topas_kinase"
+    TOPAS_KINASE_SUBSTRATE = "topas_kinase_substrate"
+    TOPAS_PHOSPHO_SCORE = "topas_phospho"
+    TOPAS_PHOSPHO_SCORE_PSITE = (
+        "topas_phospho_psite"  # p-sites making up a phosphoprotein score
+    )
+    TOPAS_PROTEIN = "topas_expression"
+    TOPAS_RTK_SCORE = "topas_rtk"
+    TOPAS_CK_SCORE = "topas_ck"
+    TOPAS_SUBSCORE = "topas_subscore"
+    BIOMARKER = "biomarker"
+    REPORT_SUMMARY = "report_summary"
+
+    PATIENT_METADATA = "patients_df"
+    SAMPLE_ANNOTATION = "sample_annotation_df"
+    SEARCH_QC = "search_qc"
+
+    TRANSCRIPTOMICS = "fpkm"
+    GENOMICS = "genomics"
+
+
+INDEX_COLS: dict[DataType, list[str]] = {
+    DataType.FULL_PROTEOME: ["Gene names"],
+    DataType.FULL_PROTEOME_ANNOTATED: ["Gene names"],
+    DataType.PHOSPHO_SCORE: ["Gene names"],
+    DataType.PHOSPHO_PROTEOME: ["Gene names", "Modified sequence", "Proteins"],
+    DataType.PHOSPHO_PROTEOME_ANNOTATED: [
+        "Gene names",
+        "Modified sequence group",
+        "Proteins",
+    ],
+}
 
 
 def init_file_logger(results_folder, log_file_name):
@@ -123,6 +170,10 @@ def explode_on_separated_string(df: pd.DataFrame, index_col: str, sep: str = ";"
     index_col_exploded = f"{index_col}_exploded"
     df[index_col_exploded] = df[index_col].str.split(sep)
     return df.explode(index_col_exploded), index_col_exploded
+
+
+def csv_unique(s: str) -> str:
+    return ";".join(sorted(set([x for x in s.split(";") if len(x) > 0])))
 
 
 def merge_by_delimited_field(

@@ -5,7 +5,9 @@ import pandas as pd
 import psite_annotation as pa
 
 from .. import config
+from .. import utils
 from ..topas import ck_substrate_phosphorylation as ck_scoring
+from ..preprocess import phospho_grouping
 
 logger = logging.getLogger(__name__)
 
@@ -23,12 +25,46 @@ def add_phospho_annotations(
     logger.info("Phosphosite annotation")
 
     df = df.reset_index()
+
+    # add all potential phosphosites on each sequence
+    df = pa.addPeptideAndPsitePositions(
+        df, clinic_proc_config.pspFastaFile, pspInput=True, returnAllPotentialSites=True
+    )
+    df.rename(columns={"Site positions": "Site positions (PSP)"}, inplace=True)
+
     df = pa.addPeptideAndPsitePositions(
         df,
         clinic_proc_config.pspFastaFile,
         pspInput=True,
         returnAllPotentialSites=False,
     )
+
+    # add semicolon to columns which will be concatenated. this allows us to use the
+    # fast "sum" aggfunc instead of a slow custom string function
+    concat_cols = ["Site positions", "Site sequence context", "Kinase Families"]
+    df[concat_cols] = df[concat_cols].apply(lambda column: column.astype(str) + ";")
+
+    # the PSP annotation functions can deal with semicolon separated strings 
+    # in the "Site positions" column, so we groupby the modified sequence groups
+    # before annotating.
+    df = (
+        df.groupby(by=phospho_grouping.INDEX_COLS)
+        .agg(
+            {
+                "Matched proteins": "first",
+                "Start positions": "first",
+                "End positions": "first",
+                "Site positions (PSP)": "first",
+                "Site positions": "sum",
+                "Site sequence context": "sum",
+                "Kinase Families": "sum",
+            }
+        )
+        .reset_index()
+    )
+
+    for col in concat_cols:
+        df[col] = df[col].apply(utils.csv_unique)
 
     df = pa.addPSPKinaseSubstrateAnnotations(df, clinic_proc_config.extra_kinase_annot)
     df = df.rename(columns={"PSP Kinases": "Kinases (TOPAS)"})
@@ -44,10 +80,7 @@ def add_phospho_annotations(
     df.rename(
         columns={"Site positions": "Site positions identified (MQ)"}, inplace=True
     )
-    df = pa.addPeptideAndPsitePositions(
-        df, clinic_proc_config.pspFastaFile, pspInput=True, returnAllPotentialSites=True
-    )
-    df = df.set_index("Modified sequence", drop=True)
+    df = df.set_index("Modified sequence group", drop=True)
     return df
 
 
@@ -70,16 +103,21 @@ def add_ck_substrate_annotations(
     decryptM_annotations = joint_peptidoform_groups.merge(
         decryptm_peptidoform_groups, on="Modified sequence group"
     )
-    df = df.merge(
+    df = df.reset_index().merge(
         decryptM_annotations[["Modified sequence", "Kinase Families"]],
         on="Modified sequence",
         how="left",
     )
+    df["Kinase Families"] = df["Kinase Families"].fillna("")
+    df = df.set_index("Modified sequence", drop=True)
+    return df
+
+
+def combine_topas_annotations(df: pd.DataFrame) -> pd.DataFrame:
     df["Kinases (TOPAS)"] = (
-        df[["Kinases (TOPAS)", "Kinase Families"]]
+        df[["Kinase Families", "Kinases (TOPAS)"]]
         .replace("", pd.NA)
         .agg(lambda x: ";".join(x.dropna()), axis=1)
     )
     df = df.drop(columns=["Kinase Families"])
-    df = df.set_index("Modified sequence", drop=True)
     return df
