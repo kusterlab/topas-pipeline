@@ -16,13 +16,28 @@ def add_phospho_annotations(
     df: pd.DataFrame,
     clinic_proc_config: config.ClinicProc,
 ) -> pd.DataFrame:
+    logger.info("Phosphosite annotation")
+    df = add_psite_positions(df, clinic_proc_config)
+    df = add_rtk_substrate_annotations(df, clinic_proc_config)
+    df = add_psp_annotations(df, clinic_proc_config)
+    df.rename(
+        columns={"Site positions": "Site positions identified (MQ)"}, inplace=True
+    )
+    df = df.set_index("Modified sequence group", drop=True)
+    return df
+
+
+def add_psite_positions(
+    df: pd.DataFrame,
+    clinic_proc_config: config.ClinicProc,
+) -> pd.DataFrame:
     """
     Phospho-site annotation of experimental data using in-house developed tool (MT) based mainly on Phosphosite Plus
 
     :param df: dataframe with measured peptide intensities
     :param clinic_proc_config: paths to files with PSP and TOPAS gene annotations
     """
-    logger.info("Phosphosite annotation")
+    logger.info("Phosphosite position annotation")
 
     df = df.reset_index()
 
@@ -44,7 +59,7 @@ def add_phospho_annotations(
     concat_cols = ["Site positions", "Site sequence context", "Kinase Families"]
     df[concat_cols] = df[concat_cols].apply(lambda column: column.astype(str) + ";")
 
-    # the PSP annotation functions can deal with semicolon separated strings 
+    # the PSP annotation functions can deal with semicolon separated strings
     # in the "Site positions" column, so we groupby the modified sequence groups
     # before annotating.
     df = (
@@ -66,9 +81,14 @@ def add_phospho_annotations(
     for col in concat_cols:
         df[col] = df[col].apply(utils.csv_unique)
 
-    df = pa.addPSPKinaseSubstrateAnnotations(df, clinic_proc_config.extra_kinase_annot)
-    df = df.rename(columns={"PSP Kinases": "Kinases (TOPAS)"})
+    return df
 
+
+def add_psp_annotations(
+    df: pd.DataFrame,
+    clinic_proc_config: config.ClinicProc,
+) -> pd.DataFrame:
+    logger.info("Phosphosite PSP annotation")
     df = pa.addPSPKinaseSubstrateAnnotations(
         df, clinic_proc_config.pspKinaseSubstrateFile, gene_name=True
     )
@@ -77,16 +97,13 @@ def add_phospho_annotations(
     df["PSP_LT_LIT"] = df["PSP_LT_LIT"].apply(lambda x: max(x.split(";")))
     df["PSP_MS_LIT"] = df["PSP_MS_LIT"].apply(lambda x: max(x.split(";")))
     df["PSP_MS_CST"] = df["PSP_MS_CST"].apply(lambda x: max(x.split(";")))
-    df.rename(
-        columns={"Site positions": "Site positions identified (MQ)"}, inplace=True
-    )
-    df = df.set_index("Modified sequence group", drop=True)
     return df
 
 
 def add_ck_substrate_annotations(
     df: pd.DataFrame, results_folder: str, topas_kinase_substrate_file: str
 ):
+    logger.info("Phosphosite CK-TOPAS annotation")
     joint_peptidoform_groups = ck_scoring.get_joint_modified_sequence_groups(
         Path(results_folder), topas_kinase_substrate_file
     )
@@ -110,6 +127,16 @@ def add_ck_substrate_annotations(
     )
     df["Kinase Families"] = df["Kinase Families"].fillna("")
     df = df.set_index("Modified sequence", drop=True)
+    return df
+
+
+def add_rtk_substrate_annotations(
+    df: pd.DataFrame,
+    clinic_proc_config: config.ClinicProc,
+) -> pd.DataFrame:
+    logger.info("Phosphosite RTK-TOPAS annotation")
+    df = pa.addPSPKinaseSubstrateAnnotations(df, clinic_proc_config.extra_kinase_annot)
+    df = df.rename(columns={"PSP Kinases": "Kinases (TOPAS)"})
     return df
 
 

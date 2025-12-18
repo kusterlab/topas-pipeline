@@ -102,8 +102,9 @@ def build_index_annotation_df(preprocessed_df: pd.DataFrame) -> pd.DataFrame:
     annot_df = pd.DataFrame(index=preprocessed_df.index)
     annot_df = annot_df.reset_index(keep_cols)
 
-    annot_df["Modified sequence"] = annot_df.index.str.split(";")
-    annot_df = annot_df.explode("Modified sequence")
+    # annot_df["Modified sequence"] = annot_df.index.str.split(";")
+    # annot_df = annot_df.explode("Modified sequence")
+    annot_df["Modified sequence"] = annot_df["Modified sequence representative"]
     return annot_df
 
 
