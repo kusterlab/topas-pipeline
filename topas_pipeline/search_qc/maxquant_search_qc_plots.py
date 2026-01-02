@@ -644,19 +644,27 @@ def append_channel_statistics_to_tracking_table(
         }
     )
     tracking_table_path = output_path / f"combined_{search_type}_ID.csv"
-    peptide_intensities_per_channel = pd.read_csv(
-        tracking_table_path,
-        sep=",",
-    )
-    peptide_intensities_per_channel = pd.concat(
-        [peptide_intensities_per_channel, IDs], ignore_index=True
-    )
-    peptide_intensities_per_channel = peptide_intensities_per_channel.drop_duplicates()
-    peptide_intensities_per_channel.to_csv(
-        tracking_table_path,
-        index=False,
-        float_format="%.1f",
-    )
+    if not tracking_table_path.is_file():
+        IDs.to_csv(
+            tracking_table_path,
+            index=False,
+            float_format="%.1f",
+        )
+        return IDs
+    else:
+        peptide_intensities_per_channel = pd.read_csv(
+            tracking_table_path,
+            sep=",",
+        )
+        peptide_intensities_per_channel = pd.concat(
+            [peptide_intensities_per_channel, IDs], ignore_index=True
+        )
+        peptide_intensities_per_channel = peptide_intensities_per_channel.drop_duplicates()
+        peptide_intensities_per_channel.to_csv(
+            tracking_table_path,
+            index=False,
+            float_format="%.1f",
+        )
     return peptide_intensities_per_channel
 
 
