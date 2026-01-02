@@ -58,6 +58,9 @@ def calculate_rtk_scores(
     scores = ck_substrate_phosphorylation.compute_substrate_phosphorylation_scores(
         annotated_cohort_intensities_df,
         annotated_sites_mapping,
+        results_folder=results_folder,
+        kinase_annot_level="PSP Kinases",
+        explode=True
     )
 
     ck_substrate_phosphorylation.save_scores(scores, kinase_score_file)

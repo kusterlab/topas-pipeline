@@ -31,7 +31,7 @@ def protein_phospho_scoring(
         logger.info(f"Found existing results but overwrite flag was set.")
 
     cohort_intensities_df = phospho_grouping.read_cohort_intensities_df(
-        f"{results_folder}/preprocessed_pp.csv",
+        results_folder / "preprocessed_pp.csv",
         keep_identification_metadata_columns=False,
     )
 
@@ -39,9 +39,10 @@ def protein_phospho_scoring(
         columns={"Gene names": "Phosphoprotein"}
     )["Phosphoprotein"]
     annotation_df = annotation_df.replace("", pd.NA).dropna()  # remove empty gene names
+
     protein_phosphorylation_score_df = (
         ck_scoring.compute_substrate_phosphorylation_scores(
-            cohort_intensities_df, annotation_df, explode=False
+            cohort_intensities_df, annotation_df, kinase_annot_level="Phosphoprotein", results_folder=results_folder, explode=False
         )
     )
 

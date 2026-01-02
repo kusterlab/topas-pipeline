@@ -13,7 +13,8 @@ from tqdm import tqdm
 logger = logging.getLogger(__package__ + "." + Path(__file__).stem)
 
 
-def correct_phospho_for_protein_expression(results_folder: str):
+def correct_phospho_for_protein_expression(results_folder: str, 
+                                           pp_index: list[str]):
     results_folder = Path(results_folder)
     expression_corrected_file = (
         results_folder
@@ -25,7 +26,7 @@ def correct_phospho_for_protein_expression(results_folder: str):
         )
         return
 
-    phospho_df = load_phospho_df(results_folder)
+    phospho_df = load_phospho_df(results_folder, pp_index=pp_index)
     full_df = load_full_proteome_df(results_folder)
     
     if not all(phospho_df.columns == full_df.columns):
@@ -33,14 +34,15 @@ def correct_phospho_for_protein_expression(results_folder: str):
             f"Missing columns in full: {set(phospho_df.columns) - set(full_df.columns)}\nMissing columns in phospho: {set(full_df.columns) - set(phospho_df.columns)}"
         )
 
-    mod_seq_df = get_corresponding_protein_expression(phospho_df, full_df)
+    mod_seq_df = get_corresponding_protein_expression(phospho_df, full_df, pp_index=pp_index)
 
     # predict full proteome from phospho to fill in missing protein expressions
-    full_predicted = predict_full_from_phospho(phospho_df, mod_seq_df)
+    full_predicted = predict_full_from_phospho(phospho_df, mod_seq_df, pp_index=pp_index)
 
     # correct phospho for protein expression
     phospho_corrected = predict_phospho_from_full(
-        phospho_df, mod_seq_df, full_predicted
+        phospho_df, mod_seq_df, full_predicted,
+        pp_index=pp_index
     )
 
     logger.info(
@@ -49,7 +51,7 @@ def correct_phospho_for_protein_expression(results_folder: str):
     phospho_corrected.to_csv(expression_corrected_file, float_format="%.4f")
 
 
-def load_phospho_df(results_folder: str) -> pd.DataFrame:
+def load_phospho_df(results_folder: str, pp_index: list[str], file_suffix: str = "") -> pd.DataFrame:
     logger.info("Loading phospho proteome data")
     header = pd.read_csv(results_folder / "preprocessed_fp.csv", index_col=0, nrows=1)
     intensity_cols = header.filter(like="pat_").columns.tolist()
@@ -58,13 +60,13 @@ def load_phospho_df(results_folder: str) -> pd.DataFrame:
 
     phospho_df = pd.read_csv(
         results_folder / "preprocessed_pp2_agg_batchcorrected.csv",
-        usecols=intensity_cols + ["Modified sequence group", "Gene names"],
+        usecols=intensity_cols + pp_index,
         dtype=dtype_dict,
     )
 
     intensity_cols = phospho_df.filter(like="pat_").columns.tolist()
     phospho_df["Gene names"] = phospho_df["Gene names"].fillna("")
-    phospho_df = phospho_df.set_index(["Modified sequence group", "Gene names"])
+    phospho_df = phospho_df.set_index(pp_index)
     return phospho_df
 
 
@@ -87,38 +89,47 @@ def load_full_proteome_df(results_folder: str) -> pd.DataFrame:
 
 
 def get_corresponding_protein_expression(
-    phospho_df: pd.DataFrame, full_df: pd.DataFrame
+    phospho_df: pd.DataFrame, full_df: pd.DataFrame, pp_index: list[str]
 ) -> pd.DataFrame:
     # sum multiple gene expressions if the same phospho peptide matches to multiple genes
 
     # expand for single gene names matching
-    mod_seq_df = phospho_df.reset_index()[["Modified sequence group", "Gene names"]]
+    mod_seq_df = phospho_df.reset_index()[pp_index]
     mod_seq_df["Gene names"] = mod_seq_df["Gene names"].str.split(";")
     mod_seq_df = mod_seq_df.explode(column="Gene names")
 
     # back aggregate to unique phospho
     mod_seq_df = mod_seq_df.merge(
         right=10**full_df, on="Gene names", how="left"
-    ).drop(columns="Gene names")
+    )
     mod_seq_df = mod_seq_df.merge(
-        right=phospho_df.reset_index()[["Modified sequence group", "Gene names"]],
-        on="Modified sequence group",
+        right=phospho_df.reset_index()[pp_index],
+        on=pp_index,
         how="left",
     )
-    mod_seq_df = np.log10(
-        mod_seq_df.groupby(["Modified sequence group", "Gene names"])
-        .sum()
-        .replace(0, np.nan)
-    )
+
+    # divide into numeric, string and groupby col and create agg dict
+    numeric_cols = mod_seq_df.select_dtypes(include=np.number).columns
+    group_col = "Modified sequence group"
+    string_cols = [ c for c in pp_index if c != group_col and c not in numeric_cols ]
+    agg_dict = {col: lambda x: ";".join(x.dropna().astype(str).unique()) for col in string_cols}
+    for col in numeric_cols:
+        agg_dict[col] = "sum"
+
+    # Group by and aggregate --> then log10 transform
+    aggregated_df = mod_seq_df.groupby("Modified sequence group", as_index=False).agg(agg_dict)
+    aggregated_df[numeric_cols] = aggregated_df[numeric_cols].replace(0, np.nan)
+    aggregated_df[numeric_cols] = np.log10(aggregated_df[numeric_cols])
+    aggregated_df = aggregated_df.set_index(pp_index)
 
     # mask low observations to prevent false corrections
-    mod_seq_df[(mod_seq_df.isna().mean(axis=1) > 0.8)] = 0
+    aggregated_df[(aggregated_df.isna().mean(axis=1) > 0.8)] = 0
 
-    return mod_seq_df
+    return aggregated_df
 
 
 def predict_full_from_phospho(
-    phospho_df: pd.DataFrame, mod_seq_df: pd.DataFrame
+    phospho_df: pd.DataFrame, mod_seq_df: pd.DataFrame, pp_index: list[str]
 ) -> pd.DataFrame:
     logger.info("Predicting protein expression from phospho proteome")
     # for fast analysis switch to numpy
@@ -133,7 +144,7 @@ def predict_full_from_phospho(
         linear_fits, index=["N data points", "slope", "intersept", "var ratio"]
     ).T
     linear_fits.index = linear_fits.index.set_names(
-        ["Modified sequence group", "Gene names"]
+        pp_index
     )
 
     # Predict full based on phospho
@@ -148,7 +159,7 @@ def predict_full_from_phospho(
 
 
 def predict_phospho_from_full(
-    phospho_df: pd.DataFrame, mod_seq_df: pd.DataFrame, full_predicted: pd.DataFrame
+    phospho_df: pd.DataFrame, mod_seq_df: pd.DataFrame, full_predicted: pd.DataFrame, pp_index: list[str]
 ) -> pd.DataFrame:
     logger.info("Predicting phospho from protein expression")
     # for fast analysis switch to numpy
@@ -164,7 +175,7 @@ def predict_phospho_from_full(
         linear_fits, index=["N data points", "slope", "intersept", "var ratio"]
     ).T
     linear_fits.index = linear_fits.index.set_names(
-        ["Modified sequence group", "Gene names"]
+        pp_index
     )
 
     # Impute fullprotome NaNs with predicted values
