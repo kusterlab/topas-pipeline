@@ -392,11 +392,9 @@ def compute_substrate_phosphorylation_scores(
     # scale is 1 here when not standardizing input
     z_vals = scores.sub(center, axis=0).div(scale, axis=0)
 
-    if kinase_annot_level == "Kinase Families":
-        z_vals.to_csv(
-            results_folder / "topas_scores" / "ck_substrate_phosphorylation_peptides_centered.tsv",
-            sep="\t", float_format="%.4f"
-        )
+    save_centered_peptide_zvals(
+        z_vals, results_folder, kinase_annot_level=kinase_annot_level
+    )
     z_vals = z_vals.reset_index()
     # drop pp index cols for aggregation
     z_vals = z_vals.drop(columns=pp_index_cols)
@@ -414,6 +412,22 @@ def compute_substrate_phosphorylation_scores(
         .T
     )
     return z_vals
+
+
+def save_centered_peptide_zvals(
+    z_vals: pd.DataFrame, results_folder: Path, kinase_annot_level: str = "Kinase Families"
+):
+    scoring_type = 'ck_substrate_phosphorylation'
+    if kinase_annot_level == "Kinase Families":
+        scoring_type = 'ck_substrate_phosphorylation'
+    if kinase_annot_level == "PSP Kinases":
+        scoring_type = 'rtk_substrate_phosphorylation'
+    else:
+        scoring_type = f'protein_phosphorylation'
+    z_vals.to_csv(
+        results_folder / "topas_scores" / f"{scoring_type}_peptides_centered.tsv",
+        sep="\t", float_format="%.4f"
+    )
 
 
 def explode_series(s: pd.Series, delimiter: str = ";") -> pd.Series:
