@@ -101,16 +101,16 @@ def add_psp_annotations(
 
 
 def add_ck_substrate_annotations(
-    df: pd.DataFrame, results_folder: str, topas_kinase_substrate_file: str
+    df: pd.DataFrame, df_patients: pd.DataFrame, topas_kinase_substrate_file: str
 ):
     logger.info("Phosphosite CK-TOPAS annotation")
-    joint_peptidoform_groups = ck_scoring.get_joint_modified_sequence_groups(
-        Path(results_folder), topas_kinase_substrate_file
-    )
-
     decryptm_peptidoforms = ck_scoring.load_decryptM_annotations(
         topas_kinase_substrate_file
     )
+    joint_peptidoform_groups = ck_scoring.get_joint_modified_sequence_groups(
+        df_patients, decryptm_peptidoforms
+    )
+    
     decryptm_peptidoform_groups = (
         ck_scoring.aggregate_decryptm_modified_sequence_groups(
             decryptm_peptidoforms, joint_peptidoform_groups

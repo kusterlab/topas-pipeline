@@ -225,6 +225,14 @@ def row_wise_normalize(
     return vals["intensity corrected"]
 
 
+def read_cohort_modified_sequence_groups(results_folder: Path) -> pd.DataFrame:
+    df_patients = pd.read_csv(
+        results_folder / "preprocessed_pp2_agg_batchcorrected.csv",
+        usecols=["Gene names", "Modified sequence group"],
+    )
+    return df_patients[["Modified sequence group"]]
+
+
 """
 python3 -m topas_pipeline.bridge_normalization -c config_patients.json
 """

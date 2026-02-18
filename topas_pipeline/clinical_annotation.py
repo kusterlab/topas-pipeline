@@ -12,6 +12,7 @@ from .topas import protein_phosphorylation
 from .annotation import proteins_of_interest as poi
 from .annotation import phosphosite
 from .preprocess import phospho_grouping
+from .preprocess import bridge_normalization
 
 # hacky way to get the package logger instead of just __main__ when running as python -m topas_pipeline.simsi ...
 logger = logging.getLogger(__package__ + "." + __file__)
@@ -55,9 +56,12 @@ def add_clinical_annotations_data_type(
         )
         annot_df = build_index_annotation_df(preprocessed_df)
 
+        df_patients = bridge_normalization.read_cohort_modified_sequence_groups(
+            Path(results_folder)
+        )
         annot_df = phosphosite.add_ck_substrate_annotations(
             annot_df,
-            results_folder,
+            df_patients,
             clinic_proc_config.topas_kinase_substrate_file,
         )
 
