@@ -78,6 +78,9 @@ def load_protein_phosphorylation(
     return protein_phosphorylation_df
 
 
+"""
+python3 -m topas_pipeline.topas.protein_phosphorylation -c config_patients.json
+"""
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
