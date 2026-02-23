@@ -48,8 +48,8 @@ TOPAS_CATEGORIES = {
 
 def compute_topas_scores(
     results_folder: Union[str, Path],
-    metadata_file: Union[str, Path],
     topas_annotation_file: Union[str, Path],
+    metadata_file: Union[str, Path],
     topas_results_folder: str = "topas_scores",
     overwrite: bool = False,
 ) -> None:
@@ -249,6 +249,9 @@ def save_topas_scores_long_format(topas_scores_df: pd.DataFrame, out_file: str):
     topas_scores_df_long.to_csv(out_file, sep="\t", float_format="%.4g")
 
 
+"""
+python3 -m topas_pipeline.topas.topas -c config_patients.json
+"""
 if __name__ == "__main__":
     import argparse
 

@@ -312,6 +312,9 @@ def preprocess_fp(
     return df
 
 
+"""
+python3 -m topas_pipeline.preprocess.preprocess -c config_patients.json
+"""
 if __name__ == "__main__":
     import argparse
 

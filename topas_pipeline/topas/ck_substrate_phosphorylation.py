@@ -456,13 +456,13 @@ def z_aggregate(
     z_vals = np.clip(z_vals, a_min=clip_input[0], a_max=clip_input[1])
 
     # Aggregate
-    if agg_f == "mean":  # should be the best option
+    if agg_f == "mean":
         agg_vals = z_vals.mean()
     elif agg_f == "median":
         agg_vals = z_vals.median()
-    elif agg_f == "sum":  # sum is sensitive to unequal sizes (missing values)
+    elif agg_f == "sum":
         agg_vals = z_vals.sum()
-    elif agg_f == "min":  # Min / Max is problematic in big aggregation sets
+    elif agg_f == "min":
         agg_vals = z_vals.min()
     elif agg_f == "max":
         agg_vals = z_vals.max()

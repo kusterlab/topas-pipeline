@@ -452,7 +452,7 @@ def main(argv):
 
 
 """
-python3 -m topas_pipeline.picked_group -c config_patients.json
+python3 -m topas_pipeline.preprocess.picked_group -c config_patients.json
 """
 if __name__ == "__main__":
     main(sys.argv[1:])

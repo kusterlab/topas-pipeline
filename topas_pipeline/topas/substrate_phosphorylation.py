@@ -153,6 +153,9 @@ def kinase_scoring(
     )
 
 
+"""
+python3 -m topas_pipeline.topas.substrate_phosphorylation -c config_patients.json
+"""
 if __name__ == "__main__":
     from .. import config
 
