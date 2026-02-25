@@ -717,6 +717,9 @@ def filter_data(df: pd.DataFrame, data_type: str) -> pd.DataFrame:
 
         df = df.drop("Modifications", axis=1)
 
+        df = df[~df["Gene names"].isna()]
+        logger.info(f"- after gene names filtering: {df.shape[0]}")
+
     return df
 
 

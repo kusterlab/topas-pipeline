@@ -240,7 +240,7 @@ def get_bounded_model(x, y):
 
 
 """
-python3 -m topas_pipeline.expression_correction -c config_patients.json
+python3 -m topas_pipeline.topas.expression_correction -c config_patients.json
 """
 if __name__ == "__main__":
     import argparse

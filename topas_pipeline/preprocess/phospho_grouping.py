@@ -206,7 +206,7 @@ def read_cohort_intensities_df(
 
 
 """
-python3 -m topas_pipeline.phospho_grouping -c config_patients.json
+python3 -m topas_pipeline.preprocess.phospho_grouping -c config_patients.json
 """
 if __name__ == "__main__":
     import argparse
