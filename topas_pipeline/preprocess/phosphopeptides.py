@@ -34,7 +34,7 @@ def update_with_batch_corrected_intensities(
 
 def get_cohort_intensities_df(
     results_folder: str,
-    sample_annotation_file: str,
+    sample_annotation_file: str = None,
     keep_identification_metadata_columns: bool = True,
 ):
     cohort_intensities_df = phospho_grouping.read_cohort_intensities_df(
@@ -45,6 +45,7 @@ def get_cohort_intensities_df(
 
     cohort_batch_corrected_df = phospho_grouping.read_cohort_intensities_df(
         f"{results_folder}/preprocessed_pp2_agg_batchcorrected.csv",
+        sample_annotation_file,
         keep_identification_metadata_columns=False,
     )
 

@@ -41,14 +41,15 @@ def load_sample_annotation(sample_annotation_file: Union[str, Path]) -> pd.DataF
         sample_annotation_df = pd.read_csv(
             sample_annotation_file, dtype={"Batch Name": str}
         )
-        sample_annotation_df["Sample name"] = sample_annotation_df[
-            "Sample name"
-        ].str.strip()
-        sample_annotation_df = sample_annotation_df.set_index("Sample name")
     except PermissionError:
         raise PermissionError(
             f"Cannot open sample annotation file, check if you have it open in Excel. {sample_annotation_file}"
         )
+
+    sample_annotation_df["Sample name"] = sample_annotation_df[
+        "Sample name"
+    ].str.strip()
+    sample_annotation_df = sample_annotation_df.set_index("Sample name")
 
     sample_annotation_df["is_reference"] = (
         sample_annotation_df["is_reference"].astype("boolean").fillna(False)
@@ -195,3 +196,37 @@ def get_channel_to_sample_id_dict(
             sample_annotation_df.index.tolist(),
         )
     )
+
+
+def get_sample_qc_lot_mapping_df(
+    sample_columns: pd.Index, sample_annotation_df: pd.DataFrame
+) -> pd.DataFrame:
+    sample_mapping_df = sample_columns.to_frame().reset_index()
+    sample_mapping_df["batch"] = sample_mapping_df["index"].str.split("_Batch").str[-1]
+    sample_mapping_df["channel"] = (
+        sample_mapping_df["index"].str.split(" ").str[-2].astype(int)
+    )
+
+    sample_mapping_df = sample_mapping_df.merge(
+        sample_annotation_df[["Batch Name", "TMT Channel", "QC Lot", "is_reference"]],
+        left_on=["batch", "channel"],
+        right_on=["Batch Name", "TMT Channel"],
+        how="left",
+    )
+    sample_mapping_df["QC Lot group"] = sample_mapping_df.groupby("batch")[
+        "QC Lot"
+    ].transform(
+        "mean"
+    )  # TODO: replace this with sorted string concat to not get accidental collisions, e.g. (lot1+lot3)/2 != lot2
+    sample_mapping_df = sample_mapping_df.drop(columns=[0, "Batch Name", "TMT Channel"])
+    sample_mapping_df = sample_mapping_df.set_index("index")
+    return sample_mapping_df
+
+
+def get_patient_column_names(
+    sample_annotation_df: pd.DataFrame, sample_columns: pd.Index
+) -> pd.Index:
+    sample_qc_lot_mapping_df = get_sample_qc_lot_mapping_df(
+        sample_columns, sample_annotation_df
+    )
+    return sample_qc_lot_mapping_df.loc[~sample_qc_lot_mapping_df["is_reference"]].index

@@ -36,21 +36,20 @@ def calculate_rtk_scores(
         logger.info(f"Found existing results but overwrite flag was set.")
 
     cohort_annotated_sites_df = get_annotated_modified_sequence_groups(
-        results_folder,
+        results_folder / "preprocessed_pp.csv",
         extra_kinase_annot,
         fasta_file,
     )
 
-    annotated_sites_mapping = get_annotated_sites_mapping(cohort_annotated_sites_df)
-
     annotated_cohort_intensities_df = read_annotated_cohort_intensities_df(
-        results_folder,
+        results_folder / "preprocessed_pp.csv",
         cohort_annotated_sites_df,
     )
 
     substrate_file = (
         results_folder / "topas_scores" / "rtk_substrate_peptide_intensities.tsv"
     )
+    annotated_sites_mapping = get_annotated_sites_mapping(cohort_annotated_sites_df)
     ck_substrate_phosphorylation.write_substrate_peptides(
         annotated_cohort_intensities_df, annotated_sites_mapping, substrate_file
     )
@@ -71,14 +70,14 @@ def calculate_rtk_scores(
 
 
 def get_annotated_modified_sequence_groups(
-    results_folder: str,
+    cohort_intensity_file: str,
     extra_kinase_annot: str,
     fasta_file: str,
 ):
     logger.info("Reading cohort modified sequence groups")
     # loading only these three columns takes 20 sec instead of 4 minutes
     pp_df = pd.read_csv(
-        results_folder / "preprocessed_pp.csv",
+        cohort_intensity_file,
         usecols=["Gene names", "Modified sequence group", "Proteins"],
     )
 
@@ -124,10 +123,11 @@ def get_annotated_sites_mapping(df_patients_sites: pd.DataFrame):
 
 
 def read_annotated_cohort_intensities_df(
-    results_folder: str,
+    cohort_intensity_file: str,
     cohort_annotated_sites_df: pd.DataFrame,
 ):
     logger.info("Read cohort intensities for annotated sites")
+    # the column is called PSP Kinases because it was annotated with psite_annotation, it does contain the RTK substrates though
     keep_rows = cohort_annotated_sites_df.loc[
         cohort_annotated_sites_df["PSP Kinases"] != "", "index"
     ]
@@ -137,7 +137,7 @@ def read_annotated_cohort_intensities_df(
     skip_rows += 1  # add 1 to the row numbers to account for the header line
 
     return phospho_grouping.read_cohort_intensities_df(
-        f"{results_folder}/preprocessed_pp.csv", skiprows=skip_rows
+        cohort_intensity_file, skiprows=skip_rows
     )
 
 

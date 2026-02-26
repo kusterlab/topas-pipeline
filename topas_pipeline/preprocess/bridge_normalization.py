@@ -15,7 +15,6 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 warnings.filterwarnings(action="ignore", category=RuntimeWarning)
 
 from .. import sample_annotation
-from . import sample_mapping
 from . import phospho_grouping
 
 # hacky way to get the package logger instead of just __main__ when running as a module
@@ -27,31 +26,33 @@ def apply_bridge_channel_normalization(
     sample_annotation_file: str,
     min_occurrence: float = 2 / 3,  # Good Value for phospho
     min_samples_in_qc_lot: int = 100,
+    overwrite: bool = False,
 ):
     results_folder = Path(results_folder)
     batch_corrected_file = results_folder / "preprocessed_pp2_agg_batchcorrected.csv"
     if batch_corrected_file.is_file():
-        logger.info(
-            f"Reusing previously generated batch corrected intensities: {batch_corrected_file}"
-        )
-        return
-
-    sample_annotation_df = sample_annotation.load_sample_annotation(
-        sample_annotation_file
-    )
+        if not overwrite:
+            logger.info(
+                f"Reusing previously generated batch corrected intensities: {batch_corrected_file}"
+            )
+            return
+        logger.info(f"Found existing results but overwrite flag was set.")
 
     phospho_df = phospho_grouping.read_cohort_intensities_df(
         f"{results_folder}/preprocessed_pp2_agg.csv"
     )
 
-    sample_qc_lot_mapping_df = get_sample_qc_lot_mapping_df(
+    sample_annotation_df = sample_annotation.load_sample_annotation(
+        sample_annotation_file
+    )
+    sample_qc_lot_mapping_df = sample_annotation.get_sample_qc_lot_mapping_df(
         phospho_df.columns, sample_annotation_df
     )
 
     ref_cols = sample_qc_lot_mapping_df.loc[
         sample_qc_lot_mapping_df["is_reference"]
     ].index
-    pat_cols = sample_qc_lot_mapping_df.loc[
+    patient_columns = sample_qc_lot_mapping_df.loc[
         ~sample_qc_lot_mapping_df["is_reference"]
     ].index
 
@@ -62,15 +63,12 @@ def apply_bridge_channel_normalization(
 
     logger.info("Applying across QC lot normalization")
 
+    # store original column order for output dataframe
     combined_column_order = phospho_df_corrected.columns
 
-    phospho_df_ref_corrected = phospho_df_corrected.loc[:, ref_cols]
-    phospho_df_corrected = phospho_df_corrected.loc[:, pat_cols]
-
     # temporarily center patient data around 0 for each peptide
-    avg_intensity = phospho_df_corrected.median(axis=1)
-    phospho_df_corrected2 = (phospho_df_corrected.T - avg_intensity).T
-    phospho_df_ref_corrected2 = (phospho_df_ref_corrected.T - avg_intensity).T
+    avg_pat_intensity = phospho_df_corrected.loc[:, patient_columns].median(axis=1)
+    phospho_df_corrected2 = (phospho_df_corrected.T - avg_pat_intensity).T
 
     # correct QC lots with at least 100 patient samples
     qc_lots_to_correct = (
@@ -86,76 +84,22 @@ def apply_bridge_channel_normalization(
         qc_lot_patient_samples = sample_qc_lot_mapping_df.loc[
             qc_lot_samples & ~sample_qc_lot_mapping_df["is_reference"], :
         ].index
-        qc_lot_ref_samples = sample_qc_lot_mapping_df.loc[
-            qc_lot_samples & sample_qc_lot_mapping_df["is_reference"], :
-        ].index
 
         avg_patient_intensity = phospho_df_corrected2.loc[
             :, qc_lot_patient_samples
         ].median(axis=1)
-        phospho_df_corrected2.loc[:, qc_lot_patient_samples] = (
-            phospho_df_corrected2.loc[:, qc_lot_patient_samples].sub(
-                avg_patient_intensity, axis=0
-            )
-        )
-        phospho_df_ref_corrected2.loc[:, qc_lot_ref_samples] = (
-            phospho_df_ref_corrected2.loc[:, qc_lot_ref_samples].sub(
-                avg_patient_intensity, axis=0
-            )
-        )
+        phospho_df_corrected2 = phospho_df_corrected2.sub(avg_patient_intensity, axis=0)
 
     # bring back to original intensity level
-    phospho_df_corrected2 = (phospho_df_corrected2.T + avg_intensity).T
-    phospho_df_ref_corrected2 = (phospho_df_ref_corrected2.T + avg_intensity).T
-
-    phospho_df_corrected2 = pd.concat(
-        [phospho_df_corrected2, phospho_df_ref_corrected2], axis=1
-    )
+    phospho_df_corrected2 = (phospho_df_corrected2.T + avg_pat_intensity).T
     phospho_df_corrected2 = phospho_df_corrected2[combined_column_order]
-
-    # map column names to patient names
-    channel_to_sample_id_dict = sample_annotation.get_channel_to_sample_id_dict(
-        sample_annotation_df,
-        remove_qc_failed=True,
-        remove_replicates=False,
-    )
-
-    phospho_df_corrected2 = sample_mapping.rename_columns_with_sample_ids(
-        phospho_df_corrected2.reset_index(),
-        channel_to_sample_id_dict,
-        index_cols=phospho_grouping.INDEX_COLS,
-    )
 
     logger.info(f"Writing results to {batch_corrected_file}")
     phospho_df_corrected2.to_csv(
         batch_corrected_file,
         float_format="%.6f",
-        index=False,
+        index=True,
     )
-
-
-def get_sample_qc_lot_mapping_df(
-    sample_columns: pd.Index, sample_annotation_df: pd.DataFrame
-) -> pd.DataFrame:
-    sample_mapping_df = sample_columns.to_frame().reset_index()
-    sample_mapping_df["batch"] = sample_mapping_df["index"].str.split("_Batch").str[-1]
-    sample_mapping_df["channel"] = (
-        sample_mapping_df["index"].str.split(" ").str[-2].astype(int)
-    )
-
-    sample_mapping_df = sample_mapping_df.merge(
-        sample_annotation_df[["Batch Name", "TMT Channel", "QC Lot", "is_reference"]],
-        left_on=["batch", "channel"],
-        right_on=["Batch Name", "TMT Channel"],
-    )
-    sample_mapping_df["QC Lot group"] = sample_mapping_df.groupby("batch")[
-        "QC Lot"
-    ].transform(
-        "mean"
-    )  # TODO: replace this with sorted string concat to not get accidental collisions
-    sample_mapping_df = sample_mapping_df.drop(columns=[0, "Batch Name", "TMT Channel"])
-    sample_mapping_df = sample_mapping_df.set_index("index")
-    return sample_mapping_df
 
 
 def within_qc_lot_normalization(
@@ -245,6 +189,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "-c", "--config", required=True, help="Absolute path to configuration file."
     )
+    parser.add_argument(
+        "-o",
+        "--overwrite",
+        action="store_true",
+        help="Ignore existing results and recompute outputs.",
+    )
     args = parser.parse_args(sys.argv[1:])
 
     configs = config.load(args.config)
@@ -252,4 +202,5 @@ if __name__ == "__main__":
     apply_bridge_channel_normalization(
         results_folder=configs.results_folder,
         sample_annotation_file=configs.sample_annotation,
+        overwrite=args.overwrite,
     )

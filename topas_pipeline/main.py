@@ -85,6 +85,7 @@ def main(argv):
         # 2) Run protein phosphorylation scoring (<1 minute)
         protein_phosphorylation.protein_phospho_scoring(
             results_folder=configs.results_folder,
+            sample_annotation_file=configs.sample_annotation,
             metadata_file=configs.metadata_annotation,
         )
         logger.info(
@@ -116,6 +117,7 @@ def main(argv):
         # 5) Run cytoplasmic kinase substrate phosphorylation scoring
         ck_substrate_phosphorylation.calculate_cytoplasmic_kinase_scores(
             results_folder=configs.results_folder,
+            sample_annotation_file=configs.sample_annotation,
             metadata_file=configs.metadata_annotation,
             topas_kinase_substrate_file=configs.clinic_proc.topas_kinase_substrate_file,
             expression_corrected_input=True,

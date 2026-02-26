@@ -156,7 +156,7 @@ def read_cohort_intensities_df(
     sample_annotation_file: str = None,
     skiprows: pd.Series = None,
     keep_identification_metadata_columns: bool = False,
-):
+) -> pd.DataFrame:
     """
     Read in preprocessed_pp.csv or preprocessed_pp2_agg.csv
     """
@@ -164,7 +164,7 @@ def read_cohort_intensities_df(
     header = pd.read_csv(grouped_phospho_file, index_col=0, nrows=1)
     intensity_cols = header.filter(like="Reporter intensity corrected").columns.tolist()
     if len(intensity_cols) == 0:
-        intensity_cols = header.filter(regex=r"(^pat_)|(^ref_)").columns.tolist()
+        intensity_cols = header.filter(regex=r"^(pat_|ref_|oth_)").columns.tolist()
 
     identification_metadata_cols = []
     if keep_identification_metadata_columns:

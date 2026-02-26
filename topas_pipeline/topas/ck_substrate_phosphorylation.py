@@ -15,7 +15,7 @@ import psite_annotation as pa
 from .. import sample_metadata
 from . import expression_correction
 from ..preprocess import bridge_normalization
-from ..preprocess.phospho_grouping import INDEX_COLS as PP_INDEX_COLS
+from ..preprocess import phospho_grouping
 
 tqdm.pandas()
 
@@ -77,20 +77,20 @@ META_COLS = [
 
 def calculate_cytoplasmic_kinase_scores(
     results_folder: str,
+    sample_annotation_file: str,
     metadata_file: str,
     topas_kinase_substrate_file: str,
     expression_corrected_input: bool = False,
     overwrite: bool = False,
 ):
     file_suffix = ""
-    pp_index_cols = PP_INDEX_COLS
     results_folder = Path(results_folder)
     metadata_file = Path(metadata_file)
     topas_kinase_substrate_file = Path(topas_kinase_substrate_file)
 
     if expression_corrected_input:
         expression_correction.correct_phospho_for_protein_expression(
-            results_folder=results_folder, pp_index=pp_index_cols
+            results_folder=results_folder, sample_annotation_file=sample_annotation_file
         )
         file_suffix = "_expressioncorrected"
 
@@ -118,11 +118,13 @@ def calculate_cytoplasmic_kinase_scores(
     )
 
     logger.info("Aggregate modified sequence groups in patient data")
-    phospho = load_phospho_data(
-        results_folder, pp_index=pp_index_cols, file_suffix=file_suffix
+    phospho = phospho_grouping.read_cohort_intensities_df(
+        results_folder / f"preprocessed_pp2_agg_batchcorrected{file_suffix}.csv",
+        sample_annotation_file=sample_annotation_file,
+        keep_identification_metadata_columns=False,
     )
     pp_intensities_df = aggregate_patient_modified_sequence_groups(
-        phospho, peptidoform_groups, pp_index=pp_index_cols
+        phospho, peptidoform_groups
     )
 
     logger.info("Aggregate modified sequence groups in decryptM data")
@@ -130,9 +132,7 @@ def calculate_cytoplasmic_kinase_scores(
         automated_sites, peptidoform_groups
     )
 
-    decryptM_kinases = get_patient_annotated_sites(
-        pp_intensities_df, automated_sites, pp_index=pp_index_cols
-    )
+    decryptM_kinases = get_patient_annotated_sites(pp_intensities_df, automated_sites)
 
     substrate_file = (
         results_folder
@@ -158,7 +158,7 @@ def calculate_cytoplasmic_kinase_scores(
     )
 
     save_scores(scores, kinase_score_file)
-    if metadata_file is not None and str(metadata_file):
+    if metadata_file is not None and len(str(metadata_file)) > 0:
         save_scores(scores, kinase_score_file, metadata_file)
 
 
@@ -276,9 +276,10 @@ def load_phospho_data(
 
 
 def aggregate_patient_modified_sequence_groups(
-    phospho: pd.DataFrame, peptidoform_groups: pd.DataFrame, pp_index: list[str]
+    phospho: pd.DataFrame, peptidoform_groups: pd.DataFrame
 ) -> pd.DataFrame:
     phospho = 10**phospho
+    pp_index = phospho.index.names
     phospho = phospho.reset_index()
     phospho["Modified sequence"] = phospho["Modified sequence group"].str.split(";")
     phospho = phospho.explode("Modified sequence")
@@ -329,13 +330,15 @@ def aggregate_decryptm_modified_sequence_groups(
 
 
 def get_patient_annotated_sites(
-    pp_agg_df: pd.DataFrame, automated_sites: pd.DataFrame, pp_index: list[str]
+    pp_agg_df: pd.DataFrame, automated_sites: pd.DataFrame
 ) -> pd.Series:
-    patient_modified_sequence_groups = pp_agg_df.reset_index()[pp_index].copy()
+    patient_modified_sequence_groups = pp_agg_df.index.to_frame().reset_index(drop=True)
     decryptM_kinases = patient_modified_sequence_groups.merge(
         automated_sites, on="Modified sequence group", how="left"
     ).replace(np.nan, "")
-    decryptM_kinases = decryptM_kinases.set_index(pp_index)["Kinase Families"]
+    decryptM_kinases = decryptM_kinases.set_index(pp_agg_df.index.names)[
+        "Kinase Families"
+    ]
     return decryptM_kinases
 
 
@@ -371,6 +374,7 @@ def compute_substrate_phosphorylation_scores(
     pp_intensities_df: pd.DataFrame,
     kinase_substrate_annotation_df: pd.Series,
     results_folder: Path,
+    patient_columns: pd.Index = None,
     kinases: list[str] = None,
     kinase_annot_level: str = "Kinase Families",
     explode: bool = True,
@@ -383,6 +387,9 @@ def compute_substrate_phosphorylation_scores(
             kinase_substrate_annotation_df.isin(kinases)
         ]
 
+    if patient_columns is None:
+        patient_columns = pp_intensities_df.filter(like="pat_").columns
+
     # Get index columns before kinase annotation is added
     pp_index_cols = pp_intensities_df.index.names
     scores = pp_intensities_df.join(kinase_substrate_annotation_df, how="inner")
@@ -393,7 +400,9 @@ def compute_substrate_phosphorylation_scores(
     # TODO: move following into function
     # Scale input (dataframe) in mean or robust way
     center, scale = get_center_and_scale(
-        scores.filter(like="pat_"), standardize=False, robust=False
+        scores[patient_columns],
+        standardize=False,
+        robust=False,
     )
     # scale is 1 here when not standardizing input
     z_vals = scores.sub(center, axis=0).div(scale, axis=0)
@@ -409,6 +418,7 @@ def compute_substrate_phosphorylation_scores(
         z_vals.groupby(by=kinase_substrate_annotation_df.name)
         .progress_apply(
             z_aggregate,
+            patient_columns=patient_columns,
             robust=False,
             standardize_output=True,
             agg_f="sum",
@@ -432,6 +442,7 @@ def save_centered_peptide_zvals(
         scoring_type = "rtk_substrate_phosphorylation"
     else:
         scoring_type = f"protein_phosphorylation"
+    (results_folder / "topas_scores").mkdir(exist_ok=True)
     z_vals.to_csv(
         results_folder / "topas_scores" / f"{scoring_type}_peptides_centered.tsv",
         sep="\t",
@@ -453,6 +464,7 @@ def mad(x, sigma_scaling=1.4826017):
 
 def z_aggregate(
     z_vals: pd.DataFrame,
+    patient_columns: pd.Index,
     robust=False,
     center_output=True,
     standardize_output=True,
@@ -482,7 +494,7 @@ def z_aggregate(
 
     # Scale output (series) in mean or robust
     if center_output or standardize_output:
-        patient_agg_vals = agg_vals.filter(like="pat_")
+        patient_agg_vals = agg_vals[patient_columns]
         center, scale = get_center_and_scale(
             patient_agg_vals, standardize_output, robust, axis=0
         )
@@ -534,6 +546,7 @@ if __name__ == "__main__":
 
     calculate_cytoplasmic_kinase_scores(
         results_folder=configs.results_folder,
+        sample_annotation_file=configs.sample_annotation,
         metadata_file=configs.metadata_annotation,
         topas_kinase_substrate_file=configs.clinic_proc.topas_kinase_substrate_file,
         expression_corrected_input=args.expression_corrected,
