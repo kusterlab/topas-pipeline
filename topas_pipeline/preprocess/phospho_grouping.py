@@ -12,6 +12,7 @@ from tqdm import tqdm
 
 tqdm.pandas()
 
+from .. import utils
 from .. import sample_annotation
 from . import sample_mapping
 from .. import identification_metadata
@@ -164,7 +165,7 @@ def read_cohort_intensities_df(
     header = pd.read_csv(grouped_phospho_file, index_col=0, nrows=1)
     intensity_cols = header.filter(like="Reporter intensity corrected").columns.tolist()
     if len(intensity_cols) == 0:
-        intensity_cols = header.filter(regex=r"^(pat_|ref_|oth_)").columns.tolist()
+        intensity_cols = utils.filter_for_sample_columns(header).columns.tolist()
 
     identification_metadata_cols = []
     if keep_identification_metadata_columns:

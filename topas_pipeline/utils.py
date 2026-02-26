@@ -15,6 +15,7 @@ from . import config
 
 PATIENT_PREFIX = "pat_"
 REF_CHANNEL_PREFIX = "ref_"
+OTHER_CHANNEL_PREFIX = "excl_"  # channels not in sample annotation, will be ignored for normalization and z-scoring purposes
 
 
 # TODO: change "pp" and "fp" string values to these Enums!
@@ -158,6 +159,16 @@ def keep_only_sample_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 def keep_only_sample_and_ref_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df.filter(regex=rf"(^{PATIENT_PREFIX})|(^{REF_CHANNEL_PREFIX})")
+
+
+def filter_for_patient_columns(df: pd.DataFrame) -> pd.DataFrame:
+    return df.filter(regex=rf"^({PATIENT_PREFIX})")
+
+
+def filter_for_sample_columns(df: pd.DataFrame) -> pd.DataFrame:
+    return df.filter(
+        regex=rf"^({PATIENT_PREFIX}|{REF_CHANNEL_PREFIX}|{OTHER_CHANNEL_PREFIX})"
+    )
 
 
 def add_patient_prefix(patient_list: list[str]):

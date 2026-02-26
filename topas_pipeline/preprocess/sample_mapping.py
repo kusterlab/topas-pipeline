@@ -3,6 +3,7 @@ from typing import Dict, List
 import pandas as pd
 
 from .. import identification_metadata
+from .. import utils
 
 
 def rename_columns_with_sample_ids(
@@ -16,7 +17,7 @@ def rename_columns_with_sample_ids(
     df = df.set_index(index_cols)
     tmt_channels = list(channel_to_sample_id_dict.keys())
 
-    # keep channels that are in the dataframe but missing in the sample annotation file, marked with an "oth_" prefix
+    # keep channels that are in the dataframe but missing in the sample annotation file, marked with a prefix
     channel_to_sample_id_dict |= get_missing_channels_dict(df, tmt_channels)
     tmt_channels = list(channel_to_sample_id_dict.keys())
 
@@ -31,19 +32,19 @@ def rename_columns_with_sample_ids(
     )
     metadata_to_sample_id_dict = dict(zip(metadata_cols, metadata_cols_with_sample_id))
 
-    # add "pat_" prefix to patient intensity columns
+    # add prefix to patient intensity columns
     channel_to_sample_id_dict_final = {
-        k: "pat_" + v
+        k: utils.PATIENT_PREFIX + v
         for k, v in channel_to_sample_id_dict.items()
-        if not v.startswith("ref_") and not v.startswith("oth_")
+        if not v.startswith(utils.REF_CHANNEL_PREFIX)
+        and not v.startswith(utils.OTHER_CHANNEL_PREFIX)
     }
-    # keep "ref_" prefix for reference intensity columns
+    # keep prefix for intensity columns for reference samples and samples missing from the sample annotation file
     channel_to_sample_id_dict_final |= {
-        k: v for k, v in channel_to_sample_id_dict.items() if v.startswith("ref_")
-    }
-    # keep "oth_" prefix for intensity columns not in the sample annotation file
-    channel_to_sample_id_dict_final |= {
-        k: v for k, v in channel_to_sample_id_dict.items() if v.startswith("oth_")
+        k: v
+        for k, v in channel_to_sample_id_dict.items()
+        if v.startswith(utils.REF_CHANNEL_PREFIX)
+        or v.startswith(utils.OTHER_CHANNEL_PREFIX)
     }
 
     rename_dict = {**channel_to_sample_id_dict_final, **metadata_to_sample_id_dict}
@@ -66,7 +67,8 @@ def get_missing_channels_dict(df: pd.DataFrame, tmt_channels: list[str]):
         missing_channels_df["Sample name"].str.split(" ").str[-2]
     )
     missing_channels_df["Sample name"] = (
-        "oth_channel_"
+        utils.OTHER_CHANNEL_PREFIX
+        + "channel_"
         + missing_channels_df["channel"]
         + "_batch"
         + missing_channels_df["batch"]

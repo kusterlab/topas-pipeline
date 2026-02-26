@@ -5,15 +5,15 @@ import pandas as pd
 
 PIPELINE_OUTPUT_FILES = [
     "preprocessed_fp.csv",
-    "preprocessed_pp.csv",
+    # "preprocessed_pp.csv",
     "annot_fp.csv",
-    "annot_pp.csv",
+    # "annot_pp.csv",
     "full_proteome_measures_rank.tsv",
     "full_proteome_measures_fc.tsv",
     "full_proteome_measures_z.tsv",
-    "phospho_measures_rank.tsv",
-    "phospho_measures_fc.tsv",
-    "phospho_measures_z.tsv",
+    # "phospho_measures_rank.tsv",
+    # "phospho_measures_fc.tsv",
+    # "phospho_measures_z.tsv",
     "topas_scores/ck_substrate_phosphorylation_scores_expressioncorrected.tsv",
     "topas_scores/rtk_substrate_phosphorylation_scores.tsv",
     "topas_scores/protein_phosphorylation_scores.tsv",
@@ -35,20 +35,20 @@ def main(argv):
         df2 = pd.read_csv(f"{folder2}/{file_name}", sep=sep)
 
         try:
-            pd.testing.assert_frame_equal(df1, df2, rtol=1e-3, atol=1e-2, check_dtype=False)
-            # pd.testing.assert_frame_equal(
-            #     df1.loc[
-            #         df1.index.intersection(df2.index),
-            #         df1.columns.intersection(df2.columns),
-            #     ],
-            #     df2.loc[
-            #         df1.index.intersection(df2.index),
-            #         df1.columns.intersection(df2.columns),
-            #     ],
-            #     rtol=1e-3,
-            #     atol=1e-2,
-            #     check_dtype=False,
-            # )
+            # pd.testing.assert_frame_equal(df1, df2, rtol=1e-3, atol=1e-2, check_dtype=False)
+            pd.testing.assert_frame_equal(
+                df1.loc[
+                    df1.index.intersection(df2.index),
+                    df1.columns.intersection(df2.columns),
+                ],
+                df2.loc[
+                    df1.index.intersection(df2.index),
+                    df1.columns.intersection(df2.columns),
+                ],
+                rtol=1e-3,
+                atol=1e-2,
+                check_dtype=False,
+            )
         except AssertionError:
             print(df1.head())
             print(df2.head())

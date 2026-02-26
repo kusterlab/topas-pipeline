@@ -13,6 +13,7 @@ from tqdm import tqdm
 import psite_annotation as pa
 
 from .. import sample_metadata
+from .. import utils
 from . import expression_correction
 from ..preprocess import bridge_normalization
 from ..preprocess import phospho_grouping
@@ -184,7 +185,7 @@ def merge_scores_with_sample_metadata(
     scores: pd.DataFrame, metadata_df: pd.DataFrame
 ) -> pd.DataFrame:
     """Merge scores DataFrame with metadata on sample name."""
-    metadata_df["Sample name"] = "pat_" + metadata_df["Sample name"]
+    metadata_df["Sample name"] = utils.PATIENT_PREFIX + metadata_df["Sample name"]
     metadata_columns = metadata_df.columns.intersection(META_COLS).tolist()
     merged = scores.merge(
         right=metadata_df.set_index("Sample name")[metadata_columns],
@@ -388,7 +389,7 @@ def compute_substrate_phosphorylation_scores(
         ]
 
     if patient_columns is None:
-        patient_columns = pp_intensities_df.filter(like="pat_").columns
+        patient_columns = utils.filter_for_patient_columns(pp_intensities_df).columns
 
     # Get index columns before kinase annotation is added
     pp_index_cols = pp_intensities_df.index.names

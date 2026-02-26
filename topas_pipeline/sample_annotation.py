@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Union
 
 import pandas as pd
-
+from . import utils
 
 logger = logging.getLogger(__name__)
 
@@ -180,11 +180,11 @@ def get_channel_to_sample_id_dict(
     ].apply(generate_channel_name, axis=1)
 
     unmarked_ref_channels = sample_annotation_df["is_reference"] & (
-        ~sample_annotation_df.index.str.startswith("ref_")
+        ~sample_annotation_df.index.str.startswith(utils.REF_CHANNEL_PREFIX)
     )
 
     sample_annotation_df.loc[unmarked_ref_channels].index = (
-        "ref_" + sample_annotation_df.loc[unmarked_ref_channels].index
+        utils.REF_CHANNEL_PREFIX + sample_annotation_df.loc[unmarked_ref_channels].index
     )
 
     if filtered_sample_annotation_file:
