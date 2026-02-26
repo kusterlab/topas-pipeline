@@ -23,7 +23,6 @@ logger = logging.getLogger(__package__ + "." + __file__)
 
 
 def main(argv):
-
     # Parse command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -91,6 +90,12 @@ def run_simsi_data_type(
         logger.info(f"run_simsi flag is set to False, skipping SIMSI for {data_type}")
         return
 
+    if simsi_summaries_folder := read_simsi_summaries_folder_from_cache(
+        Path(results_folder), data_type
+    ):
+        logger.info(f"Found cached SIMSI summaries folder: {simsi_summaries_folder}")
+        return
+
     init_file_logger(results_folder, f"SIMSI_log_{data_type}.txt")
 
     logger.info(f"SIMSI started")
@@ -124,6 +129,9 @@ def run_simsi_data_type(
         logger.info(
             f"Found a summaries folder that matches the current list of folders: {matched_summaries_folder}"
         )
+        write_simsi_summaries_folder_to_cache(
+            Path(results_folder), data_type, matched_summaries_folder
+        )
         logger.info("Skipping SIMSI processing.")
         return
 
@@ -138,8 +146,11 @@ def run_simsi_data_type(
         simsi_config.num_threads,
     )
 
-    store_results_for_reuse(
+    simsi_summaries_folder = store_results_for_reuse(
         simsi_output_folder, simsi_cache_folder, meta_input_file, result_folder_name
+    )
+    write_simsi_summaries_folder_to_cache(
+        Path(results_folder), data_type, simsi_summaries_folder
     )
 
 
@@ -156,6 +167,42 @@ def get_simsi_output_folder(simsi_folder: str, data_type: str, result_folder_nam
     )
 
 
+def get_simsi_summaries_cache_file_path(results_folder: Path, data_type: str):
+    return results_folder / f"simsi_summaries_folder_path_{data_type}.txt"
+
+
+def write_simsi_summaries_folder_to_cache(
+    results_folder: Path, data_type: str, matched_summaries_folder: Path
+):
+    summaries_folders_path_cached = get_simsi_summaries_cache_file_path(
+        results_folder, data_type
+    )
+    with open(summaries_folders_path_cached, "w") as f:
+        f.write(str(matched_summaries_folder))
+
+
+def read_simsi_summaries_folder_from_cache(results_folder: Path, data_type: str):
+    summaries_folders_path_cached = get_simsi_summaries_cache_file_path(
+        results_folder, data_type
+    )
+    if not summaries_folders_path_cached.is_file():
+        return
+
+    with open(summaries_folders_path_cached, "r") as f:
+        simsi_summaries_folder = f.readline()
+
+    if (
+        not Path(simsi_summaries_folder).is_dir()
+        and not Path(
+            simsi_summaries_folder + ".zip"
+        ).is_file()  # folder can be an archived file as well
+    ):
+        logger.info("Found cached SIMSI summaries folder, but folder does not exist.")
+        return
+
+    return simsi_summaries_folder
+
+
 def get_simsi_cache_folder(simsi_folder: str, data_type: str):
     """
     The SIMSI cache folder stores the mzML, extracted TMT intensities and MaRaCluster
@@ -168,7 +215,6 @@ def find_matching_summaries_folder(simsi_cache_folder: Path, meta_input_file: Pa
     """
     Iterates over folders starting with 'summaries_' to see if any of them contains results for the current list of folders
     """
-
     summary_folders_and_archives = list(simsi_cache_folder.glob("summaries_*"))
     summary_folders_and_archives.sort(key=os.path.getmtime, reverse=True)
     for s in summary_folders_and_archives:
@@ -245,14 +291,20 @@ def find_simsi_evidence_file(
     results_folder: str, simsi_folder: str, data_type: str
 ) -> Union[str, io.BytesIO]:
     meta_input_file = mi.get_meta_input_file_path(results_folder, data_type.upper())
-    simsi_cache_folder = get_simsi_cache_folder(simsi_folder, data_type.upper())
-    simsi_summaries_folder = find_matching_summaries_folder(
-        simsi_cache_folder, meta_input_file
-    )
-    if not simsi_summaries_folder:
-        raise ValueError(
-            "Could not find a SIMSI summaries folder with a matching list of input folders"
+    if simsi_summaries_folder := read_simsi_summaries_folder_from_cache(
+        Path(results_folder), data_type
+    ):
+        logger.info(f"Found cached SIMSI summaries folder: {simsi_summaries_folder}")
+    else:
+        logger.info(f"Trying to find matching SIMSI summaries folder.")
+        simsi_cache_folder = get_simsi_cache_folder(simsi_folder, data_type.upper())
+        simsi_summaries_folder = find_matching_summaries_folder(
+            simsi_cache_folder, meta_input_file
         )
+        if not simsi_summaries_folder:
+            raise ValueError(
+                "Could not find a SIMSI summaries folder with a matching list of input folders"
+            )
 
     simsi_evidence_file = f"{str(simsi_summaries_folder)}/p10/p10_evidence.txt"
     logger.info(f"Found matching SIMSI summaries folder: {simsi_evidence_file}")
@@ -284,7 +336,7 @@ def store_results_for_reuse(
     simsi_cache_folder: Path,
     meta_input_file: Path,
     results_folder_name: str,
-):
+) -> Path:
     """
     Rename the maracluster_output and summaries directories so we don't overwrite results
     """
@@ -311,6 +363,8 @@ def store_results_for_reuse(
 
     # rmdir() will only delete if the directory is empty
     simsi_output_folder.rmdir()
+
+    return simsi_summaries_folder_new
 
 
 def run_simsi_single(

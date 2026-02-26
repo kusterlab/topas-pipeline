@@ -178,6 +178,33 @@ def get_evidence_files(
     )
 
 
+def get_evidence_file_list_cache_file_path(results_folder: Path, data_type: str):
+    return results_folder / f"evidence_files_{data_type}.txt"
+
+
+def write_evidence_file_list_to_cache(
+    results_folder: Path, data_type: str, evidence_file_list: list[str]
+):
+    evidence_file_list_path_cached = get_evidence_file_list_cache_file_path(
+        results_folder, data_type
+    )
+    with open(evidence_file_list_path_cached, "w") as f:
+        f.write("\n".join(evidence_file_list))
+
+
+def read_evidence_file_list_from_cache(results_folder: Path, data_type: str):
+    evidence_file_list_path_cached = get_evidence_file_list_cache_file_path(
+        results_folder, data_type
+    )
+    if not evidence_file_list_path_cached.is_file():
+        return
+
+    with open(evidence_file_list_path_cached, "r") as f:
+        evidence_file_list = f.readlines()
+
+    return evidence_file_list
+
+
 def log_transform_intensities(df: pd.DataFrame) -> pd.DataFrame:
     logger.info("Log10 transforming intensities")
     tmt_channels = utils.get_tmt_channels(df)
@@ -370,22 +397,22 @@ def filter_high_dr_evidence(evidence_df, df_new, ratio_threshold: float = 0.01):
     Returns:
     DataFrame: Filtered DataFrame with high DR evidence.
     """
-    pat_cols = [
+    patient_columns = [
         col
         for col in evidence_df.columns
         if col.startswith("Reporter intensity corrected")
     ]
 
     # compute row-wise max
-    row_max = evidence_df[pat_cols].max(axis=1)
+    row_max = evidence_df[patient_columns].max(axis=1)
 
     # compute ratio
-    ratio_df = evidence_df[pat_cols].div(row_max, axis=0)
+    ratio_df = evidence_df[patient_columns].div(row_max, axis=0)
 
     # mask values smaller than threshold (1/100)
     small_mask = ratio_df < 0.01
 
-    df_new[pat_cols] = evidence_df[pat_cols].mask(small_mask)
+    df_new[patient_columns] = evidence_df[patient_columns].mask(small_mask)
 
     return df_new
 

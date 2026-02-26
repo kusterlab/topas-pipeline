@@ -173,9 +173,18 @@ def load_sample_data(
     data_type: str,
     normalize_to_reference: bool,
 ) -> pd.DataFrame:
-    evidence_files = prep.get_evidence_files(
-        sample_annotation_df, raw_data_location, data_type
-    )
+    if (
+        evidence_files := prep.read_evidence_file_list_from_cache(
+            Path(results_folder), data_type
+        )
+    ) is None:
+        evidence_files = prep.get_evidence_files(
+            sample_annotation_df, raw_data_location, data_type
+        )
+        prep.write_evidence_file_list_to_cache(
+            Path(results_folder), data_type, evidence_files
+        )
+
     data_loader = TMTLoader(evidence_files)
     if run_simsi:
         data_loader = SimsiTMTLoader(
@@ -312,9 +321,6 @@ def preprocess_fp(
     return df
 
 
-"""
-python3 -m topas_pipeline.preprocess.preprocess -c config_patients.json
-"""
 if __name__ == "__main__":
     import argparse
 
