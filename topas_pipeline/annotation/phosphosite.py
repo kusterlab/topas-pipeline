@@ -17,8 +17,8 @@ def add_phospho_annotations(
     clinic_proc_config: config.ClinicProc,
 ) -> pd.DataFrame:
     logger.info("Phosphosite annotation")
-    df = add_psite_positions(df, clinic_proc_config)
-    df = add_rtk_substrate_annotations(df, clinic_proc_config)
+    df = add_psite_positions(df, clinic_proc_config.pspFastaFile)
+    df = add_rtk_substrate_annotations(df, clinic_proc_config.extra_kinase_annot)
     df = add_psp_annotations(df, clinic_proc_config)
     df.rename(
         columns={"Site positions": "Site positions identified (MQ)"}, inplace=True
@@ -29,7 +29,7 @@ def add_phospho_annotations(
 
 def add_psite_positions(
     df: pd.DataFrame,
-    clinic_proc_config: config.ClinicProc,
+    pspFastaFile: str,
 ) -> pd.DataFrame:
     """
     Phospho-site annotation of experimental data using in-house developed tool (MT) based mainly on Phosphosite Plus
@@ -43,13 +43,13 @@ def add_psite_positions(
 
     # add all potential phosphosites on each sequence
     df = pa.addPeptideAndPsitePositions(
-        df, clinic_proc_config.pspFastaFile, pspInput=True, returnAllPotentialSites=True
+        df, pspFastaFile, pspInput=True, returnAllPotentialSites=True
     )
     df.rename(columns={"Site positions": "Site positions (PSP)"}, inplace=True)
 
     df = pa.addPeptideAndPsitePositions(
         df,
-        clinic_proc_config.pspFastaFile,
+        pspFastaFile,
         pspInput=True,
         returnAllPotentialSites=False,
     )
@@ -110,7 +110,7 @@ def add_ck_substrate_annotations(
     joint_peptidoform_groups = ck_scoring.get_joint_modified_sequence_groups(
         df_patients, decryptm_peptidoforms
     )
-    
+
     decryptm_peptidoform_groups = (
         ck_scoring.aggregate_decryptm_modified_sequence_groups(
             decryptm_peptidoforms, joint_peptidoform_groups
@@ -132,10 +132,10 @@ def add_ck_substrate_annotations(
 
 def add_rtk_substrate_annotations(
     df: pd.DataFrame,
-    clinic_proc_config: config.ClinicProc,
+    extra_kinase_annot: str,
 ) -> pd.DataFrame:
     logger.info("Phosphosite RTK-TOPAS annotation")
-    df = pa.addPSPKinaseSubstrateAnnotations(df, clinic_proc_config.extra_kinase_annot)
+    df = pa.addPSPKinaseSubstrateAnnotations(df, extra_kinase_annot)
     df = df.rename(columns={"PSP Kinases": "Kinases (TOPAS)"})
     return df
 
