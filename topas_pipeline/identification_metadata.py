@@ -20,6 +20,10 @@ def create_metadata_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def filter_for_identification_metadata_columns(df: pd.DataFrame) -> pd.DataFrame:
+    return df.filter(regex=rf"^({METADATA_COLUMN_PREFIX})")
+
+
 def as_metadata_columns(x: str):
     return x.replace("Reporter intensity corrected", METADATA_COLUMN_PREFIX)
 
@@ -79,7 +83,7 @@ def replace_detected_in_batch(
         dict(zip(detected_in_batch_df.columns, patient_columns_prefix)), axis=1
     )
 
-    detected_in_batch_df = detected_in_batch_df[df.columns].astype('object')
+    detected_in_batch_df = detected_in_batch_df[df.columns].astype("object")
     detected_in_batch_df = detected_in_batch_df.fillna(False)
     detected_in_batch_df[:] = np.where(detected_in_batch_df, value, np.nan)
     df.update(
@@ -134,16 +138,18 @@ def filter_by_min_peptides(
 def mark_quant_out_of_range(df, ratio_threshold: float = 0.01):
     """
     Annotate proteins with a log ratio below the specified threshold.
-    
+
     Parameters:
     df (DataFrame): The input DataFrame containing evidence data.
     logratio (int): The log ratio threshold for filtering.
-    
+
     Returns:
     DataFrame: Filtered DataFrame with high DR evidence.
     """
 
-    logger.info("Mark proteins with high dynamic range in the batch (lower than threshold)")
+    logger.info(
+        "Mark proteins with high dynamic range in the batch (lower than threshold)"
+    )
 
     batches = {
         re.sub(r"Reporter intensity corrected \d{1,2} ", "", c)
@@ -156,17 +162,15 @@ def mark_quant_out_of_range(df, ratio_threshold: float = 0.01):
             regex=rf"^Reporter intensity corrected \d{{1,2}} {batch}$", axis="columns"
         )
         tmt_cols_df = tmt_cols_df.replace(0, np.nan)
-        tmt_cols_df = 10 ** tmt_cols_df
+        tmt_cols_df = 10**tmt_cols_df
 
         metadata_cols = get_metadata_columns(df.filter(regex=rf"{batch}$"))
-        
+
         row_max = tmt_cols_df.max(axis=1)
         ratio_df = tmt_cols_df.div(row_max, axis=0).astype(float)
         mask = ratio_df < ratio_threshold
 
-        df[metadata_cols.columns] += np.where(
-            mask, "quan_OOR;", ""
-        )
+        df[metadata_cols.columns] += np.where(mask, "quan_OOR;", "")
 
     return df
 
@@ -174,20 +178,24 @@ def mark_quant_out_of_range(df, ratio_threshold: float = 0.01):
 def mark_peptide_id_out_of_range(df, threshold: int = 2):
 
     logger.info("Mark proteins with peptide IDs out of range")
-    
+
     metadata_cols_df = get_metadata_columns(df)
     n_meta_cols = len(metadata_cols_df.columns)
 
-    pep_id_pattern = r'num_peptides=(\d+)'
+    pep_id_pattern = r"num_peptides=(\d+)"
     num_peptides = metadata_cols_df.copy()
     num_peptides = num_peptides.astype(str).applymap(
-        lambda x: re.search(pep_id_pattern, x).group(1) if re.search(pep_id_pattern, x) else None
+        lambda x: (
+            re.search(pep_id_pattern, x).group(1)
+            if re.search(pep_id_pattern, x)
+            else None
+        )
     )
-    df['is_outlier_peptide_id'] = None
+    df["is_outlier_peptide_id"] = None
 
     # this would be the function  - give df, num_peptides, threshold
-    for i, row in df.iterrows(): 
-        y = row.loc[(row.index.str.contains(r'^Reporter'))].astype(float).values
+    for i, row in df.iterrows():
+        y = row.loc[(row.index.str.contains(r"^Reporter"))].astype(float).values
         y = np.where(y == 0, np.nan, y)
         X = num_peptides.loc[i, :].values.reshape(-1, 1)
 
@@ -200,9 +208,9 @@ def mark_peptide_id_out_of_range(df, threshold: int = 2):
 
         # Skip if insufficient data or no variation
         if len(y_sub) < 5 or np.unique(X_sub).size == 1:
-            df.at[i, 'is_outlier_peptide_id'] = [False] * n_meta_cols
+            df.at[i, "is_outlier_peptide_id"] = [False] * n_meta_cols
             continue
-        
+
         # fit regression
         linear = LinearRegression()
         linear.fit(X_sub, y_sub)
@@ -211,11 +219,10 @@ def mark_peptide_id_out_of_range(df, threshold: int = 2):
         predicted = linear.predict(X_sub)
         residuals = y_sub - predicted
 
-
         # standardize residuals
         residual_std = np.nanstd(residuals)
         if residual_std == 0 or np.isnan(residual_std):
-            df.at[i, 'is_outlier_peptide_id'] = [False] * n_meta_cols
+            df.at[i, "is_outlier_peptide_id"] = [False] * n_meta_cols
             continue
         standardized_residuals = residuals / residual_std
 
@@ -228,22 +235,26 @@ def mark_peptide_id_out_of_range(df, threshold: int = 2):
         full_outliers = np.full(n_meta_cols, False)
         full_outliers[mask] = is_outlier
 
-        df.at[i, 'is_outlier_peptide_id'] = full_outliers.tolist()
-
+        df.at[i, "is_outlier_peptide_id"] = full_outliers.tolist()
 
     # instead make a unit test for this
     # assert all(df['is_outlier_peptide_id'].apply(len) == n_meta_cols), \
     # "Each boolean list must match number of metadata columns"
 
     # Expand the boolean lists into a DataFrame aligned by index
-    expanded = pd.DataFrame(df['is_outlier_peptide_id'].tolist(),
-                            index=df.index,
-                            columns=metadata_cols_df.columns).fillna(False).astype(bool)
+    expanded = (
+        pd.DataFrame(
+            df["is_outlier_peptide_id"].tolist(),
+            index=df.index,
+            columns=metadata_cols_df.columns,
+        )
+        .fillna(False)
+        .astype(bool)
+    )
 
     # Append "quan_OOR;" only where True
-    df.loc[:, metadata_cols_df.columns] = (
-        df.loc[:, metadata_cols_df.columns]
-        .mask(expanded, df[metadata_cols_df.columns].astype(str) + "pepcount_OOR;")
+    df.loc[:, metadata_cols_df.columns] = df.loc[:, metadata_cols_df.columns].mask(
+        expanded, df[metadata_cols_df.columns].astype(str) + "pepcount_OOR;"
     )
 
     return df

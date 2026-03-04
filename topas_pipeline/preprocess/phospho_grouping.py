@@ -15,7 +15,7 @@ tqdm.pandas()
 from .. import utils
 from .. import sample_annotation
 from . import sample_mapping
-from .. import identification_metadata
+from .. import identification_metadata as id_meta
 
 # hacky way to get the package logger instead of just __main__ when running as a module
 logger = logging.getLogger(__package__ + "." + Path(__file__).stem)
@@ -162,16 +162,17 @@ def read_cohort_intensities_df(
     Read in preprocessed_pp.csv or preprocessed_pp2_agg.csv
     """
     logger.info(f"Reading {Path(grouped_phospho_file).name}")
+
     header = pd.read_csv(grouped_phospho_file, index_col=0, nrows=1)
-    intensity_cols = header.filter(like="Reporter intensity corrected").columns.tolist()
+    intensity_cols = utils.filter_for_intensity_columns(header).columns.tolist()
     if len(intensity_cols) == 0:
         intensity_cols = utils.filter_for_sample_columns(header).columns.tolist()
 
     identification_metadata_cols = []
     if keep_identification_metadata_columns:
-        identification_metadata_cols = header.filter(
-            like=identification_metadata.METADATA_COLUMN_PREFIX
-        ).columns.tolist()
+        identification_metadata_cols = (
+            id_meta.filter_for_identification_metadata_columns(header).columns.tolist()
+        )
 
     dtype_dict = collections.defaultdict(lambda: "string")
     dtype_dict |= {c: "float64" for c in intensity_cols}

@@ -149,13 +149,11 @@ def calculate_cytoplasmic_kinase_scores(
     )
 
     logger.info("Compute cytoplasmic kinase scores")
-    scores = compute_substrate_phosphorylation_scores(
+    scores = compute_phosphorylation_scores(
         pp_intensities_df,
         decryptM_kinases,
         results_folder,
         kinases=VALIDATED_KINASES,
-        kinase_annot_level="Kinase Families",
-        explode=True,
     )
 
     save_scores(scores, kinase_score_file)
@@ -179,6 +177,14 @@ def save_scores(
     kinase_score_file.parent.mkdir(exist_ok=True)
 
     scores.to_csv(kinase_score_file, sep="\t", float_format="%.4f")
+
+
+def load_scores(kinase_score_file: str) -> pd.DataFrame:
+    return pd.read_csv(
+        kinase_score_file,
+        sep="\t",
+        index_col=0,
+    )
 
 
 def merge_scores_with_sample_metadata(
@@ -371,9 +377,9 @@ def write_substrate_peptides(
     substrate_intensities_df.to_csv(substrate_file, sep="\t", float_format="%.4g")
 
 
-def compute_substrate_phosphorylation_scores(
+def compute_phosphorylation_scores(
     pp_intensities_df: pd.DataFrame,
-    kinase_substrate_annotation_df: pd.Series,
+    pp_annotation_series: pd.Series,
     results_folder: Path,
     patient_columns: pd.Index = None,
     kinases: list[str] = None,
@@ -381,42 +387,36 @@ def compute_substrate_phosphorylation_scores(
     explode: bool = True,
 ) -> pd.DataFrame:
     if explode:
-        kinase_substrate_annotation_df = explode_series(kinase_substrate_annotation_df)
+        pp_annotation_series = explode_series(pp_annotation_series)
 
     if kinases:
-        kinase_substrate_annotation_df = kinase_substrate_annotation_df[
-            kinase_substrate_annotation_df.isin(kinases)
-        ]
+        pp_annotation_series = pp_annotation_series[pp_annotation_series.isin(kinases)]
 
     if patient_columns is None:
         patient_columns = utils.filter_for_patient_columns(pp_intensities_df).columns
 
-    # Get index columns before kinase annotation is added
-    pp_index_cols = pp_intensities_df.index.names
-    scores = pp_intensities_df.join(kinase_substrate_annotation_df, how="inner")
+    scores: pd.DataFrame = pp_intensities_df.join(pp_annotation_series, how="inner")
     scores = scores.set_index(scores[kinase_annot_level], append=True).drop(
         columns=kinase_annot_level
     )
 
-    # TODO: move following into function
     # Scale input (dataframe) in mean or robust way
-    center, scale = get_center_and_scale(
+    center, _ = get_center_and_scale(
         scores[patient_columns],
         standardize=False,
         robust=False,
     )
-    # scale is 1 here when not standardizing input
-    z_vals = scores.sub(center, axis=0).div(scale, axis=0)
+    centered_vals = scores.sub(center, axis=0)
 
-    save_centered_peptide_zvals(
-        z_vals, results_folder, kinase_annot_level=kinase_annot_level
+    save_centered_peptide_vals(
+        centered_vals, results_folder, kinase_annot_level=kinase_annot_level
     )
-    z_vals = z_vals.reset_index()
+    centered_vals = centered_vals.reset_index()
     # drop pp index cols for aggregation
-    z_vals = z_vals.drop(columns=pp_index_cols)
+    centered_vals = centered_vals.drop(columns=pp_intensities_df.index.names)
 
-    z_vals = (
-        z_vals.groupby(by=kinase_substrate_annotation_df.name)
+    centered_vals = (
+        centered_vals.groupby(by=pp_annotation_series.name)
         .progress_apply(
             z_aggregate,
             patient_columns=patient_columns,
@@ -428,10 +428,10 @@ def compute_substrate_phosphorylation_scores(
         )
         .T
     )
-    return z_vals
+    return centered_vals
 
 
-def save_centered_peptide_zvals(
+def save_centered_peptide_vals(
     z_vals: pd.DataFrame,
     results_folder: Path,
     kinase_annot_level: str = "Kinase Families",
@@ -439,10 +439,11 @@ def save_centered_peptide_zvals(
     scoring_type = "ck_substrate_phosphorylation"
     if kinase_annot_level == "Kinase Families":
         scoring_type = "ck_substrate_phosphorylation"
-    if kinase_annot_level == "PSP Kinases":
+    elif kinase_annot_level == "PSP Kinases":
         scoring_type = "rtk_substrate_phosphorylation"
     else:
         scoring_type = f"protein_phosphorylation"
+
     (results_folder / "topas_scores").mkdir(exist_ok=True)
     z_vals.to_csv(
         results_folder / "topas_scores" / f"{scoring_type}_peptides_centered.tsv",
@@ -495,16 +496,30 @@ def z_aggregate(
 
     # Scale output (series) in mean or robust
     if center_output or standardize_output:
-        patient_agg_vals = agg_vals[patient_columns]
-        center, scale = get_center_and_scale(
-            patient_agg_vals, standardize_output, robust, axis=0
+        agg_vals = compute_z_scores(
+            agg_vals, patient_columns, robust, standardize_output
         )
-        agg_vals = (agg_vals - center) / scale
 
     # Clip output
     agg_vals = np.clip(agg_vals, a_min=clip_output[0], a_max=clip_output[1])
 
     return agg_vals
+
+
+def compute_z_scores(
+    df: pd.DataFrame,
+    patient_columns: pd.Index = None,
+    robust: bool = False,
+    standardize: bool = True,
+) -> pd.DataFrame:
+    if patient_columns is None:
+        patient_columns = df.columns
+
+    center, scale = get_center_and_scale(
+        df[patient_columns], standardize, robust, axis=0
+    )
+    df = (df - center) / scale
+    return df
 
 
 def get_center_and_scale(

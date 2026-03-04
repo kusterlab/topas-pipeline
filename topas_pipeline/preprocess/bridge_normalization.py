@@ -67,8 +67,8 @@ def apply_bridge_channel_normalization(
     combined_column_order = phospho_df_corrected.columns
 
     # temporarily center patient data around 0 for each peptide
-    avg_pat_intensity = phospho_df_corrected.loc[:, patient_columns].median(axis=1)
-    phospho_df_corrected2 = (phospho_df_corrected.T - avg_pat_intensity).T
+    avg_patient_intensity = phospho_df_corrected.loc[:, patient_columns].median(axis=1)
+    phospho_df_corrected2 = (phospho_df_corrected.T - avg_patient_intensity).T
 
     # correct QC lots with at least 100 patient samples
     qc_lots_to_correct = (
@@ -85,13 +85,15 @@ def apply_bridge_channel_normalization(
             qc_lot_samples & ~sample_qc_lot_mapping_df["is_reference"], :
         ].index
 
-        avg_patient_intensity = phospho_df_corrected2.loc[
+        avg_lot_patient_intensity = phospho_df_corrected2.loc[
             :, qc_lot_patient_samples
         ].median(axis=1)
-        phospho_df_corrected2 = phospho_df_corrected2.sub(avg_patient_intensity, axis=0)
+        phospho_df_corrected2.loc[:, qc_lot_samples] = phospho_df_corrected2.loc[
+            :, qc_lot_samples
+        ].sub(avg_lot_patient_intensity, axis=0)
 
     # bring back to original intensity level
-    phospho_df_corrected2 = (phospho_df_corrected2.T + avg_pat_intensity).T
+    phospho_df_corrected2 = (phospho_df_corrected2.T + avg_patient_intensity).T
     phospho_df_corrected2 = phospho_df_corrected2[combined_column_order]
 
     logger.info(f"Writing results to {batch_corrected_file}")
@@ -108,6 +110,19 @@ def within_qc_lot_normalization(
     min_occurrence: float,
     sample_qc_lot_mapping_df: pd.DataFrame,
 ) -> tuple[pd.DataFrame, pd.Series]:
+    """Filter for high-occurring p-peptides and apply row-wise normalization per batch and per QC lot.
+
+    Keeps p-peptides that occur in at least min_occurrence of reference channels.
+
+    Args:
+        phospho_df (pd.DataFrame): _description_
+        ref_cols (list[str]): _description_
+        min_occurrence (float): _description_
+        sample_qc_lot_mapping_df (pd.DataFrame): _description_
+
+    Returns:
+        tuple[pd.DataFrame, pd.Series]: _description_
+    """
     logger.info("Applying within QC lot normalization")
     high_count_mask = phospho_df[ref_cols].notnull().mean(axis=1) > min_occurrence
     phospho_df_corrected = phospho_df[high_count_mask].progress_apply(
@@ -134,10 +149,6 @@ def row_wise_normalize(
     # Grab a single peptide
     vals = row.rename("intensity raw")
     vals = pd.concat([vals, sample_qc_lot_mapping_df], axis=1)
-    vals["is_reference"] = vals["is_reference"].fillna(
-        False
-    )  # for samples not in the sample annotation file
-    vals["sample type"] = vals["QC Lot"]
 
     # Calculates the ref correction for each mix type.
     # Aggregation happens as mean in the realspace. (Currently slow implementation !! TODO: pull out power and log)
@@ -145,13 +156,13 @@ def row_wise_normalize(
 
     # Calculate the mean ref intensity per Batch and QC Lot
     mean_intensities = (
-        vals[vals["is_reference"]]
-        .groupby(["sample type", "batch"], as_index=False)["intensity raw"]
+        vals[vals["is_reference"].astype("boolean").fillna(False)]
+        .groupby(["QC Lot", "batch"], as_index=False)["intensity raw"]
         .agg(mean_realspace_f, engine="cython")
     )
 
-    # Calculate the mean ref intensity per QC lot
-    mean_intensities["mix mean intensities"] = mean_intensities.groupby("sample type")[
+    # Calculate the median ref intensity per QC lot
+    mean_intensities["mix mean intensities"] = mean_intensities.groupby("QC Lot")[
         "intensity raw"
     ].transform("median")
 

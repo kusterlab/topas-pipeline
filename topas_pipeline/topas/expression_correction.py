@@ -10,6 +10,7 @@ import scipy
 from tqdm import tqdm
 from ..preprocess import phospho_grouping
 from .. import utils
+from .. import sample_annotation
 
 # hacky way to get the package logger instead of just __main__ when running as a module
 logger = logging.getLogger(__package__ + "." + Path(__file__).stem)
@@ -32,18 +33,21 @@ def correct_phospho_for_protein_expression(
 
     phospho_df = phospho_grouping.read_cohort_intensities_df(
         results_folder / "preprocessed_pp2_agg_batchcorrected.csv",
-        sample_annotation_file=sample_annotation_file,
         keep_identification_metadata_columns=False,
     )
-    full_df = load_full_proteome_df(results_folder)
-
-    # only use patient channels for predictions
-    patient_columns = utils.filter_for_patient_columns(phospho_df).columns
-
+    full_df = load_full_proteome_df(results_folder / "preprocessed_fp2.csv")
     if not all(phospho_df.columns.sort_values() == full_df.columns.sort_values()):
         raise ValueError(
             f"Missing columns in full: {set(phospho_df.columns) - set(full_df.columns)}\nMissing columns in phospho: {set(full_df.columns) - set(phospho_df.columns)}"
         )
+
+    # only use patient channels for predictions
+    sample_annotation_df = sample_annotation.load_sample_annotation(
+        sample_annotation_file
+    )
+    patient_columns = sample_annotation.get_patient_column_names(
+        sample_annotation_df, phospho_df.columns
+    )
 
     mod_seq_df = get_corresponding_protein_expression(
         phospho_df, full_df, patient_columns
@@ -66,16 +70,18 @@ def correct_phospho_for_protein_expression(
     phospho_corrected.to_csv(expression_corrected_file, float_format="%.4f")
 
 
-def load_full_proteome_df(results_folder: str) -> pd.DataFrame:
+def load_full_proteome_df(full_proteome_file: str) -> pd.DataFrame:
     logger.info("Loading full proteome data")
 
-    header = pd.read_csv(results_folder / "preprocessed_fp.csv", index_col=0, nrows=1)
-    intensity_cols = utils.filter_for_sample_columns(header).columns.tolist()
+    header = pd.read_csv(full_proteome_file, index_col=0, nrows=1)
+    intensity_cols = utils.filter_for_intensity_columns(header).columns.tolist()
+    if len(intensity_cols) == 0:
+        intensity_cols = utils.filter_for_sample_columns(header).columns.tolist()
 
     dtype_dict = collections.defaultdict(lambda: "str")
     dtype_dict |= {c: "float32" for c in intensity_cols}
     full_df = pd.read_csv(
-        results_folder / "preprocessed_fp.csv",
+        full_proteome_file,
         index_col=0,
         usecols=intensity_cols + ["Gene names"],
         dtype=dtype_dict,

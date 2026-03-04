@@ -54,7 +54,7 @@ def calculate_rtk_scores(
         annotated_cohort_intensities_df, annotated_sites_mapping, substrate_file
     )
 
-    scores = ck_substrate_phosphorylation.compute_substrate_phosphorylation_scores(
+    scores = ck_substrate_phosphorylation.compute_phosphorylation_scores(
         annotated_cohort_intensities_df,
         annotated_sites_mapping,
         results_folder=results_folder,
