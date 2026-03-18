@@ -34,7 +34,7 @@ def protein_phospho_scoring(
         logger.info(f"Found existing results but overwrite flag was set.")
 
     cohort_intensities_df = phospho_grouping.read_cohort_intensities_df(
-        f"{results_folder}/preprocessed_pp2.csv"
+        f"{results_folder}/preprocessed_pp.csv"
     )
 
     annotation_df = cohort_intensities_df.index.to_frame().rename(

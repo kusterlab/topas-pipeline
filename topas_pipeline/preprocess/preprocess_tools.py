@@ -200,7 +200,7 @@ def read_evidence_file_list_from_cache(results_folder: Path, data_type: str):
         return
 
     with open(evidence_file_list_path_cached, "r") as f:
-        evidence_file_list = f.readlines()
+        evidence_file_list = f.read().splitlines()
 
     return evidence_file_list
 
@@ -498,7 +498,7 @@ def retrieve_pp_qc_info(df, sample_annotation_df, results_folder, data_type):
         :, df.columns.str.startswith("Reporter intensity corrected")
     ].columns
 
-    phospho_only_df = df[df["Modifications"].apply(lambda x: "Phospho (STY)" in x)]
+    phospho_only_df = df[df["Modifications"].astype(str).apply(lambda x: "Phospho (STY)" in x)]
     phospho_only_df = phospho_only_df.groupby(["Batch", "Modified sequence"]).agg("sum")
     phospho_only_df.loc[:, tmt_columns] = phospho_only_df.loc[:, tmt_columns].replace(
         0.0, np.nan
@@ -739,7 +739,7 @@ def filter_data(df: pd.DataFrame, data_type: str) -> pd.DataFrame:
     df = df.drop(["Reverse", "Potential contaminant"], axis=1)
 
     if data_type == "pp":
-        df = df[df["Modifications"].str.contains("Phospho (STY)", regex=False)]
+        df = df[df["Modifications"].astype(str).str.contains("Phospho (STY)", regex=False)]
         logger.info(f"- after unmodified peptides removal: {df.shape[0]}")
 
         df = df.drop("Modifications", axis=1)

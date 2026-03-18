@@ -41,6 +41,11 @@ def read_meta_input_file(meta_input_file: Path) -> pd.DataFrame:
 
 def check_metafiles(results_folder):
     results_folder = Path(results_folder)
+    if (
+        not (results_folder / "meta_input_file_FP.tsv").is_file()
+        or not (results_folder / "meta_input_file_PP.tsv").is_file()
+    ):
+        return
     meta_fp = read_meta_input_file(results_folder / "meta_input_file_FP.tsv")
     meta_pp = read_meta_input_file(results_folder / "meta_input_file_PP.tsv")
 
