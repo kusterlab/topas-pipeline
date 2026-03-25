@@ -153,6 +153,7 @@ def preprocess_raw_data_type(
         df = phosphopeptides.group_phosphopeptides_and_normalize(
             results_folder=results_folder,
             sample_annotation_file=sample_annotation_file,
+            run_lfq=preprocessing_config.run_lfq,
         )
 
     df.reset_index().to_csv(

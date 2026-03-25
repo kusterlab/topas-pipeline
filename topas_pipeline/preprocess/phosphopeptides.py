@@ -57,7 +57,9 @@ def get_cohort_intensities_df(
 
 
 def group_phosphopeptides_and_normalize(
-    results_folder: str, sample_annotation_file: str
+    results_folder: str,
+    sample_annotation_file: str,
+    run_lfq: bool,
 ):
     """
     extra phospho processing (grouping, normalization, expression correction)
@@ -67,14 +69,23 @@ def group_phosphopeptides_and_normalize(
     phospho_grouping.aggregate_modified_sequences(results_folder=results_folder)
     logger.info("--- %.1f seconds --- phospho grouping" % (time.time() - start_time))
 
-    start_time = time.time()
-    bridge_normalization.apply_bridge_channel_normalization(
-        results_folder=results_folder,
-        sample_annotation_file=sample_annotation_file,
-    )
-    logger.info(
-        "--- %.1f seconds --- bridge normalization" % (time.time() - start_time)
-    )
+    if run_lfq:
+        start_time = time.time()
+        filter_for_occurrence(
+            results_folder=results_folder,
+        )
+        logger.info(
+            "--- %.1f seconds --- filter for occurrence" % (time.time() - start_time)
+        )
+    else:
+        start_time = time.time()
+        bridge_normalization.apply_bridge_channel_normalization(
+            results_folder=results_folder,
+            sample_annotation_file=sample_annotation_file,
+        )
+        logger.info(
+            "--- %.1f seconds --- bridge normalization" % (time.time() - start_time)
+        )
 
     start_time = time.time()
     df = get_cohort_intensities_df(results_folder, sample_annotation_file)
@@ -84,3 +95,32 @@ def group_phosphopeptides_and_normalize(
     )
 
     return df
+
+
+def filter_for_occurrence(
+    results_folder: str,
+    min_occurrence: float = 2 / 3,  # Good Value for phospho
+    overwrite: bool = False,
+):
+    results_folder = Path(results_folder)
+    batch_corrected_file = results_folder / "preprocessed_pp2_agg_batchcorrected.csv"
+    if batch_corrected_file.is_file():
+        if not overwrite:
+            logger.info(
+                f"Reusing previously generated batch corrected intensities: {batch_corrected_file}"
+            )
+            return
+        logger.info(f"Found existing results but overwrite flag was set.")
+
+    phospho_df = phospho_grouping.read_cohort_intensities_df(
+        f"{results_folder}/preprocessed_pp2_agg.csv"
+    )
+    high_count_mask = phospho_df.notnull().mean(axis=1) > min_occurrence
+    phospho_df = phospho_df[high_count_mask]
+
+    logger.info(f"Writing results to {batch_corrected_file}")
+    phospho_df.to_csv(
+        batch_corrected_file,
+        float_format="%.6f",
+        index=True,
+    )
