@@ -55,6 +55,7 @@ def preprocess_raw_data_type(
     sample_annotation_file: Union[str, Path],
     preprocessing_config: config.Preprocessing,
     data_type: str,
+    overwrite: bool = False,
 ) -> None:
     """
     Calling function for preprocessing of both phospho and full proteome data
@@ -83,10 +84,12 @@ def preprocess_raw_data_type(
 
     # check if file is there - if so skip this
     if os.path.exists(os.path.join(results_folder, f"preprocessed_{data_type}.csv")):
-        logger.info(
-            f"Preprocessing {data_type} skipped - found files already preprocessed"
-        )
-        return
+        if not overwrite:
+            logger.info(
+                f"Preprocessing {data_type} skipped - found files already processed"
+            )
+            return
+        logger.info(f"Found existing results but overwrite flag was set.")
 
     logger.info(f"Preprocessing {data_type} starts")
 
@@ -331,6 +334,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "-c", "--config", required=True, help="Absolute path to configuration file."
     )
+    parser.add_argument(
+        "-o",
+        "--overwrite",
+        action="store_true",
+        help="Ignore existing results and recompute outputs.",
+    )
     args = parser.parse_args(sys.argv[1:])
 
     configs = config.load(args.config)
@@ -343,4 +352,5 @@ if __name__ == "__main__":
         simsi_folder=configs.simsi.simsi_folder,
         preprocessing_config=configs.preprocessing,
         data_types=configs.data_types,
+        overwrite=args.overwrite,
     )
