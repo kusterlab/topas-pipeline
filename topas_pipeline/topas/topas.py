@@ -132,8 +132,8 @@ def compute_topas_scores(
     topas_scores_df = topas_scores_df.drop(
         topas_scores_df[topas_scores_df.index.str.startswith("targets")].index
     )
-    measures = metrics.get_zscore(utils.keep_only_sample_columns(topas_scores_df.T))
-    measures.columns = measures.columns.str.strip("zscore_")
+    measures = metrics.get_zscore(topas_scores_df.T)
+    measures.columns = measures.columns.str.removeprefix("zscore_")
     zscores = measures.T
 
     save_topas_scores(
