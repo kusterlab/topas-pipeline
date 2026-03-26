@@ -408,8 +408,10 @@ def compute_phosphorylation_scores(
     )
     centered_vals = scores.sub(center, axis=0)
 
-    save_centered_peptide_vals(
-        centered_vals, results_folder, kinase_annot_level=kinase_annot_level
+    scoring_type = determine_scoring_type(kinase_annot_level)
+    centered_peptide_zvals_file = results_folder / "topas_scores" / f"{scoring_type}_peptides_centered.tsv"
+    save_centered_peptide_zvals(
+        centered_vals, centered_peptide_zvals_file, kinase_annot_level=kinase_annot_level
     )
     centered_vals = centered_vals.reset_index()
     # drop pp index cols for aggregation
@@ -431,24 +433,22 @@ def compute_phosphorylation_scores(
     return centered_vals
 
 
-def save_centered_peptide_vals(
-    z_vals: pd.DataFrame,
-    results_folder: Path,
-    kinase_annot_level: str = "Kinase Families",
-):
-    scoring_type = "ck_substrate_phosphorylation"
+def determine_scoring_type(kinase_annot_level: str) -> str:
     if kinase_annot_level == "Kinase Families":
-        scoring_type = "ck_substrate_phosphorylation"
-    elif kinase_annot_level == "PSP Kinases":
-        scoring_type = "rtk_substrate_phosphorylation"
+        return 'ck_substrate_phosphorylation'
+    if kinase_annot_level == "PSP Kinases":
+        return 'rtk_substrate_phosphorylation'
     else:
-        scoring_type = f"protein_phosphorylation"
+        return 'protein_phosphorylation'
 
-    (results_folder / "topas_scores").mkdir(exist_ok=True)
+
+def save_centered_peptide_zvals(
+    z_vals: pd.DataFrame, output_file: Path, kinase_annot_level: str = "Kinase Families"
+):  
+    output_file.parent.mkdir(exist_ok=True)
     z_vals.to_csv(
-        results_folder / "topas_scores" / f"{scoring_type}_peptides_centered.tsv",
-        sep="\t",
-        float_format="%.4f",
+        output_file,
+        sep="\t", float_format="%.4f"
     )
 
 

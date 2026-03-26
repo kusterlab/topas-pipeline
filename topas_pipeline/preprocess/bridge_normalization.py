@@ -25,7 +25,7 @@ def apply_bridge_channel_normalization(
     results_folder: str,
     sample_annotation_file: str,
     min_occurrence: float = 2 / 3,  # Good Value for phospho
-    min_samples_in_qc_lot: int = 100,
+    min_samples_in_qc_lot: int = 8,
     overwrite: bool = False,
 ):
     results_folder = Path(results_folder)
