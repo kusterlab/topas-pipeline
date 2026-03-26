@@ -16,7 +16,6 @@ logger = logging.getLogger(__package__ + "." + Path(__file__).stem)
 
 def protein_phospho_scoring(
     results_folder: str,
-    sample_annotation_file: str,
     metadata_file: str,
     overwrite: bool = False,
 ):
@@ -102,7 +101,6 @@ if __name__ == "__main__":
 
     protein_phospho_scoring(
         configs.results_folder,
-        configs.sample_annotation,
         configs.metadata_annotation,
         overwrite=args.overwrite,
     )
