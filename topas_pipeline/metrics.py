@@ -57,7 +57,7 @@ def compute_metrics(
         )
 
         measures = get_metrics(
-            utils.keep_only_sample_columns(annot_df), sample_annotation_df
+            utils.filter_for_sample_columns(annot_df), sample_annotation_df
         )
 
         save_measures(
@@ -67,44 +67,70 @@ def compute_metrics(
             data_type,
         )
 
-        if debug:
-            measures = get_metrics(
-                utils.keep_only_sample_and_ref_columns(annot_df), sample_annotation_df
-            )
-            save_measures(
-                results_folder, measure_names, measures, data_type + "_with_ref"
-            )
 
-
-def get_rank(df: pd.DataFrame) -> pd.DataFrame:
+def get_rank(df: pd.DataFrame, patient_columns: pd.Index) -> pd.DataFrame:
     """ """
     logger.debug("Calculating ranks")
     df_rank = df.copy()
-    df_rank = df_rank.rank(ascending=False, method="min", na_option="keep", axis=1)
+    df_rank.loc[:, patient_columns] = df_rank.loc[:, patient_columns].rank(
+        ascending=False, method="min", na_option="keep", axis=1
+    )
+    non_patient_columns = ~df_rank.columns.isin(patient_columns)
+    df_rank.loc[:, non_patient_columns] = np.nan
+    df_rank = df_rank.astype("Int64")
+
     # add new column that for each protein/peptide tells the max rank
     df_rank["max"] = df_rank.notnull().sum(axis=1)
     return df_rank.add_prefix("rank_")
 
 
-def get_fold_change(df: pd.DataFrame) -> pd.DataFrame:
+def get_fold_change(df: pd.DataFrame, patient_columns: pd.Index) -> pd.DataFrame:
     """
     Leave-one-out approach (loo)
     """
     logger.debug("Calculating fold changes")
     df_fold_change = np.power(10, df)
-    df_fold_change /= _loo_median(df_fold_change.values)
+
+    # for non-patient channels (i.e. ref_ and excl_ channels we use the median of the pat_ samples)
+    non_patient_columns = ~df_fold_change.columns.isin(patient_columns)
+    patient_median = df_fold_change.loc[:, patient_columns].median(axis=1)
+    df_fold_change.loc[:, non_patient_columns] = df_fold_change.loc[
+        :, non_patient_columns
+    ].divide(patient_median, axis=0)
+
+    # for patient channels we divide by the leave-one-out median
+    df_fold_change.loc[:, patient_columns] /= _loo_median(
+        df_fold_change.loc[:, patient_columns].values
+    )
     df_fold_change = df_fold_change.add_prefix("fc_")
     return df_fold_change
 
 
-def get_zscore(df: pd.DataFrame) -> pd.DataFrame:
+def get_zscore(df: pd.DataFrame, patient_columns: pd.Index) -> pd.DataFrame:
     """
     Leave-one-out approach (loo)
     """
     logger.debug("Calculating z-scores")
     df_z_score = df.copy()
-    df_z_score -= _loo_median(df.values)
-    df_z_score /= _loo_std(df.values)
+
+    # for non-patient channels (i.e. ref_ and excl_ channels we use the median and std of the pat_ samples)
+    non_patient_columns = ~df_z_score.columns.isin(patient_columns)
+    patient_median = df_z_score.loc[:, patient_columns].median(axis=1)
+    patient_std = df_z_score.loc[:, patient_columns].std(axis=1)
+    df_z_score.loc[:, non_patient_columns] = (
+        df_z_score.loc[:, non_patient_columns]
+        .sub(patient_median, axis=0)
+        .div(patient_std, axis=0)
+    )
+
+    # for patient channels we use the leave-one-out median and std
+    df_z_score.loc[:, patient_columns] -= _loo_median(
+        df_z_score.loc[:, patient_columns].values
+    )
+    df_z_score.loc[:, patient_columns] /= _loo_std(
+        df_z_score.loc[:, patient_columns].values
+    )
+
     df_z_score = df_z_score.add_prefix("zscore_")
     return df_z_score
 
@@ -181,14 +207,24 @@ def _loo_std(input_matrix: np.array) -> np.array:
     )  # uses ddof = 1 because that is the pandas default
 
 
-def get_within_batch_rank(df: pd.DataFrame, sample_annotation_df: pd.DataFrame):
+def get_within_batch_rank(
+    df: pd.DataFrame, patient_columns: pd.Index, sample_annotation_df: pd.DataFrame
+):
     sample_to_batch_mapping = sample_annotation_df["Batch Name"].copy()
     sample_to_batch_mapping.index = utils.add_patient_prefix(
         sample_to_batch_mapping.index
     )
-    batch_rank_df: pd.DataFrame = df.T.groupby(
-        by=df.columns.map(sample_to_batch_mapping),
-    ).rank(method="min", ascending=False).T
+    batch_rank_df: pd.DataFrame = (
+        df.loc[:, patient_columns]
+        .T.groupby(
+            by=patient_columns.map(sample_to_batch_mapping),
+        )
+        .rank(method="min", ascending=False)
+        .T
+    ).astype("Int64")
+    non_patient_columns = df.loc[:, ~df.columns.isin(patient_columns)].columns
+    batch_rank_df.loc[:, non_patient_columns] = np.nan
+
     return batch_rank_df.add_prefix("batchrank_")
 
 
@@ -202,10 +238,13 @@ def get_metrics(
 
     # Get metrics
     metrics_df = {}
-    metrics_df["rank"] = get_rank(df)
-    metrics_df["batchrank"] = get_within_batch_rank(df, sample_annotation_df)
-    metrics_df["fold_change"] = get_fold_change(df)
-    metrics_df["z-score"] = get_zscore(df)
+    patient_columns = utils.filter_for_patient_columns(df).columns
+    metrics_df["rank"] = get_rank(df, patient_columns)
+    metrics_df["batchrank"] = get_within_batch_rank(
+        df, patient_columns, sample_annotation_df
+    )
+    metrics_df["fold_change"] = get_fold_change(df, patient_columns)
+    metrics_df["z-score"] = get_zscore(df, patient_columns)
     return metrics_df
 
 

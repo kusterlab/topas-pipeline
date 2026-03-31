@@ -153,14 +153,6 @@ def get_ref_channels(df: pd.DataFrame, ref_channel_df: pd.DataFrame):
     )
 
 
-def keep_only_sample_columns(df: pd.DataFrame) -> pd.DataFrame:
-    return df.filter(regex=rf"^({PATIENT_PREFIX})|(Reporter intensity corrected)")
-
-
-def keep_only_sample_and_ref_columns(df: pd.DataFrame) -> pd.DataFrame:
-    return df.filter(regex=rf"(^{PATIENT_PREFIX})|(^{REF_CHANNEL_PREFIX})")
-
-
 def filter_for_patient_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df.filter(regex=rf"^({PATIENT_PREFIX})")
 

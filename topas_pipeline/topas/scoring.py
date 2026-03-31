@@ -23,7 +23,7 @@ def load_z_scores_fp(results_folder):
         "z-score"
     ]
     z_scores_fp_df = z_scores_fp_df.rename(columns=lambda x: x.replace("zscore_", ""))
-    z_scores_fp_df = utils.keep_only_sample_columns(z_scores_fp_df)
+    z_scores_fp_df = utils.filter_for_sample_columns(z_scores_fp_df)
 
     # replace missing values but detected in batch with -4.0
     annot_fp = clinical_annotation.read_annotated_expression_file(results_folder, "fp")
@@ -44,7 +44,7 @@ def load_z_scores_pp(results_folder):
     )
     z_scores_pp_df = z_scores_pp_df.set_index("Modified sequence")
 
-    z_scores_pp_df = utils.keep_only_sample_columns(z_scores_pp_df)
+    z_scores_pp_df = utils.filter_for_sample_columns(z_scores_pp_df)
 
     return z_scores_pp_df
 
@@ -64,7 +64,7 @@ def load_protein_phosphorylation(
         index_col="Gene names",
     )
 
-    protein_phosphorylation_df = utils.keep_only_sample_columns(
+    protein_phosphorylation_df = utils.filter_for_sample_columns(
         protein_phosphorylation_df
     )
 
@@ -96,7 +96,7 @@ def load_substrate_phosphorylation(
         index_col=index_col,
     )
 
-    kinase_scores_df = utils.keep_only_sample_columns(kinase_scores_df)
+    kinase_scores_df = utils.filter_for_sample_columns(kinase_scores_df)
     return kinase_scores_df
 
 
@@ -858,7 +858,7 @@ def z_aggregate(
     elif agg_f == "max":
         agg_vals = z_vals.max()
     else:
-        raise ValueError(f"aggregation function \"{agg_f}\" is unknown...")
+        raise ValueError(f'aggregation function "{agg_f}" is unknown...')
 
     agg_vals = agg_vals.replace(0, np.nan)
 
