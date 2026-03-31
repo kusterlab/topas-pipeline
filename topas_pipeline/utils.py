@@ -169,7 +169,12 @@ def filter_for_intensity_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 def add_patient_prefix(patient_list: list[str]):
     return [
-        PATIENT_PREFIX + x if not x.startswith(REF_CHANNEL_PREFIX) else x
+        (
+            PATIENT_PREFIX + x
+            if not x.startswith(REF_CHANNEL_PREFIX)
+            and not x.startswith(OTHER_CHANNEL_PREFIX)
+            else x
+        )
         for x in patient_list
     ]
 

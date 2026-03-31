@@ -78,9 +78,9 @@ def replace_detected_in_batch(
     detected_in_batch_df = get_detected_in_batch(annot_df)
     detected_in_batch_df = remove_metadata_column_prefix(detected_in_batch_df)
 
-    patient_columns_prefix = detected_in_batch_df.add_prefix("pat_")
+    patient_columns_with_prefix = utils.add_patient_prefix(detected_in_batch_df.columns)
     detected_in_batch_df = detected_in_batch_df.rename(
-        dict(zip(detected_in_batch_df.columns, patient_columns_prefix)), axis=1
+        dict(zip(detected_in_batch_df.columns, patient_columns_with_prefix)), axis=1
     )
 
     detected_in_batch_df = detected_in_batch_df[df.columns].astype("object")
