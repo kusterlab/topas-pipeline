@@ -80,7 +80,7 @@ def get_rank(df: pd.DataFrame) -> pd.DataFrame:
     """ """
     logger.debug("Calculating ranks")
     df_rank = df.copy()
-    df_rank = df_rank.rank(ascending=False, method="average", na_option="keep", axis=1)
+    df_rank = df_rank.rank(ascending=False, method="min", na_option="keep", axis=1)
     # add new column that for each protein/peptide tells the max rank
     df_rank["max"] = df_rank.notnull().sum(axis=1)
     return df_rank.add_prefix("rank_")
