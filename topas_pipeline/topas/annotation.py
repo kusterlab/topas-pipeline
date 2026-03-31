@@ -42,13 +42,33 @@ def topas_sheet_sanity_check(topas_annotation_df: pd.DataFrame) -> None:
     valid_scoring_rules = {
         "highest z-score",
         "highest z-score (p-site)",
-        "highest protein phosphorylation score (2nd level z-score, fh)",
-        "highest kinase score (2nd level z-score, fh)",
+        "highest protein phosphorylation score (2nd level z-score, fh)",  # deprecated
+        "highest protein phosphorylation score",
+        "highest kinase score (2nd level z-score, fh)",  # deprecated
+        "highest kinase score",
+        "summed protein phosphorylation score",
         "summed z-score",
     }
     unknown_scoring_rules = list(scoring_rules_found - valid_scoring_rules)
     if len(unknown_scoring_rules) > 0:
         raise ValueError(f"Unknown scoring rules: {unknown_scoring_rules}")
+
+    # check that there are no gene groups split by semicolons unless it is a p-site
+    scoring_rules_found = set(
+        topas_annotation_df[
+            topas_annotation_df["Gene names"].fillna("").str.contains(";")
+        ]["Scoring rule"]
+        .str.lower()
+        .unique()
+    )
+    valid_scoring_rules = {
+        "highest z-score (p-site)",
+    }
+    unknown_scoring_rules = list(scoring_rules_found - valid_scoring_rules)
+    if len(unknown_scoring_rules) > 0:
+        raise ValueError(
+            f"Invalid scoring rule for entry with semicolon in gene name: {unknown_scoring_rules}"
+        )
 
     # validate that scoring rule is "highest z-score (p-site)" if modified sequence column is not empty
     scoring_rules_found = set(

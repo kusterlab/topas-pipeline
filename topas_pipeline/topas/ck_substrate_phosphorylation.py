@@ -15,6 +15,7 @@ import psite_annotation as pa
 from .. import sample_metadata
 from .. import utils
 from . import expression_correction
+from . import scoring
 from ..preprocess import bridge_normalization
 from ..preprocess import phospho_grouping
 
@@ -401,7 +402,7 @@ def compute_phosphorylation_scores(
     )
 
     # Scale input (dataframe) in mean or robust way
-    center, _ = get_center_and_scale(
+    center, _ = scoring.get_center_and_scale(
         scores[patient_columns],
         standardize=False,
         robust=False,
@@ -409,9 +410,13 @@ def compute_phosphorylation_scores(
     centered_vals = scores.sub(center, axis=0)
 
     scoring_type = determine_scoring_type(kinase_annot_level)
-    centered_peptide_zvals_file = results_folder / "topas_scores" / f"{scoring_type}_peptides_centered.tsv"
+    centered_peptide_zvals_file = (
+        results_folder / "topas_scores" / f"{scoring_type}_peptides_centered.tsv"
+    )
     save_centered_peptide_zvals(
-        centered_vals, centered_peptide_zvals_file, kinase_annot_level=kinase_annot_level
+        centered_vals,
+        centered_peptide_zvals_file,
+        kinase_annot_level=kinase_annot_level,
     )
     centered_vals = centered_vals.reset_index()
     # drop pp index cols for aggregation
@@ -420,7 +425,7 @@ def compute_phosphorylation_scores(
     centered_vals = (
         centered_vals.groupby(by=pp_annotation_series.name)
         .progress_apply(
-            z_aggregate,
+            scoring.z_aggregate,
             patient_columns=patient_columns,
             robust=False,
             standardize_output=True,
@@ -435,101 +440,23 @@ def compute_phosphorylation_scores(
 
 def determine_scoring_type(kinase_annot_level: str) -> str:
     if kinase_annot_level == "Kinase Families":
-        return 'ck_substrate_phosphorylation'
+        return "ck_substrate_phosphorylation"
     if kinase_annot_level == "PSP Kinases":
-        return 'rtk_substrate_phosphorylation'
+        return "rtk_substrate_phosphorylation"
     else:
-        return 'protein_phosphorylation'
+        return "protein_phosphorylation"
 
 
 def save_centered_peptide_zvals(
     z_vals: pd.DataFrame, output_file: Path, kinase_annot_level: str = "Kinase Families"
-):  
+):
     output_file.parent.mkdir(exist_ok=True)
-    z_vals.to_csv(
-        output_file,
-        sep="\t", float_format="%.4f"
-    )
+    z_vals.to_csv(output_file, sep="\t", float_format="%.4f")
 
 
 def explode_series(s: pd.Series, delimiter: str = ";") -> pd.Series:
     s: pd.Series = s.str.split(delimiter)
     return s.explode()
-
-
-def mad(x, sigma_scaling=1.4826017):
-    if type(x) is pd.DataFrame:
-        return (x.T - x.median(axis=1)).T.abs().median(axis=1) * sigma_scaling
-    elif type(x) is pd.Series:
-        return (x - x.median()).T.abs().median() * sigma_scaling
-
-
-def z_aggregate(
-    z_vals: pd.DataFrame,
-    patient_columns: pd.Index,
-    robust=False,
-    center_output=True,
-    standardize_output=True,
-    agg_f="mean",
-    clip_input=(-3, np.inf),
-    clip_output=(-np.inf, np.inf),
-) -> pd.Series:
-
-    # Clip input to prevent destructive loss of a substrate for what ever reason
-    z_vals = np.clip(z_vals, a_min=clip_input[0], a_max=clip_input[1])
-
-    # Aggregate
-    if agg_f == "mean":
-        agg_vals = z_vals.mean()
-    elif agg_f == "median":
-        agg_vals = z_vals.median()
-    elif agg_f == "sum":
-        agg_vals = z_vals.sum()
-    elif agg_f == "min":
-        agg_vals = z_vals.min()
-    elif agg_f == "max":
-        agg_vals = z_vals.max()
-    else:
-        raise ValueError("aggregation function is unknown...")
-
-    agg_vals = agg_vals.replace(0, np.nan)
-
-    # Scale output (series) in mean or robust
-    if center_output or standardize_output:
-        agg_vals = compute_z_scores(
-            agg_vals, patient_columns, robust, standardize_output
-        )
-
-    # Clip output
-    agg_vals = np.clip(agg_vals, a_min=clip_output[0], a_max=clip_output[1])
-
-    return agg_vals
-
-
-def compute_z_scores(
-    df: pd.DataFrame,
-    patient_columns: pd.Index = None,
-    robust: bool = False,
-    standardize: bool = True,
-) -> pd.DataFrame:
-    if patient_columns is None:
-        patient_columns = df.columns
-
-    center, scale = get_center_and_scale(
-        df[patient_columns], standardize, robust, axis=0
-    )
-    df = (df - center) / scale
-    return df
-
-
-def get_center_and_scale(
-    vals: pd.DataFrame, standardize: bool, robust: bool, axis: int = 1
-):
-    center = vals.median(axis=axis) if robust else vals.mean(axis=axis)
-    scale = 1
-    if standardize:
-        scale = mad(vals) if robust else vals.std(axis=axis)
-    return center, scale
 
 
 """

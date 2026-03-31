@@ -132,9 +132,11 @@ def compute_topas_scores(
     topas_scores_df = topas_scores_df.drop(
         topas_scores_df[topas_scores_df.index.str.startswith("targets")].index
     )
-    measures = metrics.get_zscore(topas_scores_df.T)
-    measures.columns = measures.columns.str.removeprefix("zscore_")
-    zscores = measures.T
+    zscores = scoring.compute_z_scores(
+        topas_scores_df.T,
+        utils.filter_for_patient_columns(topas_scores_df.T).columns,
+        axis=1,
+    ).T
 
     save_topas_scores(
         zscores,

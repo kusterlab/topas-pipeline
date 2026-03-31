@@ -150,17 +150,20 @@ def get_topas_subscore_calculator(
                 "Modified sequence",
                 "Modified sequence",
             )
-        elif (
-            scoring_rule
-            == "highest protein phosphorylation score (2nd level z-score, fh)"
-        ):
+        elif scoring_rule in [
+            "highest protein phosphorylation score (2nd level z-score, fh)",
+            "highest protein phosphorylation score",
+        ]:
             topas_subscore = get_weighted_max(
                 protein_phosphorylation_df,
                 topas_subscore_annotation_df,
                 "Gene names",
                 "Gene names",
             )
-        elif scoring_rule == "highest kinase score (2nd level z-score, fh)":
+        elif scoring_rule in [
+            "highest kinase score (2nd level z-score, fh)",
+            "highest kinase score",
+        ]:
             topas_subscore = get_weighted_max(
                 kinase_scores_df,
                 topas_subscore_annotation_df,
@@ -168,6 +171,13 @@ def get_topas_subscore_calculator(
                 "Gene names",
                 clip_lower=None,
                 clip_upper=None,
+            )
+        elif scoring_rule == "summed protein phosphorylation score":
+            topas_subscore = get_summed_zscore(
+                protein_phosphorylation_df,
+                topas_subscore_annotation_df,
+                "Gene names",
+                "Gene names",
             )
         elif scoring_rule == "summed z-score":
             topas_subscore = get_summed_zscore(
@@ -178,6 +188,9 @@ def get_topas_subscore_calculator(
             )
         else:
             raise ValueError(f"Unknown scoring rule {scoring_rule}")
+
+        # apply z-scoring to the subscores
+        topas_subscore
 
         return topas_subscore
 
@@ -196,6 +209,7 @@ def get_weighted_max(
     z_scores = get_weighted_z_scores(
         z_score_df, topas_subscore_df, z_score_index_col, topas_subscore_index_col
     )
+    # TODO: replace by z_aggregate. It does not give exactly the same values though...
     z_scores = z_scores.clip(lower=clip_lower, upper=clip_upper)
 
     # take the maximum score per column (=sample)
@@ -214,10 +228,12 @@ def get_summed_zscore(
     z_scores = get_weighted_z_scores(
         z_score_df, topas_subscore_df, z_score_index_col, topas_subscore_index_col
     )
-    z_scores = z_scores.clip(lower=clip_lower, upper=clip_upper)
-
-    # calculate the summed score per column (=sample)
-    return z_scores.sum()
+    return z_aggregate(
+        z_scores,
+        utils.filter_for_patient_columns(z_score_df).columns,
+        agg_f="sum",
+        clip_input=(clip_lower, clip_upper),
+    )
 
 
 def get_zscores(
@@ -227,7 +243,7 @@ def get_zscores(
     topas_subscore_index_col: str,
 ):
     # only keep samples and z_score_index_col columns
-    z_scores = z_score_df.astype(
+    z_scores: pd.DataFrame = z_score_df.astype(
         float
     )  # make sure all z-scores are floats and not objects
     z_scores = z_scores.reset_index()
@@ -352,19 +368,29 @@ def extract_topas_member_z_scores(
                     "Modified sequence",
                     "Modified sequence",
                 )
-            elif (
-                scoring_rule
-                == "highest protein phosphorylation score (2nd level z-score, fh)"
-            ):
+            elif scoring_rule in [
+                "highest protein phosphorylation score (2nd level z-score, fh)",
+                "highest protein phosphorylation score",
+            ]:
                 topas_subscore_z_scores = get_weighted_z_scores(
                     protein_phosphorylation_df,
                     topas_subscore_df,
                     "Gene names",
                     "Gene names",
                 )
-            elif scoring_rule == "highest kinase score (2nd level z-score, fh)":
+            elif scoring_rule in [
+                "highest kinase score (2nd level z-score, fh)",
+                "highest kinase score",
+            ]:
                 topas_subscore_z_scores = get_weighted_z_scores(
                     kinase_scores_df, topas_subscore_df, "PSP Kinases", "Gene names"
+                )
+            elif scoring_rule == "summed protein phosphorylation score":
+                topas_subscore_z_scores = get_weighted_z_scores(
+                    protein_phosphorylation_df,
+                    topas_subscore_df,
+                    "Gene names",
+                    "Gene names",
                 )
             elif scoring_rule == "summed z-score":
                 topas_subscore_z_scores = get_weighted_z_scores(
@@ -613,7 +639,7 @@ def sum_weighted_z_scores(patient_dataframe, by):
 
 
 def second_level_z_scoring(patient_dataframe, by_column, plot_histograms=False):
-    # TODO: refactor this code
+    # TODO: deprecated, remove
     patient_dataframe["mean"] = patient_dataframe[
         [
             col
@@ -770,3 +796,79 @@ def get_target_space(annotated_peptides_df, grouping_by, scored_peptides_df):
         validate="1:1",
     )
     return target_space
+
+
+def mad(x, sigma_scaling=1.4826017):
+    if type(x) is pd.DataFrame:
+        return (x.T - x.median(axis=1)).T.abs().median(axis=1) * sigma_scaling
+    elif type(x) is pd.Series:
+        return (x - x.median()).T.abs().median() * sigma_scaling
+
+
+def get_center_and_scale(
+    vals: pd.DataFrame, standardize: bool, robust: bool, axis: int = 1
+):
+    center = vals.median(axis=axis) if robust else vals.mean(axis=axis)
+    scale = 1
+    if standardize:
+        scale = mad(vals) if robust else vals.std(axis=axis)
+    return center, scale
+
+
+def compute_z_scores(
+    df: pd.DataFrame,
+    patient_columns: pd.Index = None,
+    robust: bool = False,
+    standardize: bool = True,
+    axis: int = 0,
+) -> pd.DataFrame:
+    if patient_columns is None:
+        patient_columns = df.columns
+
+    center, scale = get_center_and_scale(
+        df[patient_columns], standardize, robust, axis=axis
+    )
+    df = df.subtract(center, axis=0).div(scale, axis=0)
+    return df
+
+
+def z_aggregate(
+    z_vals: pd.DataFrame,
+    patient_columns: pd.Index,
+    robust=False,
+    center_output=True,
+    standardize_output=True,
+    agg_f="mean",
+    clip_input=(-3, np.inf),
+    clip_output=(-np.inf, np.inf),
+) -> pd.Series:
+
+    # Clip input to prevent destructive loss of a substrate for what ever reason
+    z_vals = np.clip(z_vals, a_min=clip_input[0], a_max=clip_input[1])
+
+    # Aggregate
+    if agg_f == "mean":
+        agg_vals = z_vals.mean()
+    elif agg_f == "median":
+        agg_vals = z_vals.median()
+    elif agg_f == "sum":
+        agg_vals = z_vals.sum()
+    elif agg_f == "min":
+        agg_vals = z_vals.min()
+    elif agg_f == "max":
+        agg_vals = z_vals.max()
+    else:
+        raise ValueError(f"aggregation function \"{agg_f}\" is unknown...")
+
+    agg_vals = agg_vals.replace(0, np.nan)
+
+    # Scale output (series) in mean or robust
+    if center_output or standardize_output:
+        agg_vals = compute_z_scores(
+            agg_vals, patient_columns, robust, standardize_output
+        )
+
+    # Clip output
+    agg_vals = np.clip(agg_vals, a_min=clip_output[0], a_max=clip_output[1])
+
+    return agg_vals
