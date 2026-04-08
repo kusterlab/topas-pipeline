@@ -36,7 +36,6 @@ def preprocess_raw(**kwargs) -> None:
         kwargs["results_folder"],
         sample_annotation_file,
         metadata_annotation,
-        prep.in_metadata,
     )
 
     data_types = kwargs.pop("data_types")

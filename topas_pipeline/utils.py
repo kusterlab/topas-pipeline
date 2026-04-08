@@ -164,7 +164,7 @@ def filter_for_sample_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def filter_for_intensity_columns(df: pd.DataFrame) -> pd.DataFrame:
-    return df.filter(regex=rf"^Reporter intensity corrected")
+    return df.filter(regex=r"^Reporter intensity corrected")
 
 
 def add_patient_prefix(patient_list: list[str]):

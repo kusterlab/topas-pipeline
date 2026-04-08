@@ -116,43 +116,6 @@ class TestCheckAnnot:
         mock_logger_info.assert_called_once()
 
 
-class TestInMetadata:
-    # Returns the sample string if it does not end with '-R2'
-    def test_returns_sample_if_no_r2(self):
-        sample = "CHD-123"
-        result = prep.in_metadata(sample)
-        assert result == sample
-
-    # Sample string with multiple '-R2' occurrences
-    def test_sample_with_multiple_r2(self):
-        sample = "CHD-R2-R2"
-        result = prep.in_metadata(sample)
-        assert result == "CHD-R2"
-
-
-class TestRemoveEmptyRefBatch:
-    # Correctly removes 'Reporter intensity corrected' columns for empty batches based on sample annotation data
-    def test_drop_reporter_intensity_corrected_columns_replica(self):
-        data = {
-            "Reporter intensity corrected 1 Batch3": [1, 2, 3],
-            "Reporter intensity corrected 2 Batch210": [4, 5, 6],
-            "Other column Batch5": [7, 8, 9],
-        }
-        df_with_ref = pd.DataFrame(data)
-        sample_annotation_data = {
-            "Batch Name": [3, 210],
-            "Cohort": ["Cohort1", "Cohort 1"],
-            "QC": ["passed", "failed"],
-        }
-        sample_annotation_df = pd.DataFrame(sample_annotation_data)
-
-        result_df = prep.remove_ref_empty_batch(df_with_ref, sample_annotation_df)
-
-        assert "Reporter intensity corrected 1 Batch3" in result_df.columns
-        assert "Reporter intensity corrected 2 Batch210" not in result_df.columns
-        assert "Other column Batch5" in result_df.columns
-
-
 class TestGetFilesByType:
     # Correctly retrieves file paths based on provided data type and file type
     def test_correct_file_retrieval(self, mocker):

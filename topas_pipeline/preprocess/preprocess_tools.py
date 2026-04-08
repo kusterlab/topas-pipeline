@@ -1,4 +1,3 @@
-import re
 import os
 import glob
 from typing import List, Tuple, Union, Callable
@@ -15,6 +14,7 @@ from .. import meta_input_file
 from .. import identification_metadata as id_meta
 
 logger = logging.getLogger(__name__)
+
 MQ_EVIDENCE_COLUMNS = [
     "Modifications",
     "Modified sequence",
@@ -61,7 +61,6 @@ def check_annot(
     results_folder: str,
     sample_annotation_file: str,
     metadata_annotation_file: str,
-    in_metadata: Callable,
 ):
     """Performs consistency checks of the sample annotation and metadata files.
 
@@ -117,34 +116,6 @@ def check_annot(
     return sample_annot_df_filtered
 
 
-def in_metadata(sample: str = "CHD"):
-    # TODO: refactor this with a more generic function removing replicate suffixes
-    if sample.split("-")[-1] == "R2":
-        return "-".join(sample.split("-")[:-1])
-    return sample
-
-
-def remove_ref_empty_batch(
-    df_with_ref: pd.DataFrame, sample_annotation_df: pd.DataFrame
-):
-    # remove ref for empty batches
-    sample_names_drop = []
-    for col in df_with_ref.columns:
-        if "Reporter intensity corrected" in col:
-            # TODO: handle case where "Batch" is not contained in column name
-            # TODO: check if this works for batch numbers with 3 or more digits
-            batch = re.search(r"Batch\d{1,2}", col).group()
-            batch = re.findall(r"\d+", batch)[0]
-            qc_passed = sample_annotation_df.loc[
-                sample_annotation_df["Batch Name"] == int(batch), "QC"
-            ]
-            if "passed" not in qc_passed.values and "shaky" not in qc_passed.values:
-                sample_names_drop.append(col)
-    # samples have already been dropped but we want to drop the reporter intensity ones for this batch
-    df_with_ref = df_with_ref.drop(columns=sample_names_drop)
-    return df_with_ref
-
-
 def get_files_by_type(
     raw_data_location: str,
     data_type: str,
@@ -159,7 +130,9 @@ def get_files_by_type(
     return found_files
 
 
-def get_summary_files(raw_data_location, data_type, sample_annotation_file):
+def get_summary_files(
+    raw_data_location: str, data_type: str, sample_annotation_file: str
+):
     sample_annotation_df = sample_annotation.load_sample_annotation(
         sample_annotation_file
     )
@@ -386,37 +359,6 @@ def load_and_normalize(
     return df
 
 
-def filter_high_dr_evidence(evidence_df, df_new, ratio_threshold: float = 0.01):
-    """
-    Filter out evidence with a log ratio below the specified threshold.
-
-    Parameters:
-    df (DataFrame): The input DataFrame containing evidence data.
-    logratio (int): The log ratio threshold for filtering.
-
-    Returns:
-    DataFrame: Filtered DataFrame with high DR evidence.
-    """
-    patient_columns = [
-        col
-        for col in evidence_df.columns
-        if col.startswith("Reporter intensity corrected")
-    ]
-
-    # compute row-wise max
-    row_max = evidence_df[patient_columns].max(axis=1)
-
-    # compute ratio
-    ratio_df = evidence_df[patient_columns].div(row_max, axis=0)
-
-    # mask values smaller than threshold (1/100)
-    small_mask = ratio_df < 0.01
-
-    df_new[patient_columns] = evidence_df[patient_columns].mask(small_mask)
-
-    return df_new
-
-
 def get_save_debug_df_function(
     debug: bool, results_folder: str, data_type: str
 ) -> Callable[[pd.DataFrame, str], None]:
@@ -498,7 +440,9 @@ def retrieve_pp_qc_info(df, sample_annotation_df, results_folder, data_type):
         :, df.columns.str.startswith("Reporter intensity corrected")
     ].columns
 
-    phospho_only_df = df[df["Modifications"].astype(str).apply(lambda x: "Phospho (STY)" in x)]
+    phospho_only_df = df[
+        df["Modifications"].astype(str).apply(lambda x: "Phospho (STY)" in x)
+    ]
     phospho_only_df = phospho_only_df.groupby(["Batch", "Modified sequence"]).agg("sum")
     phospho_only_df.loc[:, tmt_columns] = phospho_only_df.loc[:, tmt_columns].replace(
         0.0, np.nan
@@ -525,8 +469,9 @@ def retrieve_pp_qc_info(df, sample_annotation_df, results_folder, data_type):
     get_batch_wise_qc_info(peptide_sum, peptide_median, results_folder, data_type)
 
 
-def get_tmt_intensities_per_peptide(df, tmt_columns):
-
+def get_tmt_intensities_per_peptide(
+    df: pd.DataFrame, tmt_columns: pd.Index
+) -> pd.DataFrame:
     df = df.groupby(["Batch", "Modified sequence"]).agg("sum")
     df.loc[:, tmt_columns] = df.loc[:, tmt_columns].replace(0.0, np.nan)
     intensities = df.filter(like="Reporter intensity corrected")
@@ -739,7 +684,9 @@ def filter_data(df: pd.DataFrame, data_type: str) -> pd.DataFrame:
     df = df.drop(["Reverse", "Potential contaminant"], axis=1)
 
     if data_type == "pp":
-        df = df[df["Modifications"].astype(str).str.contains("Phospho (STY)", regex=False)]
+        df = df[
+            df["Modifications"].astype(str).str.contains("Phospho (STY)", regex=False)
+        ]
         logger.info(f"- after unmodified peptides removal: {df.shape[0]}")
 
         df = df.drop("Modifications", axis=1)

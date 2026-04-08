@@ -189,9 +189,6 @@ def get_topas_subscore_calculator(
         else:
             raise ValueError(f"Unknown scoring rule {scoring_rule}")
 
-        # apply z-scoring to the subscores
-        topas_subscore
-
         return topas_subscore
 
     return calculate_topas_subscore
