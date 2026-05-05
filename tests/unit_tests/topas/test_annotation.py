@@ -61,6 +61,7 @@ class TestTopasSheetSanityCheck:
                 "summed z-score",
             ],
             "Modified sequence": [None, None, None, None, None],
+            "Gene names": [None, None, None, None, None],
         }
         df = pd.DataFrame(data)
 
@@ -93,6 +94,7 @@ class TestTopasSheetSanityCheck:
         data = {
             "Scoring rule": ["highest z-score", "highest z-score (p-site)"],
             "Modified sequence": ["seq1", "seq2"],
+            "Gene names": ["geneA", "geneB"],
         }
         df = pd.DataFrame(data)
 
