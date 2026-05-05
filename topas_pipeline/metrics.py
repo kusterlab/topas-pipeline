@@ -106,7 +106,9 @@ def get_fold_change(df: pd.DataFrame, patient_columns: pd.Index) -> pd.DataFrame
     return df_fold_change
 
 
-def get_zscore(df: pd.DataFrame, patient_columns: pd.Index) -> pd.DataFrame:
+def get_zscore(
+    df: pd.DataFrame, patient_columns: pd.Index, column_prefix: str = "zscore_"
+) -> pd.DataFrame:
     """
     Leave-one-out approach (loo)
     """
@@ -123,15 +125,18 @@ def get_zscore(df: pd.DataFrame, patient_columns: pd.Index) -> pd.DataFrame:
         .div(patient_std, axis=0)
     )
 
+    # compute LOO std before subtracting the LOO median changes it
+    loo_std = _loo_std(
+        df_z_score.loc[:, patient_columns].values
+    )
+
     # for patient channels we use the leave-one-out median and std
     df_z_score.loc[:, patient_columns] -= _loo_median(
         df_z_score.loc[:, patient_columns].values
     )
-    df_z_score.loc[:, patient_columns] /= _loo_std(
-        df_z_score.loc[:, patient_columns].values
-    )
+    df_z_score.loc[:, patient_columns] /= loo_std
 
-    df_z_score = df_z_score.add_prefix("zscore_")
+    df_z_score = df_z_score.add_prefix(column_prefix)
     return df_z_score
 
 
