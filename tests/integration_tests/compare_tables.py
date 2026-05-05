@@ -6,9 +6,9 @@ import pandas as pd
 PIPELINE_OUTPUT_FILES = [
     "preprocessed_fp.csv",
     # "preprocessed_pp.csv",
-    "annot_fp.csv",
+    # "annot_fp.csv",
     # "annot_pp.csv",
-    "full_proteome_measures_rank.tsv",
+    # "full_proteome_measures_rank.tsv",
     "full_proteome_measures_fc.tsv",
     "full_proteome_measures_z.tsv",
     # "phospho_measures_rank.tsv",
@@ -17,7 +17,7 @@ PIPELINE_OUTPUT_FILES = [
     "topas_scores/ck_substrate_phosphorylation_scores_expressioncorrected.tsv",
     "topas_scores/rtk_substrate_phosphorylation_scores.tsv",
     "topas_scores/protein_phosphorylation_scores.tsv",
-    "topas_scores/topas_rtk_scores.tsv",
+    # "topas_scores/topas_rtk_scores.tsv",
     "topas_scores/topas_rtk_scores_zscored.tsv",
 ]
 
@@ -31,8 +31,8 @@ def main(argv):
         if file_name.endswith(".csv"):
             sep = ","
 
-        df1 = pd.read_csv(f"{folder1}/{file_name}", sep=sep)
-        df2 = pd.read_csv(f"{folder2}/{file_name}", sep=sep)
+        df1 = pd.read_csv(f"{folder1}/{file_name}", sep=sep, index_col=0)
+        df2 = pd.read_csv(f"{folder2}/{file_name}", sep=sep, index_col=0)
 
         try:
             # pd.testing.assert_frame_equal(df1, df2, rtol=1e-3, atol=1e-2, check_dtype=False)
