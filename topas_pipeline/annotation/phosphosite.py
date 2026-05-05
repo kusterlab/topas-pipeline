@@ -45,7 +45,7 @@ def add_psite_positions(
     df = pa.addPeptideAndPsitePositions(
         df, pspFastaFile, pspInput=True, returnAllPotentialSites=True
     )
-    df.rename(columns={"Site positions": "Site positions (PSP)"}, inplace=True)
+    df = df.rename(columns={"Site positions": "Site positions (PSP)"})
 
     df = pa.addPeptideAndPsitePositions(
         df,

@@ -12,10 +12,21 @@ class TestPhosphoAnnot:
         mock_df = pd.DataFrame(
             {
                 "Modified sequence": ["seq1"],
+                "Modified sequence group": ["seq1"],
+                "Modified sequence representative": ["seq1"],
+                "Gene names": ["geneA"],
+                "Proteins": ["proteinX"],
                 "PSP_LT_LIT": ["1;2"],
                 "PSP_MS_LIT": ["3;4"],
                 "PSP_MS_CST": ["5;6"],
                 "PSP_MS_CST": ["5;6"],
+                "Site positions": [""],
+                "Start positions": [""],
+                "End positions": [""],
+                "Matched proteins": [""],
+                "Site positions (PSP)": [""],
+                "Site sequence context": [""],
+                "Kinase Families": [""],
             }
         )
         mock_add_positions = mocker.patch(
