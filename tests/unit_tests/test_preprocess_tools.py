@@ -57,7 +57,7 @@ class TestCheckAnnot:
         in_metadata = mocker.Mock()
 
         result = prep.check_annot(
-            result_folder, sample_annotation_file, metadata_annotation_file, in_metadata
+            result_folder, sample_annotation_file, metadata_annotation_file
         )
 
         mock_sample_annotation.assert_called_once_with(sample_annotation_file)
@@ -110,7 +110,6 @@ class TestCheckAnnot:
                 result_folder,
                 sample_annotation_file,
                 metadata_annotation_file,
-                in_metadata,
             )
 
         mock_logger_info.assert_called_once()
