@@ -34,11 +34,19 @@ class TestClinicalProcessDataType:
             return_value=pd.DataFrame(),
         )
         mocker.patch(
+            "topas_pipeline.preprocess.bridge_normalization.read_cohort_modified_sequence_groups",
+            return_value=pd.DataFrame(),
+        )
+        mocker.patch(
             "topas_pipeline.clinical_annotation.build_index_annotation_df",
             return_value=pd.DataFrame(),
         )
         mock_add_phospho = mocker.patch(
             "topas_pipeline.annotation.phosphosite.add_phospho_annotations",
+            return_value=pd.DataFrame(),
+        )
+        mock_combine_topas = mocker.patch(
+            "topas_pipeline.annotation.phosphosite.combine_topas_annotations",
             return_value=pd.DataFrame(),
         )
         mock_add_ck_phospho = mocker.patch(
@@ -84,6 +92,7 @@ class TestClinicalProcessDataType:
 
         # # Assertions
         mock_add_phospho.assert_called()
+        mock_combine_topas.assert_called()
         mock_add_ck_phospho.assert_called()
         mock_poi_annotation_load.assert_called()
         mock_poi_annotation.assert_called()
