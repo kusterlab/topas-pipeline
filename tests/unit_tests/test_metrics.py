@@ -313,7 +313,7 @@ def test_get_rank(intensity_df):
         dtype="Int64",
     )
     expected_rank["rank_max"] = expected_rank["rank_max"].astype("int64")
-    
+
     result = metrics.get_rank(
         intensity_df,
         pd.Index(["pat_patient1", "pat_patient2", "pat_patient3", "pat_patient4"]),
