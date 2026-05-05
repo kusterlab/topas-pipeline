@@ -76,7 +76,7 @@ def add_clinical_annotations_data_type(
         annot_df = merge_intensities_and_annotation_dfs(annot_df, preprocessed_df)
     elif data_type == "phospho_score":
         annot_df = protein_phosphorylation.load_protein_phosphorylation(
-            Path(results_folder), protein_results_folder="topas_scores"
+            Path(results_folder), topas_results_folder="topas_scores"
         )
     elif data_type == "fp":
         annot_df = pd.read_csv(

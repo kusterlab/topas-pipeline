@@ -48,7 +48,7 @@ def main(argv):
     qc_lot_mapping_file = args.qc_lot_mapping_file
     output_file_suffix = args.output_file_suffix
 
-    create_sample_annotation(
+    return create_sample_annotation(
         metadata_file,
         output_folder,
         qc_lot_mapping_file,

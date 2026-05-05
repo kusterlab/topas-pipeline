@@ -639,6 +639,7 @@ def impute_data(df: pd.DataFrame) -> pd.DataFrame:
     tmt_cols_df = utils.get_tmt_channels(df)
     tmt_cols_df = tmt_cols_df.replace(0, np.nan)
 
+    # TODO: Fix this to use sample_annotation_df instead (channel 9 can also be patient data now!)
     patient_channels_df = tmt_cols_df.filter(
         regex=r"^Reporter intensity corrected [1-8]$"
     )

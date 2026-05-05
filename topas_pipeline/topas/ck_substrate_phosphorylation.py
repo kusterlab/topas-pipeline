@@ -82,7 +82,9 @@ def calculate_cytoplasmic_kinase_scores(
     sample_annotation_file: str,
     metadata_file: str,
     topas_kinase_substrate_file: str,
+    topas_results_folder: str = "topas_scores",
     expression_corrected_input: bool = False,
+    file_prefix = "ck_substrate_phosphorylation_",
     overwrite: bool = False,
 ):
     file_suffix = ""
@@ -96,11 +98,10 @@ def calculate_cytoplasmic_kinase_scores(
         )
         file_suffix = "_expressioncorrected"
 
-    results_folder = Path(results_folder)
     kinase_score_file = (
         results_folder
-        / "topas_scores"
-        / f"ck_substrate_phosphorylation_scores{file_suffix}.tsv"
+        / topas_results_folder
+        / f"{file_prefix}scores{file_suffix}.tsv"
     )
     if kinase_score_file.is_file():
         if not overwrite:
@@ -138,22 +139,26 @@ def calculate_cytoplasmic_kinase_scores(
 
     substrate_file = (
         results_folder
-        / "topas_scores"
-        / f"ck_substrate_peptide_intensities{file_suffix}.tsv"
+        / topas_results_folder
+        / f"{file_prefix}peptide_intensities{file_suffix}.tsv"
     )
     write_substrate_peptides(
         pp_intensities_df,
         decryptM_kinases,
         substrate_file,
-        kinase_annot_level="Kinase Families",
         kinases=VALIDATED_KINASES,
     )
 
     logger.info("Compute cytoplasmic kinase scores")
+    centered_peptide_zvals_file = (
+        results_folder
+        / topas_results_folder
+        / f"{file_prefix}peptides_centered{file_suffix}.tsv"
+    )
     scores = compute_phosphorylation_scores(
         pp_intensities_df,
         decryptM_kinases,
-        results_folder,
+        centered_peptide_zvals_file=centered_peptide_zvals_file,
         kinases=VALIDATED_KINASES,
     )
 
@@ -234,10 +239,7 @@ def get_joint_modified_sequence_groups(
 
     peptidoform_groups = df_combined[["Modified sequence group"]]
     peptidoform_groups = peptidoform_groups.drop_duplicates()
-    peptidoform_groups["Modified sequence"] = peptidoform_groups[
-        "Modified sequence group"
-    ].str.split(";")
-    peptidoform_groups = peptidoform_groups.explode("Modified sequence")
+    peptidoform_groups = explode_modified_sequence_groups(peptidoform_groups)
     return peptidoform_groups
 
 
@@ -289,8 +291,7 @@ def aggregate_patient_modified_sequence_groups(
     phospho = 10**phospho
     pp_index = phospho.index.names
     phospho = phospho.reset_index()
-    phospho["Modified sequence"] = phospho["Modified sequence group"].str.split(";")
-    phospho = phospho.explode("Modified sequence")
+    phospho = explode_modified_sequence_groups(phospho)
 
     phospho = (
         phospho.drop(columns="Modified sequence group")
@@ -354,7 +355,6 @@ def write_substrate_peptides(
     pp_intensities_df: pd.DataFrame,
     kinase_substrate_annotation_df: pd.DataFrame,
     substrate_file: Path,
-    kinase_annot_level: str = "Kinase Families",
     kinases: list[str] = None,
 ):
     exploded_substrates_df = explode_series(kinase_substrate_annotation_df)
@@ -381,7 +381,7 @@ def write_substrate_peptides(
 def compute_phosphorylation_scores(
     pp_intensities_df: pd.DataFrame,
     pp_annotation_series: pd.Series,
-    results_folder: Path,
+    centered_peptide_zvals_file: Path = None,
     patient_columns: pd.Index = None,
     kinases: list[str] = None,
     kinase_annot_level: str = "Kinase Families",
@@ -409,15 +409,13 @@ def compute_phosphorylation_scores(
     )
     centered_vals = scores.sub(center, axis=0)
 
-    scoring_type = determine_scoring_type(kinase_annot_level)
-    centered_peptide_zvals_file = (
-        results_folder / "topas_scores" / f"{scoring_type}_peptides_centered.tsv"
-    )
-    save_centered_peptide_zvals(
-        centered_vals,
-        centered_peptide_zvals_file,
-        kinase_annot_level=kinase_annot_level,
-    )
+    if centered_peptide_zvals_file is not None:
+        save_centered_peptide_zvals(
+            centered_vals,
+            centered_peptide_zvals_file,
+            kinase_annot_level=kinase_annot_level,
+        )
+
     centered_vals = centered_vals.reset_index()
     # drop pp index cols for aggregation
     centered_vals = centered_vals.drop(columns=pp_intensities_df.index.names)

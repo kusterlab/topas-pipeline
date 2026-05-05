@@ -17,12 +17,14 @@ logger = logging.getLogger(__package__ + "." + Path(__file__).stem)
 def protein_phospho_scoring(
     results_folder: str,
     metadata_file: str,
+    topas_results_folder: str = "topas_scores",
     overwrite: bool = False,
 ):
+    file_prefix = "protein_phosphorylation_"
     logger.info("Running protein phosphorylation scoring module")
     results_folder = Path(results_folder)
     protein_phosphorylation_file = (
-        results_folder / "topas_scores" / "protein_phosphorylation_scores.tsv"
+        results_folder / topas_results_folder / f"{file_prefix}scores.tsv"
     )
     if protein_phosphorylation_file.is_file():
         if not overwrite:
@@ -41,14 +43,15 @@ def protein_phospho_scoring(
     )["Phosphoprotein"]
     annotation_df = annotation_df.replace("", pd.NA).dropna()  # remove empty gene names
 
-    protein_phosphorylation_score_df = (
-        ck_scoring.compute_phosphorylation_scores(
-            cohort_intensities_df,
-            annotation_df,
-            kinase_annot_level="Phosphoprotein",
-            results_folder=results_folder,
-            explode=False,
-        )
+    centered_peptide_zvals_file = (
+        results_folder / topas_results_folder / f"{file_prefix}peptides_centered.tsv"
+    )
+    protein_phosphorylation_score_df = ck_scoring.compute_phosphorylation_scores(
+        cohort_intensities_df,
+        annotation_df,
+        centered_peptide_zvals_file=centered_peptide_zvals_file,
+        kinase_annot_level="Phosphoprotein",
+        explode=False,
     )
 
     ck_scoring.save_scores(
@@ -65,13 +68,21 @@ def protein_phospho_scoring(
 @utils.validate_file_access
 def load_protein_phosphorylation(
     results_folder,
-    protein_results_folder: str = "topas_scores",
+    topas_results_folder: str = "topas_scores",
     remove_multi_gene_groups: bool = False,
 ):
     protein_scores_file = (
-        results_folder / protein_results_folder / "protein_phosphorylation_scores.tsv"
+        results_folder / topas_results_folder / "protein_phosphorylation_scores.tsv"
     )
     protein_phosphorylation_df = pd.read_csv(protein_scores_file, index_col=0, sep="\t")
+    return prepare_protein_phosphorylation_df(
+        protein_phosphorylation_df, remove_multi_gene_groups
+    )
+
+
+def prepare_protein_phosphorylation_df(
+    protein_phosphorylation_df: pd.DataFrame, remove_multi_gene_groups: bool
+) -> pd.DataFrame:
     protein_phosphorylation_df = protein_phosphorylation_df.T
     protein_phosphorylation_df.index.name = "Gene names"
 

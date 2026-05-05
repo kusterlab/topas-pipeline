@@ -80,11 +80,57 @@ def compute_topas_scores(
     )
     kinase_scores_df = rtk_scoring.load_substrate_phosphorylation(results_folder)
 
-    # remove phosphoprotein groups which are a result of shared peptides
-    protein_phosphorylation_df = protein_phosphorylation_df.loc[
-        ~protein_phosphorylation_df.index.str.contains(";")
-    ]
+    topas_subscore_file_base = os.path.join(
+        results_folder,
+        topas_results_folder,
+        "subbasket_scores",
+    )
+    topas_scores_df = compute_topas_scores_from_dfs(
+        z_scores_fp_df,
+        z_scores_pp_df,
+        protein_phosphorylation_df,
+        kinase_scores_df,
+        topas_annotation_df,
+        topas_subscore_file_base,
+    )
 
+    save_topas_scores(
+        topas_scores_df,
+        results_folder / topas_results_folder / "topas_rtk_scores.tsv",
+    )
+
+    topas_scores_df = topas_scores_df.drop(
+        topas_scores_df[topas_scores_df.index.str.startswith("targets")].index
+    )
+    zscores = metrics.get_zscore(
+        topas_scores_df.T,
+        utils.filter_for_patient_columns(topas_scores_df.T).columns,
+        column_prefix="",
+    ).T
+
+    save_topas_scores(
+        zscores,
+        results_folder / topas_results_folder / "topas_rtk_scores_zscored.tsv",
+    )
+
+    # TODO: can we do without the metadata file, since we only use code_oncotree
+    if os.path.isfile(metadata_file):
+        metadata_df = sample_metadata.load(metadata_file)
+        save_rtk_scores_w_metadata(
+            zscores,
+            metadata_df,
+            results_folder / topas_results_folder / "rtk_landscape.tsv",
+        )
+
+
+def compute_topas_scores_from_dfs(
+    z_scores_fp_df: pd.DataFrame,
+    z_scores_pp_df: pd.DataFrame,
+    protein_phosphorylation_df: pd.DataFrame,
+    kinase_scores_df: pd.DataFrame,
+    topas_annotation_df: pd.DataFrame,
+    topas_subscore_file_base: str = "topas_scores",
+) -> pd.DataFrame:
     calculate_topas_subscore = scoring.get_topas_subscore_calculator(
         z_scores_fp_df, z_scores_pp_df, protein_phosphorylation_df, kinase_scores_df
     )
@@ -109,11 +155,7 @@ def compute_topas_scores(
         topas_scores_dict[topas_name] = topas_subscores_df[
             f"{topas_name}_total_basket_score"
         ]
-        topas_subscores_output_file = os.path.join(
-            results_folder,
-            topas_results_folder,
-            f'subbasket_scores_{topas_name.replace("/", "_").replace(" ", "_")}.tsv',
-        )
+        topas_subscores_output_file = f'{topas_subscore_file_base}_{topas_name.replace("/", "_").replace(" ", "_")}.tsv'
         topas_subscores_df.index.name = "index"
         topas_subscores_df.to_csv(
             topas_subscores_output_file, sep="\t", float_format="%.4g"
@@ -124,33 +166,7 @@ def compute_topas_scores(
         )
 
     topas_scores_df = pd.DataFrame.from_dict(topas_scores_dict)
-    save_topas_scores(
-        topas_scores_df,
-        results_folder / topas_results_folder / "topas_rtk_scores.tsv",
-    )
-
-    topas_scores_df = topas_scores_df.drop(
-        topas_scores_df[topas_scores_df.index.str.startswith("targets")].index
-    )
-    zscores = scoring.compute_z_scores(
-        topas_scores_df.T,
-        utils.filter_for_patient_columns(topas_scores_df.T).columns,
-        axis=1,
-    ).T
-
-    save_topas_scores(
-        zscores,
-        results_folder / topas_results_folder / "topas_rtk_scores_zscored.tsv",
-    )
-
-    # TODO: can we do without the metadata file, since we only use code_oncotree
-    if os.path.isfile(metadata_file):
-        metadata_df = sample_metadata.load(metadata_file)
-        save_rtk_scores_w_metadata(
-            zscores,
-            metadata_df,
-            results_folder / topas_results_folder / "rtk_landscape.tsv",
-        )
+    return topas_scores_df
 
 
 def save_rtk_scores_w_metadata(

@@ -21,11 +21,13 @@ def calculate_rtk_scores(
     metadata_file: str,
     extra_kinase_annot: str,
     fasta_file: str,
+    file_prefix = "rtk_substrate_phosphorylation_",
+    topas_results_folder: str = "topas_scores",
     overwrite: bool = False,
 ):
     results_folder = Path(results_folder)
     kinase_score_file: Path = (
-        results_folder / "topas_scores" / "rtk_substrate_phosphorylation_scores.tsv"
+        results_folder / topas_results_folder / f"{file_prefix}scores.tsv"
     )
     if kinase_score_file.is_file():
         if not overwrite:
@@ -47,19 +49,22 @@ def calculate_rtk_scores(
     )
 
     substrate_file = (
-        results_folder / "topas_scores" / "rtk_substrate_peptide_intensities.tsv"
+        results_folder / topas_results_folder / f"{file_prefix}peptide_intensities.tsv"
     )
     annotated_sites_mapping = get_annotated_sites_mapping(cohort_annotated_sites_df)
     ck_substrate_phosphorylation.write_substrate_peptides(
         annotated_cohort_intensities_df, annotated_sites_mapping, substrate_file
     )
 
+    centered_peptide_zvals_file = (
+        results_folder / topas_results_folder / f"{file_prefix}peptides_centered.tsv"
+    )
     scores = ck_substrate_phosphorylation.compute_phosphorylation_scores(
         annotated_cohort_intensities_df,
         annotated_sites_mapping,
-        results_folder=results_folder,
+        centered_peptide_zvals_file=centered_peptide_zvals_file,
         kinase_annot_level="PSP Kinases",
-        explode=True
+        explode=True,
     )
 
     ck_substrate_phosphorylation.save_scores(scores, kinase_score_file)
@@ -73,14 +78,21 @@ def get_annotated_modified_sequence_groups(
     cohort_intensity_file: str,
     extra_kinase_annot: str,
     fasta_file: str,
-):
+) -> pd.DataFrame:
     logger.info("Reading cohort modified sequence groups")
     # loading only these three columns takes 20 sec instead of 4 minutes
     pp_df = pd.read_csv(
         cohort_intensity_file,
         usecols=["Gene names", "Modified sequence group", "Proteins"],
     )
+    return annotate_modified_sequence_groups(pp_df, extra_kinase_annot, fasta_file)
 
+
+def annotate_modified_sequence_groups(
+    pp_df: pd.DataFrame,
+    extra_kinase_annot: str,
+    fasta_file: str,
+) -> pd.DataFrame:
     # keep 0-based index as 'index' column so we only need to read the annotated rows later
     pp_df = pp_df.reset_index()
     pp_df_exploded = explode_modified_sequence_group(pp_df)
@@ -105,7 +117,7 @@ def get_annotated_modified_sequence_groups(
     return cohort_annotated_sites_df
 
 
-def explode_modified_sequence_group(df: pd.DataFrame):
+def explode_modified_sequence_group(df: pd.DataFrame) -> pd.DataFrame:
     df["Modified sequence"] = df["Modified sequence group"].str.split(";")
     df = df.explode("Modified sequence")
     return df
@@ -144,15 +156,19 @@ def read_annotated_cohort_intensities_df(
 @utils.validate_file_access
 def load_substrate_phosphorylation(
     results_folder,
-    kinase_results_folder: str = "topas_scores",
+    topas_results_folder: str = "topas_scores",
 ):
     kinase_score_file = (
         results_folder
-        / kinase_results_folder
+        / topas_results_folder
         / "rtk_substrate_phosphorylation_scores.tsv"
     )
 
     kinase_scores_df = pd.read_csv(kinase_score_file, index_col=0, sep="\t")
+    return prepare_kinase_scores_df(kinase_scores_df)
+
+
+def prepare_kinase_scores_df(kinase_scores_df: pd.DataFrame) -> pd.DataFrame:
     kinase_scores_df = kinase_scores_df.T
     kinase_scores_df.index.name = "PSP Kinases"
     kinase_scores_df.index = kinase_scores_df.index.str.replace(
