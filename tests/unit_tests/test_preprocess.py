@@ -122,6 +122,7 @@ class TestLoadSampleData:
             "topas_pipeline.preprocess.preprocess_tools.load_and_normalize",
             return_value=pd.DataFrame(),
         )
+        mock_open_evidence_file_cache = mocker.patch("builtins.open", mocker.mock_open())
 
         # Test data
         results_folder = Path("/path/to/results")
@@ -157,6 +158,7 @@ class TestLoadSampleData:
         mock_get_evidence_files.assert_called_once_with(
             sample_annotation_df, raw_data_location, data_type
         )
+        mock_open_evidence_file_cache.assert_called_once()
         mock_tmt_loader.assert_called_once_with(["file1", "file2"])
         assert not mock_simsi_loader.called
         assert not mock_lfq_loader.called
@@ -183,6 +185,7 @@ class TestLoadSampleData:
             "topas_pipeline.preprocess.preprocess_tools.load_and_normalize",
             return_value=pd.DataFrame(),
         )
+        mock_open_evidence_file_cache = mocker.patch("builtins.open", mocker.mock_open())
 
         # Test data
         results_folder = Path("/path/to/results")
@@ -214,6 +217,7 @@ class TestLoadSampleData:
         mock_get_evidence_files.assert_called_once_with(
             sample_annotation_df, raw_data_location, data_type
         )
+        mock_open_evidence_file_cache.assert_called_once()
         mock_simsi_loader.assert_called_once_with(
             ["file1", "file2"], results_folder, simsi_folder, data_type
         )
@@ -238,6 +242,7 @@ class TestLoadSampleData:
             "topas_pipeline.preprocess.preprocess_tools.load_and_normalize",
             return_value=pd.DataFrame(),
         )
+        mock_open_evidence_file_cache = mocker.patch("builtins.open", mocker.mock_open())
 
         # Test data
         results_folder = Path("/path/to/results")
@@ -269,6 +274,7 @@ class TestLoadSampleData:
         mock_get_evidence_files.assert_called_once_with(
             sample_annotation_df, raw_data_location, data_type
         )
+        mock_open_evidence_file_cache.assert_called_once()
         mock_lfq_loader.assert_called_once_with(["file1", "file2"])
         mock_load_and_normalize.assert_called_once_with(
             mock_lfq_loader.return_value,
