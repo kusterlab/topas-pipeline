@@ -178,6 +178,7 @@ def get_topas_subscore_calculator(
                 topas_subscore_annotation_df,
                 "Gene names",
                 "Gene names",
+                standardize_output=True,
             )
         elif scoring_rule == "summed z-score":
             topas_subscore = get_summed_zscore(
@@ -185,6 +186,7 @@ def get_topas_subscore_calculator(
                 topas_subscore_annotation_df,
                 "Gene names",
                 "Gene names",
+                standardize_output=True,
             )
         else:
             raise ValueError(f"Unknown scoring rule {scoring_rule}")
@@ -220,6 +222,8 @@ def get_summed_zscore(
     topas_subscore_index_col: str,
     clip_lower: Optional[int] = -4,
     clip_upper: Optional[int] = 4,
+    center_output: bool = False,
+    standardize_output: bool = False,
 ) -> pd.Series:
 
     z_scores = get_weighted_z_scores(
@@ -228,6 +232,8 @@ def get_summed_zscore(
     return z_aggregate(
         z_scores,
         utils.filter_for_patient_columns(z_score_df).columns,
+        center_output=center_output,
+        standardize_output=standardize_output,
         agg_f="sum",
         clip_input=(clip_lower, clip_upper),
     )

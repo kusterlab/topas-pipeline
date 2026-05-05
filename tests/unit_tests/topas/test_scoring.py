@@ -134,7 +134,7 @@ class TestLoadKinaseScores:
 class TestGetSummedZscore:
     # Correctly calculates summed z-scores for non-ligand cases
     def test_summed_zscore_non_ligand(self, mocker):
-        z_score_data = {"sample1": [1.5, -3.2, 4.5], "sample2": [-2.5, 3.0, -4.1]}
+        z_score_data = {"pat_sample1": [1.5, -3.2, 4.5], "pat_sample2": [-2.5, 3.0, -4.1]}
         topas_subscore_data = {
             "GENES": ["Gene4", "Gene1", "Gene2"],
             "weight": [0.5, 1.0, 2.0],
@@ -152,7 +152,7 @@ class TestGetSummedZscore:
         )
         # 1.5*1 - 4.0 + 2.25*0.5 = -0.25
         # -2.5*1 + 4.0 + -2.05*0.5 = -0.55
-        expected_result = pd.Series({"sample1": -0.25, "sample2": -0.55})
+        expected_result = pd.Series({"pat_sample1": -0.25, "pat_sample2": -0.55})
 
         pd.testing.assert_series_equal(result, expected_result)
 
