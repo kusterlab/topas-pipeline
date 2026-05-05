@@ -27,7 +27,7 @@ class TestProteinPhosphoScoring:
 
         # Mock compute_substrate_phosphorylation_scores
         mock_compute = mocker.patch(
-            "topas_pipeline.topas.ck_substrate_phosphorylation.compute_substrate_phosphorylation_scores",
+            "topas_pipeline.topas.ck_substrate_phosphorylation.compute_phosphorylation_scores",
             return_value="dummy_scores",
         )
 
