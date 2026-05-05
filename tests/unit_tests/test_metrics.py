@@ -303,27 +303,34 @@ def intensity_df():
 def test_get_rank(intensity_df):
     expected_rank = pd.DataFrame(
         {
-            "rank_pat_patient1": [4.0, 3.0, 4.0],
-            "rank_pat_patient2": [3.0, 2.0, 3.0],
-            "rank_pat_patient3": [2.0, 1.0, 2.0],
-            "rank_pat_patient4": [1.0, np.nan, 1.0],
+            "rank_pat_patient1": [4, 3, 4],
+            "rank_pat_patient2": [3, 2, 3],
+            "rank_pat_patient3": [2, 1, 2],
+            "rank_pat_patient4": [1, pd.NA, 1],
             "rank_max": [4, 3, 4],
         },
         index=["protein1", "protein2", "protein3"],
+        dtype="Int64",
     )
-    result = metrics.get_rank(intensity_df)
+    expected_rank["rank_max"] = expected_rank["rank_max"].astype("int64")
+    
+    result = metrics.get_rank(
+        intensity_df,
+        pd.Index(["pat_patient1", "pat_patient2", "pat_patient3", "pat_patient4"]),
+    )
     pd.testing.assert_frame_equal(result, expected_rank)
 
 
 def test_get_within_batch_rank(intensity_df):
     expected_rank = pd.DataFrame(
         {
-            "batchrank_pat_patient1": [2.0, 2.0, 2.0],
-            "batchrank_pat_patient2": [1.0, 1.0, 1.0],
-            "batchrank_pat_patient3": [2.0, 1.0, 2.0],
-            "batchrank_pat_patient4": [1.0, np.nan, 1.0],
+            "batchrank_pat_patient1": [2, 2, 2],
+            "batchrank_pat_patient2": [1, 1, 1],
+            "batchrank_pat_patient3": [2, 1, 2],
+            "batchrank_pat_patient4": [1, pd.NA, 1],
         },
         index=["protein1", "protein2", "protein3"],
+        dtype="Int64",
     )
     sample_annotation_df = pd.DataFrame(
         {
@@ -332,7 +339,11 @@ def test_get_within_batch_rank(intensity_df):
         }
     ).set_index("Sample name")
 
-    result = metrics.get_within_batch_rank(intensity_df, sample_annotation_df)
+    result = metrics.get_within_batch_rank(
+        intensity_df,
+        pd.Index(["pat_patient1", "pat_patient2", "pat_patient3", "pat_patient4"]),
+        sample_annotation_df,
+    )
     pd.testing.assert_frame_equal(result, expected_rank)
 
 
@@ -340,14 +351,21 @@ def test_get_fold_change(intensity_df):
     # Define expected results manually or calculate based on the leave-one-out approach
     expected_fold_change = pd.DataFrame(
         {
-            "fc_pat_patient1": [0.01, 0.01818181818181818, 0.01],  # 0.01 = 10**(1.0-3.0)
+            "fc_pat_patient1": [
+                0.01,
+                0.01818181818181818,
+                0.01,
+            ],  # 0.01 = 10**(1.0-3.0)
             "fc_pat_patient2": [0.1, 0.19801980198019803, 0.1],
             "fc_pat_patient3": [10.0, 18.181818181818183, 10.0],
             "fc_pat_patient4": [100.0, np.nan, 100.0],
         },
         index=["protein1", "protein2", "protein3"],
     )
-    result = metrics.get_fold_change(intensity_df)
+    result = metrics.get_fold_change(
+        intensity_df,
+        pd.Index(["pat_patient1", "pat_patient2", "pat_patient3", "pat_patient4"]),
+    )
     pd.testing.assert_frame_equal(result, expected_fold_change)
 
 
@@ -370,7 +388,10 @@ def test_get_zscore(intensity_df):
         },
         index=["protein1", "protein2", "protein3"],
     )
-    result = metrics.get_zscore(intensity_df)
+    result = metrics.get_zscore(
+        intensity_df,
+        pd.Index(["pat_patient1", "pat_patient2", "pat_patient3", "pat_patient4"]),
+    )
     pd.testing.assert_frame_equal(result, expected_zscore)
 
 
