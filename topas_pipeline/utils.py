@@ -60,6 +60,7 @@ INDEX_COLS: dict[DataType, list[str]] = {
     DataType.PHOSPHO_PROTEOME_ANNOTATED: [
         "Gene names",
         "Modified sequence group",
+        "Modified sequence representative",
         "Proteins",
     ],
 }
