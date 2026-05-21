@@ -24,7 +24,7 @@ logger = logging.getLogger(__package__ + "." + Path(__file__).stem)
 def apply_bridge_channel_normalization(
     results_folder: str,
     sample_annotation_file: str,
-    min_occurrence: float = 2 / 3,  # Good Value for phospho
+    min_occurrence_ratio: float = 2 / 3,  # Good Value for phospho
     min_samples_in_qc_lot: int = 8,
     overwrite: bool = False,
 ):
@@ -45,32 +45,64 @@ def apply_bridge_channel_normalization(
     sample_annotation_df = sample_annotation.load_sample_annotation(
         sample_annotation_file
     )
-    sample_qc_lot_mapping_df = sample_annotation.get_sample_qc_lot_mapping_df(
-        phospho_df.columns, sample_annotation_df
+
+    phospho_df_corrected, correction_factors = normalize_by_bridge_channel(
+        phospho_df,
+        sample_annotation_df,
+        min_occurrence_ratio,
+        min_samples_in_qc_lot,
     )
 
-    ref_cols = sample_qc_lot_mapping_df.loc[
-        sample_qc_lot_mapping_df["is_reference"]
-    ].index
+    correction_factors.to_csv(results_folder / "peptide_correction_factors.csv")
+
+    logger.info(f"Writing results to {batch_corrected_file}")
+    phospho_df_corrected.to_csv(
+        batch_corrected_file,
+        float_format="%.6f",
+        index=True,
+    )
+
+
+def normalize_by_bridge_channel(
+    peptide_df: pd.DataFrame,
+    sample_annotation_df: pd.DataFrame,
+    min_occurrence_ratio: float,
+    min_samples_in_qc_lot: int,
+) -> tuple[pd.DataFrame, pd.Series]:
+    sample_qc_lot_mapping_df = sample_annotation.get_sample_qc_lot_mapping_df(
+        peptide_df.columns, sample_annotation_df
+    )
+
+    peptide_df_corrected, correction_factors = within_qc_lot_normalization(
+        peptide_df, sample_qc_lot_mapping_df, min_occurrence_ratio
+    )
+
+    peptide_df_corrected = across_qc_lot_normalization(
+        peptide_df_corrected, sample_qc_lot_mapping_df, min_samples_in_qc_lot
+    )
+
+    return peptide_df_corrected, correction_factors
+
+
+def across_qc_lot_normalization(
+    peptide_df: pd.DataFrame,
+    sample_qc_lot_mapping_df: pd.DataFrame,
+    min_samples_in_qc_lot: int,
+) -> pd.DataFrame:
+    logger.info("Applying across QC lot normalization")
+
     patient_columns = sample_qc_lot_mapping_df.loc[
         ~sample_qc_lot_mapping_df["is_reference"]
     ].index
 
-    phospho_df_corrected, correction_factors = within_qc_lot_normalization(
-        phospho_df, ref_cols, min_occurrence, sample_qc_lot_mapping_df
-    )
-    correction_factors.to_csv(results_folder / "peptide_correction_factors.csv")
-
-    logger.info("Applying across QC lot normalization")
-
     # store original column order for output dataframe
-    combined_column_order = phospho_df_corrected.columns
+    original_column_order = peptide_df.columns
 
     # temporarily center patient data around 0 for each peptide
-    avg_patient_intensity = phospho_df_corrected.loc[:, patient_columns].median(axis=1)
-    phospho_df_corrected2 = (phospho_df_corrected.T - avg_patient_intensity).T
+    avg_patient_intensity = peptide_df.loc[:, patient_columns].median(axis=1)
+    peptide_df_corrected = (peptide_df.T - avg_patient_intensity).T
 
-    # correct QC lots with at least 100 patient samples
+    # correct QC lots with at least min_samples_in_qc_lot patient samples
     qc_lots_to_correct = (
         sample_qc_lot_mapping_df["QC Lot group"]
         .value_counts()[
@@ -85,51 +117,49 @@ def apply_bridge_channel_normalization(
             qc_lot_samples & ~sample_qc_lot_mapping_df["is_reference"], :
         ].index
 
-        avg_lot_patient_intensity = phospho_df_corrected2.loc[
+        avg_lot_patient_intensity = peptide_df_corrected.loc[
             :, qc_lot_patient_samples
         ].median(axis=1)
-        phospho_df_corrected2.loc[:, qc_lot_samples] = phospho_df_corrected2.loc[
+        peptide_df_corrected.loc[:, qc_lot_samples] = peptide_df_corrected.loc[
             :, qc_lot_samples
         ].sub(avg_lot_patient_intensity, axis=0)
 
     # bring back to original intensity level
-    phospho_df_corrected2 = (phospho_df_corrected2.T + avg_patient_intensity).T
-    phospho_df_corrected2 = phospho_df_corrected2[combined_column_order]
+    peptide_df_corrected = (peptide_df_corrected.T + avg_patient_intensity).T
 
-    logger.info(f"Writing results to {batch_corrected_file}")
-    phospho_df_corrected2.to_csv(
-        batch_corrected_file,
-        float_format="%.6f",
-        index=True,
-    )
+    return peptide_df_corrected[original_column_order]
 
 
 def within_qc_lot_normalization(
-    phospho_df: pd.DataFrame,
-    ref_cols: list[str],
-    min_occurrence: float,
+    peptide_df: pd.DataFrame,
     sample_qc_lot_mapping_df: pd.DataFrame,
+    min_occurrence_ratio: float,
 ) -> tuple[pd.DataFrame, pd.Series]:
-    """Filter for high-occurring p-peptides and apply row-wise normalization per batch and per QC lot.
+    """Filter for high-occurring peptides and apply row-wise normalization per batch and per QC lot.
 
-    Keeps p-peptides that occur in at least min_occurrence of reference channels.
+    Keeps peptides that occur in at least min_occurrence_ratio of reference channels.
 
     Args:
-        phospho_df (pd.DataFrame): _description_
-        ref_cols (list[str]): _description_
-        min_occurrence (float): _description_
+        peptide_df (pd.DataFrame): log10 transformed peptide intensity matrix
         sample_qc_lot_mapping_df (pd.DataFrame): _description_
+        min_occurrence_ratio (float): _description_
 
     Returns:
         tuple[pd.DataFrame, pd.Series]: _description_
     """
     logger.info("Applying within QC lot normalization")
-    high_count_mask = phospho_df[ref_cols].notnull().mean(axis=1) > min_occurrence
-    phospho_df_corrected = phospho_df[high_count_mask].progress_apply(
+
+    ref_columns = sample_qc_lot_mapping_df.loc[
+        sample_qc_lot_mapping_df["is_reference"]
+    ].index
+    high_count_mask = (
+        peptide_df[ref_columns].notnull().mean(axis=1) > min_occurrence_ratio
+    )
+    peptide_df_corrected = peptide_df[high_count_mask].progress_apply(
         row_wise_normalize, sample_qc_lot_mapping_df=sample_qc_lot_mapping_df, axis=1
     )
-    correction_factors = phospho_df_corrected - phospho_df[high_count_mask]
-    return phospho_df_corrected, correction_factors
+    correction_factors = peptide_df_corrected - peptide_df[high_count_mask]
+    return peptide_df_corrected, correction_factors
 
 
 def mean_f(x):

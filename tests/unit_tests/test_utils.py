@@ -34,7 +34,7 @@ def test_get_ref_channels():
     pd.testing.assert_frame_equal(result_df, expected_df)
 
 
-def test_get_ref_channels():
+def test_get_ref_channels_different_per_batch():
     # Test data setup
     data = {
         "Modified sequence": ["pep1", "pep1", "pep2", "pep2"],
