@@ -17,7 +17,9 @@ def add_phospho_annotations(
     clinic_proc_config: config.ClinicProc,
 ) -> pd.DataFrame:
     logger.info("Phosphosite annotation")
-    df = add_psite_positions(df, clinic_proc_config.pspFastaFile)
+    df = add_psite_positions(
+        df, clinic_proc_config.pspFastaFile, organism=clinic_proc_config.organism
+    )
     df = add_rtk_substrate_annotations(df, clinic_proc_config.extra_kinase_annot)
     df = add_psp_annotations(df, clinic_proc_config)
     df.rename(
@@ -30,6 +32,7 @@ def add_phospho_annotations(
 def add_psite_positions(
     df: pd.DataFrame,
     pspFastaFile: str,
+    organism: str = "human",
 ) -> pd.DataFrame:
     """
     Phospho-site annotation of experimental data using in-house developed tool (MT) based mainly on Phosphosite Plus
@@ -43,7 +46,7 @@ def add_psite_positions(
 
     # add all potential phosphosites on each sequence
     df = pa.addPeptideAndPsitePositions(
-        df, pspFastaFile, pspInput=True, returnAllPotentialSites=True
+        df, pspFastaFile, pspInput=True, returnAllPotentialSites=True, organism=organism
     )
     df = df.rename(columns={"Site positions": "Site positions (PSP)"})
 
@@ -52,6 +55,7 @@ def add_psite_positions(
         pspFastaFile,
         pspInput=True,
         returnAllPotentialSites=False,
+        organism=organism,
     )
 
     # add semicolon to columns which will be concatenated. this allows us to use the
@@ -90,10 +94,17 @@ def add_psp_annotations(
 ) -> pd.DataFrame:
     logger.info("Phosphosite PSP annotation")
     df = pa.addPSPKinaseSubstrateAnnotations(
-        df, clinic_proc_config.pspKinaseSubstrateFile, gene_name=True
+        df,
+        clinic_proc_config.pspKinaseSubstrateFile,
+        gene_name=True,
+        organism=clinic_proc_config.organism,
     )
-    df = pa.addPSPAnnotations(df, clinic_proc_config.pspAnnotationFile)
-    df = pa.addPSPRegulatoryAnnotations(df, clinic_proc_config.pspRegulatoryFile)
+    df = pa.addPSPAnnotations(
+        df, clinic_proc_config.pspAnnotationFile, organism=clinic_proc_config.organism
+    )
+    df = pa.addPSPRegulatoryAnnotations(
+        df, clinic_proc_config.pspRegulatoryFile, organism=clinic_proc_config.organism
+    )
     df["PSP_LT_LIT"] = df["PSP_LT_LIT"].apply(lambda x: max(x.split(";")))
     df["PSP_MS_LIT"] = df["PSP_MS_LIT"].apply(lambda x: max(x.split(";")))
     df["PSP_MS_CST"] = df["PSP_MS_CST"].apply(lambda x: max(x.split(";")))
