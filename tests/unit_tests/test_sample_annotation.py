@@ -17,7 +17,7 @@ class TestGetSampleQcLotMappingDf:
         )
         sample_annotation_df = DataFrame(
             {
-                "Batch Name": ["A", "A", "B"],
+                "Batch": ["Cohort1_BatchA", "Cohort1_BatchA", "Cohort1_BatchB"],
                 "TMT Channel": [10, 11, 10],
                 "QC Lot": [1.0, 2.0, 1.0],
                 "is_reference": [True, False, True],
@@ -36,7 +36,7 @@ class TestGetSampleQcLotMappingDf:
         ]
         assert len(result) == 3
         assert (
-            result.loc["Reporter intensity corrected 10 Cohort1_BatchA", "batch"] == "A"
+            result.loc["Reporter intensity corrected 10 Cohort1_BatchA", "batch"] == "Cohort1_BatchA"
         )
         assert (
             result.loc["Reporter intensity corrected 10 Cohort1_BatchA", "channel"]
