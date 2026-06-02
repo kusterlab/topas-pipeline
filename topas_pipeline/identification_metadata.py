@@ -15,7 +15,7 @@ def create_metadata_columns(df: pd.DataFrame) -> pd.DataFrame:
     """create columns to store metadata about the identifications, e.g. imputed, detected in batch, single peptide id
     annotations should be separated by semi-colons, e.g. imputed;single peptide id;detected in batch;
     """
-    metadata_cols = as_metadata_columns(utils.get_tmt_channels(df).columns.str)
+    metadata_cols = as_metadata_columns(utils.filter_for_intensity_columns(df).columns.str)
     df[metadata_cols] = ""
     return df
 

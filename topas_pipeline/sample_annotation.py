@@ -54,6 +54,12 @@ def load_sample_annotation(sample_annotation_file: Union[str, Path]) -> pd.DataF
     sample_annotation_df["is_reference"] = (
         sample_annotation_df["is_reference"].astype("boolean").fillna(False)
     )
+
+    # create a new "Batch" column that contains the cohort name. This enables
+    # that we can handle the same Batch Name in multiple cohorts.
+    sample_annotation_df["Batch"] = (
+        sample_annotation_df["Cohort"] + "_Batch" + sample_annotation_df["Batch Name"]
+    )
     if "QC Lot" not in sample_annotation_df.columns:
         logger.info(
             "No 'QC Lot' column found in sample annotation file. Setting QC Lot = 1 for all QC samples."
@@ -79,6 +85,7 @@ def validate_sample_annotation(sample_annotation_df: pd.DataFrame) -> None:
         )
 
     # TODO: Check that sample names do not contain / and ; (problems with paths and passing multiple sample names in TOPAS portal)
+    # TODO: Check that the Batch Name column does not contain entries with spaces or underscores
 
     # Check that there are no duplicates in neither patient annot and metadata
     if sample_annotation_df["Sample name"].duplicated().any():
@@ -173,10 +180,10 @@ def get_channel_to_sample_id_dict(
     )
 
     def generate_channel_name(x):
-        return f"Reporter intensity corrected {x['TMT Channel']} {x['Cohort']}_Batch{x['Batch Name']}"
+        return f"Reporter intensity corrected {x['TMT Channel']} {x['Batch']}"
 
     sample_annotation_df["channel"] = sample_annotation_df[
-        ["TMT Channel", "Cohort", "Batch Name"]
+        ["TMT Channel", "Batch"]
     ].apply(generate_channel_name, axis=1)
 
     unmarked_ref_channels = sample_annotation_df["is_reference"] & (
@@ -202,15 +209,15 @@ def get_sample_qc_lot_mapping_df(
     sample_columns: pd.Index, sample_annotation_df: pd.DataFrame
 ) -> pd.DataFrame:
     sample_mapping_df = sample_columns.to_frame().reset_index()
-    sample_mapping_df["batch"] = sample_mapping_df["index"].str.split("_Batch").str[-1]
+    sample_mapping_df["batch"] = sample_mapping_df["index"].str.split(" ").str[-1]
     sample_mapping_df["channel"] = (
         sample_mapping_df["index"].str.split(" ").str[-2].astype(int)
     )
 
     sample_mapping_df = sample_mapping_df.merge(
-        sample_annotation_df[["Batch Name", "TMT Channel", "QC Lot", "is_reference"]],
+        sample_annotation_df[["Batch", "TMT Channel", "QC Lot", "is_reference"]],
         left_on=["batch", "channel"],
-        right_on=["Batch Name", "TMT Channel"],
+        right_on=["Batch", "TMT Channel"],
         how="left",
     )
     sample_mapping_df["QC Lot group"] = sample_mapping_df.groupby("batch")[
@@ -218,7 +225,7 @@ def get_sample_qc_lot_mapping_df(
     ].transform(
         "mean"
     )  # TODO: replace this with sorted string concat to not get accidental collisions, e.g. (lot1+lot3)/2 != lot2
-    sample_mapping_df = sample_mapping_df.drop(columns=[0, "Batch Name", "TMT Channel"])
+    sample_mapping_df = sample_mapping_df.drop(columns=[0, "Batch", "TMT Channel"])
     sample_mapping_df = sample_mapping_df.set_index("index")
     return sample_mapping_df
 

@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from .data_loader import DataLoader, extract_batch_name
-from ..utils import get_tmt_channels, get_ref_channels
+from .. import utils
 
 logger = logging.getLogger(__name__)
 
@@ -82,28 +82,35 @@ def _scale_ms1_to_reference(
     logger.info("Scale MS1 intensities using reference channels")
     df["MS1"] = df["MS1"].replace(0, np.nan)
 
-    tmt_channels = get_tmt_channels(df)
-    ref_channels = get_ref_channels(df, ref_channel_df)
+    tmt_channels = utils.filter_for_intensity_columns(df)
+    ref_channels_mean = utils.get_ref_channels_mean(df, ref_channel_df)
 
     df["MS1 corrected reference intensity"] = (
-        ref_channels.mean(axis=1) / tmt_channels.sum(axis=1) * df["MS1"]
+        ref_channels_mean / tmt_channels.sum(axis=1) * df["MS1"]
     )
 
+    # TODO: replace this with sorted string concat to not get accidental collisions, e.g. (lot1+lot3)/2 != lot2
+    batch_to_qc_lot_mapping = ref_channel_df.groupby("Batch")["QC Lot"].agg(
+        "mean"
+    )
+
+    df["QC Lot"] = df["Batch"].map(batch_to_qc_lot_mapping)
+
     imputation_df = (
-        df.groupby(["Modified sequence", "Charge"])["MS1 corrected reference intensity"]
+        df.groupby(["Modified sequence", "Charge", "QC Lot"])["MS1 corrected reference intensity"]
         .apply(lambda x: x.mean())
         .reset_index(name="Mean MS1 corrected reference intensity")
     )
 
     df = pd.merge(
-        left=df, right=imputation_df, on=["Modified sequence", "Charge"], how="left"
+        left=df, right=imputation_df, on=["Modified sequence", "Charge", "QC Lot"], how="left"
     )
 
-    has_reference = ~np.isnan(ref_channels.mean(axis=1))
+    has_reference = ~np.isnan(ref_channels_mean)
     df.loc[has_reference, "MS1"] = (
         df["Mean MS1 corrected reference intensity"]
         * tmt_channels.sum(axis=1)
-        / ref_channels.mean(axis=1)
+        / ref_channels_mean
     )
     df.loc[~has_reference, "MS1"] = np.nan
 
@@ -122,14 +129,14 @@ def _impute_ms1_intensity(
     logger.info("Imputing missing MS1 intensities using reference channels")
     df["MS1"] = df["MS1"].replace(0, np.nan)
 
-    tmt_channels = get_tmt_channels(df)
-    ref_channels = get_ref_channels(df, ref_channel_df)
+    tmt_channels = utils.filter_for_intensity_columns(df)
+    ref_channels_mean = utils.get_ref_channels_mean(df, ref_channel_df)
 
     df["MS1 corrected reference intensity"] = (
-        ref_channels.mean(axis=1) / tmt_channels.sum(axis=1) * df["MS1"]
+        ref_channels_mean / tmt_channels.sum(axis=1) * df["MS1"]
     )
 
-    # TODO: switch to ['Modified sequence', 'Charge']
+    # TODO: switch to ['Modified sequence', 'Charge', 'QC Lot']
     imputation_df = (
         df.groupby("Modified sequence")["MS1 corrected reference intensity"]
         .apply(lambda x: x.mean())
@@ -139,11 +146,11 @@ def _impute_ms1_intensity(
     df = pd.merge(left=df, right=imputation_df, on="Modified sequence", how="left")
 
     missing_ms1 = np.isnan(df["MS1"])
-    has_reference = ~np.isnan(ref_channels.mean(axis=1))
+    has_reference = ~np.isnan(ref_channels_mean)
     df.loc[missing_ms1 & has_reference, "MS1"] = (
         df["Mean MS1 corrected reference intensity"]
         * tmt_channels.sum(axis=1)
-        / ref_channels.mean(axis=1)
+        / ref_channels_mean
     )
 
     # TODO: impute MS1 for scans with no MS1 and no reference channel values by using summed channel intensities (seems only necessary for FP)
@@ -170,7 +177,7 @@ def _redistribute_ms1_intensity(df: pd.DataFrame) -> pd.DataFrame:
     """
     logger.info("Distributing MS1 intensity over TMT channels")
     has_ms1 = ~np.isnan(df["MS1"])
-    tmt_channels = get_tmt_channels(df)
+    tmt_channels = utils.filter_for_intensity_columns(df)
     df.loc[has_ms1, tmt_channels.columns] = tmt_channels.loc[has_ms1, :].multiply(
         df.loc[has_ms1, "MS1"] / tmt_channels.loc[has_ms1, :].sum(axis=1), axis="index"
     )

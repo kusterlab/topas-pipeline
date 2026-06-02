@@ -27,7 +27,7 @@ docker_mintest: CONFIG_FILE=config_patients_minimal_test.toml
 docker_mintest: full_pipeline
 
 # runs pipeline locally
-all: DOCKER_CMD=
+all: DOCKER_CMD=poetry run
 all: IMAGE=
 all: LOCAL_DIR=.
 all: full_pipeline

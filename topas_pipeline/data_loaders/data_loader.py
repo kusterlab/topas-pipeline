@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from ..utils import get_tmt_channels
+from ..utils import filter_for_intensity_columns
 from ..preprocess.preprocess_tools import merge_ms1_columns, median_centering
 
 logger = logging.getLogger(__name__)
@@ -17,7 +17,7 @@ class DataLoader:
 
     def median_centering_within_batch(self, df_raw: pd.DataFrame) -> pd.DataFrame:
         dfs = []
-        tmt_channels = get_tmt_channels(df_raw).columns
+        tmt_channels = filter_for_intensity_columns(df_raw).columns
 
         correction_factors_all = {}
         for _, df in df_raw.groupby("Batch"):
@@ -93,41 +93,17 @@ def extract_cohort_name(evidence_file_path: Union[str, Path]) -> str:
     """Extract batch name including cohort from a file path, e.g.
     '/my/path/Sarcoma/Batch1_FP_Blabla/combined/txt/evidence.txt' => Sarcoma_Batch1
     """
-    # match = re.search(r'Searches/([^/]*)/', evidence_file_path)
-    # return match.group(1).replace('/', '_')
     match = re.search(r"([^/]*)/Batch", evidence_file_path)
     return match.group(1).replace("/", "_")
-
-
-# def extract_cohort_name(evidence_file_path: Union[str, Path]) -> str:
-#     # match = re.search(r'[^/]*/', evidence_file_path)
-#     match = re.search(r'([^/]*)/Batch', evidence_file_path)
-#     return match.group(0).split('/')[0]
 
 
 def extract_batch_name(evidence_file_path: Union[str, Path]) -> str:
     match = re.search(r"[^/]*/Batch[^_]+", evidence_file_path)
     return match.group(0).replace("/", "_")
-    # match = re.search(r'(Batch[A-Za-z]*\d*)', evidence_file_path)
-    # return match.group(0)
 
 
 def extract_experiment_name(evidence_file_path: Union[str, Path]) -> str:
-    # match = re.search(r'/(Batch\d+_[^/]*)/', evidence_file_path)
-    # match = re.search(r'CPTAC_Dou_[\w]*_(Batch[\w\d]*)', evidence_file_path)
-    # we want UCEC
-    # match = re.search(r'CPTAC_Dou_[\w]*_(Batch[\w\d]*)', evidence_file_path)
-    # match1 = re.search(r'/(Batch[\w\d]*_[^/]*)/', evidence_file_path)
-    # match2 = re.search(r'/(CPTAC[\w\d]*_[^/]*)/', evidence_file_path
     match = re.search(r"/(Batch[\w\d]*_[^/]*)/", evidence_file_path)
-    # if match1:
-    #     return match1.group(0).replace('/', '')
-
-    # if match2:
-    # return match2.group(0).replace('/', '')
-
-    # this is last part before combined/txt  --> batch?
-    # match = re.search(r'/(Batch[\w\d]*_[^/]*)/', evidence_file_path)
     return match.group(1)
 
 

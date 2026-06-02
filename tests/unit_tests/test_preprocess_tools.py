@@ -746,7 +746,7 @@ class TestRedistributeMS1:
         ref_channel_df = pd.DataFrame(
             {
                 "TMT Channel": [10, 11, 10, 11, 10, 11, 10, 11],
-                "Batch Name": [
+                "Batch": [
                     "Batch_1",
                     "Batch_1",
                     "Batch_2",
@@ -756,6 +756,16 @@ class TestRedistributeMS1:
                     "Batch_4",
                     "Batch_4",
                 ],
+                "is_reference": [
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                ]
             }
         )
         df = tmt_loader._impute_ms1_intensity(long_df_tmt11, ref_channel_df)
@@ -779,7 +789,7 @@ class TestRedistributeMS1:
         ref_channel_df = pd.DataFrame(
             {
                 "TMT Channel": [10, 11, 10, 11, 10, 11, 10, 11],
-                "Batch Name": [
+                "Batch": [
                     "Batch_1",
                     "Batch_1",
                     "Batch_2",
@@ -789,6 +799,16 @@ class TestRedistributeMS1:
                     "Batch_4",
                     "Batch_4",
                 ],
+                "is_reference": [
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                    True,
+                ]
             }
         )
         df = tmt_loader._impute_ms1_intensity(long_df_tmt11, ref_channel_df)

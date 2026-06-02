@@ -133,25 +133,41 @@ def whitespace_remover(df):
     return df
 
 
-def get_tmt_channels(df: pd.DataFrame) -> pd.DataFrame:
-    return df.filter(regex=r"^Reporter intensity corrected \d{1,2}")
+def get_ref_channels_mean(df: pd.DataFrame, ref_channel_df: pd.DataFrame):
+    """Computes row-wise mean of reference channels per batch.
 
+    For each row, identifies TMT channels marked as reference in the annotation for that
+    row's batch, then calculates the mean across those reference channel columns.
 
-def get_ref_channels(df: pd.DataFrame, ref_channel_df: pd.DataFrame):
-    # TODO: add support for different reference channels in each batch
-    if (
-        ref_channel_df["Batch Name"].nunique() * ref_channel_df["TMT Channel"].nunique()
-    ) != len(ref_channel_df[["Batch Name", "TMT Channel"]].drop_duplicates()):
-        raise ValueError(
-            "Datasets where reference channels differ between batches are not yet supported."
-        )
+    Args:
+        df: DataFrame containing a 'Batch' column and 'Reporter intensity corrected N'
+            columns for each TMT channel.
+        ref_channel_df: Annotation DataFrame with columns 'Batch', 'TMT Channel',
+            and 'is_reference' indicating which channels are reference for each batch.
 
-    return df.filter(
+    Returns:
+        pd.Series: Row-wise mean of reference channel intensities, with the same index as df.
+    """
+    ref_df = df.loc[
+        :,
         [
             f"Reporter intensity corrected {channel}"
             for channel in ref_channel_df["TMT Channel"].unique()
-        ]
-    )
+        ],
+    ]
+
+    # Reshape ref channel annotation into a matrix:
+    # - Rows: unique Batch values
+    # - Columns: unique TMT Channel values
+    # - Cell values: is_reference (True/False)
+    ref_mask = ref_channel_df.set_index(["Batch", "TMT Channel"])[
+        "is_reference"
+    ].unstack("TMT Channel")
+
+    # For each row in df, retrieve the reference channel mask for its batch
+    mask = ref_mask.loc[df["Batch"].values]
+
+    return ref_df.where(mask.values).mean(axis=1)
 
 
 def filter_for_patient_columns(df: pd.DataFrame) -> pd.DataFrame:

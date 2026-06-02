@@ -190,7 +190,9 @@ def read_cohort_intensities_df(
     intensities_df = intensities_df.set_index(INDEX_COLS)
 
     if sample_annotation_file:
-        sample_annotation_df = pd.read_csv(sample_annotation_file)
+        sample_annotation_df = sample_annotation.load_sample_annotation(
+            sample_annotation_file
+        )
         channel_to_sample_id_dict = sample_annotation.get_channel_to_sample_id_dict(
             sample_annotation_df,
             remove_qc_failed=True,

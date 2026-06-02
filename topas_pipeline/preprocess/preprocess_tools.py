@@ -180,7 +180,7 @@ def read_evidence_file_list_from_cache(results_folder: Path, data_type: str):
 
 def log_transform_intensities(df: pd.DataFrame) -> pd.DataFrame:
     logger.info("Log10 transforming intensities")
-    tmt_channels = utils.get_tmt_channels(df)
+    tmt_channels = utils.filter_for_intensity_columns(df)
     df.loc[:, tmt_channels.columns] = np.log10(tmt_channels.replace(0, np.nan))
     return df
 
@@ -543,7 +543,7 @@ def convert_long_to_wide_format(
     """
     logger.info("Converting from long to wide format")
 
-    tmt_channels = utils.get_tmt_channels(df).columns
+    tmt_channels = utils.filter_for_intensity_columns(df).columns
     keep_columns = tmt_channels.tolist()
 
     if has_metadata_cols:
@@ -636,7 +636,7 @@ def impute_data(df: pd.DataFrame) -> pd.DataFrame:
     """
     logger.info("Imputing data")
 
-    tmt_cols_df = utils.get_tmt_channels(df)
+    tmt_cols_df = utils.filter_for_intensity_columns(df)
     tmt_cols_df = tmt_cols_df.replace(0, np.nan)
 
     # TODO: Fix this to use sample_annotation_df instead (channel 9 can also be patient data now!)

@@ -10,7 +10,12 @@ def test_scale_ms1_to_reference():
         "Modified sequence": ["pep1", "pep1", "pep2", "pep2"],
         "Charge": [2, 2, 3, 3],
         "Batch": ["01", "02", "01", "02"],
-        "MS1": [100.0, 0.0, 300.0, 200.0],  # MS1 with a zero to test replacement with NaN
+        "MS1": [
+            100.0,
+            0.0,
+            300.0,
+            200.0,
+        ],  # MS1 with a zero to test replacement with NaN
         "Reporter intensity corrected 1": [200.0, 700.0, 400.0, 300.0],
         "Reporter intensity corrected 2": [300.0, 300.0, 400.0, 500.0],
     }
@@ -29,9 +34,10 @@ def test_scale_ms1_to_reference():
 
     sample_annot = {
         "Sample name": ["AAA", "BBB", "CCC", "DDD"],
-        "Batch Name": ["01", "01", "02", "02"],
+        "Batch": ["01", "01", "02", "02"],
         "TMT Channel": [1, 2, 1, 2],
         "is_reference": [False, True, False, True],
+        "QC Lot": [np.nan, 1.0, np.nan, 1.0],
     }
     df = pd.DataFrame(data)
     sample_annotation_df = pd.DataFrame(sample_annot)
@@ -47,22 +53,81 @@ def test_scale_ms1_to_reference():
     pd.testing.assert_series_equal(result_df["MS1"], expected_ms1_corrected)
 
 
+def test_scale_ms1_to_reference_multiple_qc_lots():
+    # Test data setup with additional batch from a different QC lot
+    data = {
+        "Modified sequence": ["pep1", "pep1", "pep1", "pep2", "pep2", "pep2"],
+        "Charge": [2, 2, 2, 3, 3, 3],
+        "Batch": ["01", "02", "03", "01", "02", "03"],
+        "MS1": [
+            100.0,
+            0.0,
+            150.0,
+            300.0,
+            200.0,
+            150.0,
+        ],  # MS1 with a zero to test replacement with NaN
+        "Reporter intensity corrected 1": [200.0, 700.0, 100.0, 400.0, 300.0, 150.0],
+        "Reporter intensity corrected 2": [300.0, 300.0, 200.0, 400.0, 500.0, 250.0],
+    }
+
+    # pep1:
+    # ref channel contribution: Batch1: 300/500=0.6; Batch 2: 300/1000=0.3
+    # ms1 contributions ref channels: Batch1: 100*0.6=60; Batch 2: NaN
+    # mean ms1 contributions ref channels: 60
+    # ms1 after scaling to reference: Batch1: 60/0.6=100; Batch 2: 60/0.3=200
+
+    # pep2:
+    # ref channel contribution: Batch1: 400/800=0.5; Batch 2: 500/800=0.625
+    # ms1 contributions ref channels: Batch1: 300*0.5=150; Batch 2: 200*0.625=125
+    # mean ms1 contributions ref channels: 137.5
+    # ms1 after scaling to reference: Batch1: 137.5/0.5=275; Batch 2: 137.5/0.625=220
+
+    sample_annot = {
+        "Sample name": ["AAA", "BBB", "CCC", "DDD", "EEE", "FFF"],
+        "Batch": ["01", "01", "02", "02", "03", "03"],
+        "TMT Channel": [1, 2, 1, 2, 1, 2],
+        "is_reference": [False, True, False, True, False, True],
+        "QC Lot": [np.nan, 1.0, np.nan, 1.0, np.nan, 2.0],
+    }
+    df = pd.DataFrame(data)
+    sample_annotation_df = pd.DataFrame(sample_annot)
+    ref_channels_df = sample_annotation_df.loc[sample_annotation_df["is_reference"], :]
+
+    result_df = tmt_loader._scale_ms1_to_reference(df, ref_channels_df)
+
+    # Assertions
+    assert "MS1 corrected reference intensity" in result_df.columns
+    assert "Mean MS1 corrected reference intensity" in result_df.columns
+
+    expected_ms1_corrected = pd.Series(
+        [100.0, 200.0, 150.0, 275.0, 220.0, 150.0], name="MS1"
+    )
+    pd.testing.assert_series_equal(result_df["MS1"], expected_ms1_corrected)
+
+
 def test_scale_ms1_to_reference_and_redistribute():
     # Test data setup
     data = {
         "Modified sequence": ["pep1", "pep1", "pep2", "pep2"],
         "Charge": [2, 2, 3, 3],
         "Batch": ["01", "02", "01", "02"],
-        "MS1": [100.0, 0.0, 300.0, 200.0],  # MS1 with a zero to test replacement with NaN
+        "MS1": [
+            100.0,
+            0.0,
+            300.0,
+            200.0,
+        ],  # MS1 with a zero to test replacement with NaN
         "Reporter intensity corrected 1": [200.0, 700.0, 400.0, 300.0],
         "Reporter intensity corrected 2": [300.0, 300.0, 400.0, 500.0],
     }
 
     sample_annot = {
         "Sample name": ["AAA", "BBB", "CCC", "DDD"],
-        "Batch Name": ["01", "01", "02", "02"],
+        "Batch": ["01", "01", "02", "02"],
         "TMT Channel": [1, 2, 1, 2],
         "is_reference": [False, True, False, True],
+        "QC Lot": [np.nan, 1.0, np.nan, 1.0],
     }
     df = pd.DataFrame(data)
     sample_annotation_df = pd.DataFrame(sample_annot)
@@ -81,6 +146,7 @@ def test_scale_ms1_to_reference_and_redistribute():
             "Reporter intensity corrected 1": [40.0, 140.0, 137.5, 82.5],
             "Reporter intensity corrected 2": [60.0, 60.0, 137.5, 137.5],
             "MS1 corrected reference intensity": [60.0, np.nan, 150.0, 125.0],
+            "QC Lot": [1.0, 1.0, 1.0, 1.0],
             "Mean MS1 corrected reference intensity": [60, 60, 137.5, 137.5],
         }
     )
@@ -112,7 +178,7 @@ def test_impute_ms1_intensity():
 
     sample_annot = {
         "Sample name": ["AAA", "BBB", "CCC", "DDD"],
-        "Batch Name": ["01", "01", "02", "02"],
+        "Batch": ["01", "01", "02", "02"],
         "TMT Channel": [1, 2, 1, 2],
         "is_reference": [False, True, False, True],
     }
