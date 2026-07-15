@@ -397,13 +397,19 @@ def save_qc_info(
     # Log QC info like identifications, summed intensity, median
     if data_type == "fp":
         retrieve_qc_info_function = retrieve_fp_qc_info
+        sample_annotation_df_datatype = sample_annotation_df.copy()
+        if "Batch Name" not in sample_annotation_df.columns:
+            sample_annotation_df_datatype["Batch Name"] = sample_annotation_df["Batch Name FP"]
     elif data_type == "pp":
         retrieve_qc_info_function = retrieve_pp_qc_info
+        sample_annotation_df_datatype = sample_annotation_df.copy()
+        if "Batch Name" not in sample_annotation_df.columns:
+            sample_annotation_df_datatype["Batch Name"] = sample_annotation_df["Batch Name PP"]
     else:
         raise ValueError(
             "Unknown data type for retrieve_qc_info: {data_type}. Valid values are 'fp' and 'pp'."
         )
-    retrieve_qc_info_function(df, sample_annotation_df, results_folder, data_type)
+    retrieve_qc_info_function(df, sample_annotation_df_datatype, results_folder, data_type)
 
 
 def retrieve_fp_qc_info(df, sample_annotation_df, results_folder, data_type):
@@ -692,6 +698,8 @@ def filter_data(df: pd.DataFrame, data_type: str) -> pd.DataFrame:
 
         df = df.drop("Modifications", axis=1)
 
+        # Ensure that empty strings are treated as NaN for filtering
+        df["Gene names"] = df["Gene names"].replace("", np.nan)
         df = df[~df["Gene names"].isna()]
         logger.info(f"- after gene names filtering: {df.shape[0]}")
 
