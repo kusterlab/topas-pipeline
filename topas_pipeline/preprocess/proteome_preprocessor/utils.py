@@ -18,24 +18,25 @@ def get_maxquant_result_files(
     Raises:
         ValueError: If the number of matched directories for a batch is not equal to 1
     """
-    result_file_paths = []
+    result_file_paths = set() # For TMT, multiple channels return the same file
     for _, row in sample_annotation_df.iterrows():
         batch_name = row[f"Batch Name"]
+        cohort = row["Cohort"]
         data_type_results_folder = Path(raw_data_folder)
         matched_paths = [
             str(p)
             for p in data_type_results_folder.glob(
-                f"*{batch_name}_{data_type.upper()}*"
+                f"{cohort}/Batch{batch_name}_{data_type.upper()}*"
             )
             if p.is_dir()
         ]
         if len(matched_paths) == 1:
-            result_file_paths.append(f"{matched_paths[0]}/combined/txt/evidence.txt")
+            result_file_paths.add(f"{matched_paths[0]}/combined/txt/evidence.txt")
         else:
             raise ValueError(
                 f"Expected one directory for batch {batch_name} in {data_type_results_folder}, but found {len(matched_paths)}"
             )
-    return result_file_paths
+    return list(result_file_paths)
 
 
 def get_diann_result_files(
@@ -122,3 +123,10 @@ def get_ionquant_result_files(
                 f"Expected one directory for batch {batch_name} in {data_type_results_folder}, but found {len(matched_paths)}"
             )
     return result_file_paths
+
+
+RESULT_FILE_GETTER_REGISTRY = {
+    "evidence": get_maxquant_result_files,
+    "diann": get_diann_result_files,
+    "ionquant": get_ionquant_result_files,
+}
