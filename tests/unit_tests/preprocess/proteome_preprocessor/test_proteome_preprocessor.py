@@ -4,7 +4,7 @@ from unittest import mock
 import pandas as pd
 import pytest
 
-from topas_pipeline.config import Preprocessing
+from topas_pipeline.config import Preprocessing, Simsi
 from topas_pipeline.preprocess.proteome_preprocessor.proteome_preprocessor import (
     ProteomePreprocessor,
 )
@@ -27,18 +27,30 @@ def make_preprocessing_config(**overrides):
     return Preprocessing(**defaults)
 
 
-def make_processor(data_types=None, quant_file_formats=None, **config_overrides):
+def make_simsi_config(**overrides):
+    defaults = dict(simsi_folder="")
+    defaults.update(overrides)
+    return Simsi(**defaults)
+
+
+def make_processor(
+    data_types=None, quant_file_formats=None, simsi_overrides=None, **config_overrides
+):
     if data_types is None:
         data_types = ["fp", "pp"]
     if quant_file_formats is None:
         quant_file_formats = {"fp": "diann", "pp": "ionquant"}
+    if simsi_overrides is None:
+        simsi_overrides = {}
     return ProteomePreprocessor(
         results_folder="/results",
         sample_annotation_file="/sample_annotation.csv",
+        metadata_annotation_file="/metadata_annotation.csv",
         data_types=data_types,
         quant_strategy="LFQ",
         quant_file_formats=quant_file_formats,
         preprocessing_config=make_preprocessing_config(**config_overrides),
+        simsi_config=make_simsi_config(**simsi_overrides),
     )
 
 
@@ -48,11 +60,13 @@ class TestInit:
 
         assert processor.results_folder == "/results"
         assert processor.sample_annotation_file == "/sample_annotation.csv"
+        assert processor.metadata_annotation_file == "/metadata_annotation.csv"
         assert processor.data_types == ["fp", "pp"]
         assert processor.quant_strategy == "LFQ"
         assert processor.quant_file_formats == {"fp": "diann", "pp": "ionquant"}
         assert processor.preprocessing_config["raw_data_location"] == "/raw"
         assert processor.preprocessing_config["fasta_file"] == "/fasta.fasta"
+        assert processor.simsi_config["simsi_folder"] == ""
 
     def test_preprocessing_func_map(self):
         processor = make_processor()
@@ -62,10 +76,19 @@ class TestInit:
 
 
 class TestPreprocess:
+    @mock.patch(f"{MODULE}.prep.check_annot")
+    @mock.patch(f"{MODULE}.sample_annotation.copy_sample_annotation_file")
+    @mock.patch(f"{MODULE}.sample_metadata.copy_metadata_file")
     @mock.patch(f"{MODULE}.filter_sample_annotation")
     @mock.patch(f"{MODULE}.load_sample_annotation")
     def test_loads_and_filters_sample_annotation(
-        self, mock_load, mock_filter, tmp_path
+        self,
+        mock_load,
+        mock_filter,
+        mock_copy_metadata,
+        mock_copy_annot,
+        mock_check_annot,
+        tmp_path,
     ):
         raw_df = pd.DataFrame({"Sample name": ["a"]})
         filtered_df = pd.DataFrame({"Sample name": ["a"]})
@@ -83,10 +106,18 @@ class TestPreprocess:
             processor.sample_annotation_df, filtered_df.reset_index()
         )
 
+    @mock.patch(f"{MODULE}.prep.check_annot")
+    @mock.patch(f"{MODULE}.sample_annotation.copy_sample_annotation_file")
+    @mock.patch(f"{MODULE}.sample_metadata.copy_metadata_file")
     @mock.patch(f"{MODULE}.filter_sample_annotation")
     @mock.patch(f"{MODULE}.load_sample_annotation")
     def test_calls_preprocess_proteome_for_each_data_type(
-        self, mock_load, mock_filter
+        self,
+        mock_load,
+        mock_filter,
+        mock_copy_metadata,
+        mock_copy_annot,
+        mock_check_annot,
     ):
         mock_load.return_value = pd.DataFrame({"a": [1]})
         mock_filter.return_value = pd.DataFrame({"a": [1]})
@@ -102,10 +133,19 @@ class TestPreprocess:
         called_data_types = [c.args[0] for c in mock_preprocess.call_args_list]
         assert called_data_types == ["fp", "pp"]
 
+    @mock.patch(f"{MODULE}.prep.check_annot")
+    @mock.patch(f"{MODULE}.sample_annotation.copy_sample_annotation_file")
+    @mock.patch(f"{MODULE}.sample_metadata.copy_metadata_file")
     @mock.patch(f"{MODULE}.filter_sample_annotation")
     @mock.patch(f"{MODULE}.load_sample_annotation")
     def test_skips_when_preprocessed_file_exists_and_not_overwrite(
-        self, mock_load, mock_filter, tmp_path
+        self,
+        mock_load,
+        mock_filter,
+        mock_copy_metadata,
+        mock_copy_annot,
+        mock_check_annot,
+        tmp_path,
     ):
         mock_load.return_value = pd.DataFrame({"a": [1]})
         mock_filter.return_value = pd.DataFrame({"a": [1]})
@@ -121,10 +161,19 @@ class TestPreprocess:
 
         mock_preprocess.assert_not_called()
 
+    @mock.patch(f"{MODULE}.prep.check_annot")
+    @mock.patch(f"{MODULE}.sample_annotation.copy_sample_annotation_file")
+    @mock.patch(f"{MODULE}.sample_metadata.copy_metadata_file")
     @mock.patch(f"{MODULE}.filter_sample_annotation")
     @mock.patch(f"{MODULE}.load_sample_annotation")
     def test_reprocesses_when_overwrite_true_even_if_file_exists(
-        self, mock_load, mock_filter, tmp_path
+        self,
+        mock_load,
+        mock_filter,
+        mock_copy_metadata,
+        mock_copy_annot,
+        mock_check_annot,
+        tmp_path,
     ):
         mock_load.return_value = pd.DataFrame({"a": [1]})
         mock_filter.return_value = pd.DataFrame({"a": [1]})
@@ -217,7 +266,12 @@ class TestPreprocessProteome:
             sample_annotation_df,
             False,
             False,
-            {"results_folder": results_folder, "data_type": "fp"},
+            {
+                "results_folder": results_folder,
+                "data_type": "fp",
+                "quant_strategy": "LFQ",
+                "simsi_folder": "",
+            },
         )
         mock_preprocess_fp.assert_called_once_with(loaded_df)
         mock_channel_dict.assert_called_once()
@@ -460,48 +514,54 @@ class TestPreprocessPp:
 
 
 class TestGetResultsFileList:
-    @mock.patch(f"{MODULE}.proteome_processor_utils.get_maxquant_result_files")
-    def test_dispatches_to_evidence_loader(self, mock_get_files):
-        mock_get_files.return_value = ["f1", "f2", "f3"]
+    def test_dispatches_to_evidence_loader(self):
+        mock_get_files = mock.Mock(return_value=["f1", "f2", "f3"])
         processor = make_processor()
         processor.sample_annotation_df = pd.DataFrame({"a": [1]})
 
-        result = processor.get_results_file_list("fp", "evidence")
+        with mock.patch.dict(
+            f"{MODULE}.RESULT_FILE_GETTER_REGISTRY", {"evidence": mock_get_files}
+        ):
+            result = processor.get_results_file_list("fp", "evidence")
 
         mock_get_files.assert_called_once_with(
             "fp", "/raw", processor.sample_annotation_df
         )
         assert result == ["f1", "f2", "f3"]
 
-    @mock.patch(f"{MODULE}.proteome_processor_utils.get_diann_result_files")
-    def test_dispatches_to_diann_loader(self, mock_get_files):
-        mock_get_files.return_value = ["f1", "f2", "f3"]
+    def test_dispatches_to_diann_loader(self):
+        mock_get_files = mock.Mock(return_value=["f1", "f2", "f3"])
         processor = make_processor()
         processor.sample_annotation_df = pd.DataFrame({"a": [1]})
 
-        result = processor.get_results_file_list("fp", "diann")
+        with mock.patch.dict(
+            f"{MODULE}.RESULT_FILE_GETTER_REGISTRY", {"diann": mock_get_files}
+        ):
+            result = processor.get_results_file_list("fp", "diann")
 
         mock_get_files.assert_called_once_with(
             "fp", "/raw", processor.sample_annotation_df
         )
         assert result == ["f1", "f2", "f3"]
 
-    @mock.patch(f"{MODULE}.proteome_processor_utils.get_ionquant_result_files")
-    def test_dispatches_to_ionquant_loader(self, mock_get_files):
-        mock_get_files.return_value = ["f1", "f2", "f3"]
+    def test_dispatches_to_ionquant_loader(self):
+        mock_get_files = mock.Mock(return_value=["f1", "f2", "f3"])
         processor = make_processor()
         processor.sample_annotation_df = pd.DataFrame({"a": [1]})
 
-        result = processor.get_results_file_list("pp", "ionquant")
+        with mock.patch.dict(
+            f"{MODULE}.RESULT_FILE_GETTER_REGISTRY", {"ionquant": mock_get_files}
+        ):
+            result = processor.get_results_file_list("pp", "ionquant")
 
         mock_get_files.assert_called_once_with(
             "pp", "/raw", processor.sample_annotation_df
         )
         assert result == ["f1", "f2", "f3"]
 
-    def test_unknown_format_raises_key_error(self):
+    def test_unknown_format_raises_value_error(self):
         processor = make_processor()
         processor.sample_annotation_df = pd.DataFrame({"a": [1]})
 
-        with pytest.raises(KeyError):
+        with pytest.raises(ValueError):
             processor.get_results_file_list("fp", "unknown_format")
