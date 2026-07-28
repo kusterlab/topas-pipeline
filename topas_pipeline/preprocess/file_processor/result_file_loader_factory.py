@@ -5,18 +5,27 @@ from topas_pipeline.preprocess.file_processor.evidence_file_loader import (
 from topas_pipeline.preprocess.file_processor.ion_quant_file_loader import (
     IonQuantFileLoader,
 )
+from topas_pipeline.preprocess.file_processor.tmt_evidence_file_loader import (
+    TMTEvidenceFileLoader,
+)
+from topas_pipeline.preprocess.file_processor.simsi_evidence_file_loader import (
+    SimsiEvidenceFileLoader,
+)
 
 
 class ResultFileLoaderFactory:
     _file_loaders = {
-        "diann": DiannFileLoader,
-        "evidence": EvidenceFileLoader,
-        "ionquant": IonQuantFileLoader,
+        "lfq_diann": DiannFileLoader,
+        "lfq_evidence": EvidenceFileLoader,
+        "lfq_ionquant": IonQuantFileLoader,
+        "tmt_evidence": TMTEvidenceFileLoader,
+        "simsi_evidence": SimsiEvidenceFileLoader,
     }
 
     @classmethod
-    def get_loader(cls, quant_file_format: str):
-        if quant_file_format not in cls._file_loaders:
-            raise ValueError(f"Unsupported quant file format: {quant_file_format}")
-        loader = cls._file_loaders[quant_file_format]
+    def get_loader(cls, data_format: str):
+        data_format = data_format.lower()
+        if data_format not in cls._file_loaders:
+            raise ValueError(f"Unsupported quant file format: {data_format}")
+        loader = cls._file_loaders[data_format]
         return loader

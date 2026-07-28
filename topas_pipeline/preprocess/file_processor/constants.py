@@ -148,3 +148,5 @@ DIANN_MOD_DICT = {
     "(UniMod:1)": "(Acetyl (Protein N-term))",
     "C(UniMod:4)": "C",
 }
+
+MQ_INPUT_COLUMNS_TMT = MQ_INPUT_COLUMNS + [f"Reporter intensity corrected {i}" for i in range(1, 12)]
