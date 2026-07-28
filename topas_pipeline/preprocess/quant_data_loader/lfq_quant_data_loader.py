@@ -31,10 +31,11 @@ class LFQQuantDataLoader(BaseQuantDataLoader):
         self.metadata = metadata
         self.results_folder = self.metadata["results_folder"]
         self.data_type = self.metadata["data_type"]
+        self.quant_strategy = self.metadata["quant_strategy"]
 
         # Get Result File loader based on quant file format used (Maxquant, Ionquant, Diann)
         result_file_loader_class = ResultFileLoaderFactory.get_loader(
-            self.quant_file_format
+            "_".join([self.quant_strategy, self.quant_file_format])
         )
         self.result_file_loader = result_file_loader_class(
             results_file_list, sample_annotation_df=self.sample_annotation_df
@@ -62,7 +63,7 @@ class LFQQuantDataLoader(BaseQuantDataLoader):
         and return a concatenated DataFrame
         """
         # Load the result file using the load function of the ResultFileLoader
-        all_batches = self.result_file_loader.load()
+        all_batches = self.result_file_loader.load() # TODO: usecols for LFQ has to be decided
         df = pd.concat(all_batches, ignore_index=True)
         return df
 
