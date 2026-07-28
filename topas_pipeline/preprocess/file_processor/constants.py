@@ -150,3 +150,5 @@ DIANN_MOD_DICT = {
 }
 
 MQ_INPUT_COLUMNS_TMT = MQ_INPUT_COLUMNS + [f"Reporter intensity corrected {i}" for i in range(1, 12)]
+
+MQ_OUTPUT_COLUMNS_TMT = MQ_INPUT_COLUMNS_TMT + ["Batch"]
