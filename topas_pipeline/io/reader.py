@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
+from typing import Union
 import pandas as pd
 import pyarrow.parquet as pq
-
+import io
 
 class Reader(ABC):
     def __init__(self, file_path: str):
@@ -65,7 +66,10 @@ class ReaderFactory:
     }
 
     @classmethod
-    def get_reader(cls, file_path: str):
+    def get_reader(cls, file_path: Union[str, io.BytesIO]) -> Reader:
+        # Exception handling for io.BytesIO objects (Zip files) TODO: not nice
+        if isinstance(file_path, io.BytesIO):
+            return TxtReader(file_path, sep="\t")
         file_extension = file_path.split(".")[-1].lower()
         if file_extension not in cls._readers:
             raise ValueError(f"Unsupported file type: {file_extension}")

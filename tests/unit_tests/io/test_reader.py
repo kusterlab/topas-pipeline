@@ -1,3 +1,5 @@
+import io
+
 from topas_pipeline.io.reader import ReaderFactory, TxtReader, ParquetReader
 import pytest
 import pandas as pd
@@ -20,6 +22,7 @@ class TestReaderFactory:
     @pytest.mark.parametrize(
         "file_path, expected_reader_class, expected_kwargs",
         [
+            (io.BytesIO(b"dummy data"), TxtReader, {"sep": "\t"}),
             ("data.csv", TxtReader, {"sep": ","}),
             ("data.tsv", TxtReader, {"sep": "\t"}),
             ("data.txt", TxtReader, {"sep": "\t"}),
