@@ -6,7 +6,7 @@ import os
 import time
 from typing import List, Dict
 
-from topas_pipeline.config import Preprocessing
+from topas_pipeline.config import Preprocessing, Simsi
 from topas_pipeline import identification_metadata as id_meta
 from topas_pipeline.preprocess import phosphopeptides
 from topas_pipeline.sample_annotation import (
@@ -17,11 +17,12 @@ from topas_pipeline.sample_annotation import (
 from topas_pipeline.preprocess import picked_group
 from topas_pipeline.preprocess import preprocess_tools as prep
 from topas_pipeline.preprocess import sample_mapping
-import topas_pipeline.preprocess.proteome_preprocessor.utils as proteome_processor_utils
+from topas_pipeline.preprocess.proteome_preprocessor.utils import RESULT_FILE_GETTER_REGISTRY
 from topas_pipeline.preprocess.quant_data_loader.quant_data_loader_factory import (
     QuantDataLoaderFactory,
 )
 from topas_pipeline import utils
+from topas_pipeline import sample_annotation, sample_metadata
 
 logger = logging.getLogger("topas_pipeline" + "." + Path(__file__).stem)
 
@@ -31,32 +32,47 @@ class ProteomePreprocessor:
         self,
         results_folder: str,
         sample_annotation_file: str,
+        metadata_annotation_file: str,
         data_types: List[str],
         quant_strategy: str,
         quant_file_formats: Dict[str, str],
         preprocessing_config: Preprocessing,
+        simsi_config: Simsi,
     ):
         """
         Initialize the ProteomePreprocessor with the provided configuration
         Args:
             results_folder (str): The folder to store preprocessing results
             sample_annotation_file (str): The path to the sample annotation file
+            metadata_annotation_file (str): The path to the metadata annotation file
             data_types (List[str]): The list of data types to preprocess (e.g., ["fp", "pp"])
             quant_strategy (str): The quantification strategy to use (e.g., "LFQ", "TMT")
             quant_file_formats (Dict[str, str]): The mapping of data types to quant file formats
                 (e.g., {"fp": "evidence", "pp": "diann"})
             preprocessing_config (Preprocessing): The preprocessing configuration
+            simsi_config (Simsi): The SIMSI configuration
         """
         self.results_folder = results_folder
         self.sample_annotation_file = sample_annotation_file
+        self.metadata_annotation_file = metadata_annotation_file
         self.data_types = data_types
         self.quant_strategy = quant_strategy
         self.quant_file_formats = quant_file_formats
         self.preprocessing_config = asdict(preprocessing_config)
+        self.simsi_config = asdict(simsi_config)
         self.preprocessing_func = {"fp": self.preprocess_fp, "pp": self.preprocess_pp}
 
     def preprocess(self, overwrite: bool = True):
         """Preprocess proteome data based on the provided configuration"""
+        sample_metadata.copy_metadata_file(self.metadata_annotation_file, self.results_folder)
+        sample_annotation.copy_sample_annotation_file(
+            self.sample_annotation_file, self.results_folder
+        )
+        prep.check_annot(
+            self.results_folder,
+            self.sample_annotation_file,
+            self.metadata_annotation_file,
+        )
         # Load and filter sample annotation dataframe
         self.sample_annotation_df = load_sample_annotation(self.sample_annotation_file)
         self.sample_annotation_df = filter_sample_annotation(
@@ -86,8 +102,16 @@ class ProteomePreprocessor:
     ):
         """Preprocess proteome data based on the data_type"""
         # Get result file list based on quant_file_format
-        # Can be 3 different types of result files: (evidence.txt, report.parquet, combined_ion.tsv)
-        results_files = self.get_results_file_list(data_type, quant_file_format)
+        if (
+            results_files := prep.read_evidence_file_list_from_cache(
+                Path(self.results_folder), data_type
+            )
+        ) is None:
+            # Can be 3 different types of result files: (evidence.txt, report.parquet, combined_ion.tsv)
+            results_files = self.get_results_file_list(data_type, quant_file_format)
+            prep.write_evidence_file_list_to_cache(
+                Path(self.results_folder), data_type, results_files
+            )
 
         # Check if preprocessed2 is available for datatype
         # If true: read csv as df else: load sample data
@@ -109,7 +133,12 @@ class ProteomePreprocessor:
                 sample_annotation_df,
                 self.preprocessing_config["normalize_to_reference"],
                 self.preprocessing_config["debug"],
-                {"results_folder": self.results_folder, "data_type": data_type},
+                {
+                    "results_folder": self.results_folder,
+                    "data_type": data_type,
+                    "quant_strategy": self.quant_strategy,
+                    "simsi_folder": self.simsi_config["simsi_folder"],
+                },
             )
             df = quant_data_loader.load_and_normalize()
 
@@ -251,12 +280,10 @@ class ProteomePreprocessor:
     ) -> List[str]:
         """Get the list of result files based on the quant_file_format and data_type"""
         raw_data_folder = self.preprocessing_config["raw_data_location"]
-        func_map = {
-            "evidence": proteome_processor_utils.get_maxquant_result_files,
-            "diann": proteome_processor_utils.get_diann_result_files,
-            "ionquant": proteome_processor_utils.get_ionquant_result_files,
-        }
-        return func_map[quant_file_format](
+        func = RESULT_FILE_GETTER_REGISTRY.get(quant_file_format)
+        if func is None:
+            raise ValueError(f"Unsupported quant_file_format: {quant_file_format}")
+        return func(
             data_type, raw_data_folder, self.sample_annotation_df
         )
 
@@ -282,10 +309,12 @@ if __name__ == "__main__":
     processor = ProteomePreprocessor(
         configs.results_folder,
         configs.sample_annotation,
+        configs.metadata_annotation,
         configs.data_types,
         configs.quant_strategy,
         configs.quant_file_formats,
         configs.preprocessing,
+        configs.simsi,
     )
     start_time = time.time()
     processor.preprocess(args.overwrite)

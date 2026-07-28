@@ -75,10 +75,12 @@ def main(argv):
             processor = ProteomePreprocessor(
                 configs.results_folder,
                 configs.sample_annotation,
+                configs.metadata_annotation,
                 configs.data_types,
                 configs.quant_strategy,
                 configs.quant_file_formats,
                 configs.preprocessing,
+                configs.simsi,
             )
             processor.preprocess()
         else:
