@@ -69,6 +69,9 @@ class IonQuantFileLoader(BaseResultFileLoader):
                 merged_df, self.options["sample_annotation_df"].iloc[0]["Cohort"]
             )
 
+            # Add reporter intensity corrected 1 column
+            merged_df = self.add_reporter_intensity_corrected_1_column(merged_df)
+
             return merged_df
         except Exception as e:
             logger.error(f"Error processing file {ionquant_file_path}: {e}")

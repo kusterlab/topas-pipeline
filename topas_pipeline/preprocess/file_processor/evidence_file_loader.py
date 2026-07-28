@@ -1,3 +1,6 @@
+from functools import partial
+from concurrent.futures import ProcessPoolExecutor
+
 import pandas as pd
 from typing import List, Union
 
@@ -16,11 +19,14 @@ class EvidenceFileLoader(BaseResultFileLoader):
     def load(self, usecols: List[str] = None) -> List[pd.DataFrame]:
         if isinstance(self.result_files, str):
             self.result_files = [self.result_files]
-        all_batches = []
-        for evidence_file_path in self.result_files:
-            df = self.load_evidence_file(evidence_file_path, usecols=usecols)
-            all_batches.append(df)
-        return all_batches
+        with ProcessPoolExecutor(
+            max_workers=8
+        ) as executor:  # TODO: make max_workers configurable
+            all_batches = executor.map(
+                partial(self.load_evidence_file, usecols=usecols),
+                self.result_files,
+            )
+        return list(all_batches)
 
     def load_evidence_file(
         self, evidence_file_path: str, usecols: List[str] = None
@@ -28,6 +34,7 @@ class EvidenceFileLoader(BaseResultFileLoader):
         reader = ReaderFactory.get_reader(evidence_file_path)
         df = reader.read(usecols=usecols)
         df = self.modify_protein_and_peptide_info(df)
+        df = self.add_reporter_intensity_corrected_1_column(df)
         df = self.update_batch_info(df, evidence_file_path)
         return df
 

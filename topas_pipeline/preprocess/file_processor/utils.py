@@ -39,9 +39,6 @@ def modify_protein_and_peptide_info(df: pd.DataFrame) -> pd.DataFrame:
         keep_protein_name_from_fasta_header
     )
 
-    # pretend that the LFQ data is TMT data with a single TMT channel
-    df["Reporter intensity corrected 1"] = df["Intensity"]
-
     # convert phospho modification notation, e.g. S(Phospho (STY)) => pS
     df["Modified sequence"] = df["Modified sequence"].str.replace(
         re.compile(r"([STY])\(Phospho \(STY\)\)"),
@@ -49,4 +46,17 @@ def modify_protein_and_peptide_info(df: pd.DataFrame) -> pd.DataFrame:
         regex=True,
     )
 
+    return df
+
+def add_reporter_intensity_corrected_1_column(df: pd.DataFrame) -> pd.DataFrame:
+    # pretend that the LFQ data is TMT data with a single TMT channel
+    df["Reporter intensity corrected 1"] = df["Intensity"]
+    return df
+
+def filter_out_rows_with_no_reporter_ions(df: pd.DataFrame) -> pd.DataFrame:
+    # Remove rows with no measured reporter ions
+    df = df.replace(0, np.nan)
+    df = df.loc[
+        ~df.filter(regex="^Reporter intensity corrected").isnull().all(axis=1), :
+    ]
     return df
