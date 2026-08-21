@@ -2535,18 +2535,19 @@ test = ["argcomplete (>=3.0.3)", "mypy (>=1.7.0)", "pre-commit", "pytest (>=7.0,
 
 [[package]]
 name = "triqler"
-version = "0.8.1"
+version = "0.8.2"
 description = "Triqler: TRansparent Identification-Quantification-Linked Error Rates"
 optional = false
 python-versions = "<3.13,>=3.9"
 files = [
-    {file = "triqler-0.8.1-py3-none-any.whl", hash = "sha256:6f8c3fa7799555674d82fe1fbd9fdebc0fa56861ce3cd06e9c173221dceb08a4"},
+    {file = "triqler-0.8.2-py3-none-any.whl", hash = "sha256:122540d14a52c586b8f87435993f834027a3a6a770bee58d077ef230dbaedf77"},
 ]
 
 [package.dependencies]
 job-pool = ">=0.3.0"
 numpy = ">=2.0.0,<3.0.0"
 pandas = ">=1.4.0"
+pyarrow = ">=19.0.1,<20.0.0"
 scipy = ">=1.9.1,<2.0.0"
 threadpoolctl = ">=3.1.0,<4.0.0"
 

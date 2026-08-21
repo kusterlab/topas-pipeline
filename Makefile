@@ -32,6 +32,12 @@ all: IMAGE=
 all: LOCAL_DIR=.
 all: full_pipeline
 
+# runs pipeline locally with absolute path
+all_absolute_config_path: DOCKER_CMD=poetry run
+all_absolute_config_path: IMAGE=
+all_absolute_config_path: LOCAL_DIR=
+all_absolute_config_path: full_pipeline
+
 # runs minimal test locally
 mintest: CONFIG_FILE=config_patients_minimal_test.toml
 mintest: DOCKER_CMD=poetry run
@@ -82,3 +88,18 @@ jump:
 bootstrap: DATA=/root/data
 bootstrap:
 	bash -c "cp /root/topas-pipeline/Makefile* $(LOCAL_DIR)"
+
+
+#############
+## RELEASE ##
+#############
+
+package_build:
+	poetry build
+
+publish_test:
+	poetry config repositories.testpypi https://test.pypi.org/legacy/
+	poetry publish -r testpypi
+
+publish:
+	poetry publish

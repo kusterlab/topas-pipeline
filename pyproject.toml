@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "topas-pipeline"
 version = "0.1.0"
-description = ""
+description = "Automated (phospho)proteomics processing pipeline for large patient cohorts providing cohort as well as patient-specific insights."
 authors = ["Cecilia Jensen <cecilia.jensen@tum.de>", "Matthew The <matthew.the@tum.de>", "Firas Hamood <firas.hamood@tum.de>"]
 license= "Apache-2.0"
 readme = "README.md"
