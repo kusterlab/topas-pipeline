@@ -31,6 +31,7 @@ def main(argv):
     args = parser.parse_args(argv)
 
     configs = config.load(args.config)
+    has_phospho_data = "pp" in configs.data_types
 
     # Create results folder and save configurations
     os.makedirs(configs.results_folder, exist_ok=True)
@@ -96,15 +97,16 @@ def main(argv):
 
         logger.info("--- %.1f seconds --- preprocessing" % (time.time() - start_time))
 
-        start_time = time.time()
-        # 2) Run protein phosphorylation scoring (<1 minute)
-        protein_phosphorylation.protein_phospho_scoring(
-            results_folder=configs.results_folder,
-            metadata_file=configs.metadata_annotation,
-        )
-        logger.info(
-            "--- %.1f seconds --- protein phospho scoring" % (time.time() - start_time)
-        )
+        if has_phospho_data:
+            start_time = time.time()
+            # 2) Run protein phosphorylation scoring (<1 minute)
+            protein_phosphorylation.protein_phospho_scoring(
+                results_folder=configs.results_folder,
+                metadata_file=configs.metadata_annotation,
+            )
+            logger.info(
+                "--- %.1f seconds --- protein phospho scoring" % (time.time() - start_time)
+            )
 
         start_time = time.time()
         # 3) add protein/p-site clinical annotations (~3 minutes)
@@ -127,41 +129,42 @@ def main(argv):
         )
         logger.info("--- %.1f seconds --- metrics" % (time.time() - start_time))
 
-        start_time = time.time()
-        # 5) Run cytoplasmic kinase substrate phosphorylation scoring
-        ck_substrate_phosphorylation.calculate_cytoplasmic_kinase_scores(
-            results_folder=configs.results_folder,
-            sample_annotation_file=configs.sample_annotation,
-            metadata_file=configs.metadata_annotation,
-            topas_kinase_substrate_file=configs.clinic_proc.topas_kinase_substrate_file,
-            expression_corrected_input=True,
-        )
-        logger.info(
-            "--- %.1f seconds --- ck substrate phosphorylation scoring"
-            % (time.time() - start_time)
-        )
+        if has_phospho_data:
+            start_time = time.time()
+            # 5) Run cytoplasmic kinase substrate phosphorylation scoring
+            ck_substrate_phosphorylation.calculate_cytoplasmic_kinase_scores(
+                results_folder=configs.results_folder,
+                sample_annotation_file=configs.sample_annotation,
+                metadata_file=configs.metadata_annotation,
+                topas_kinase_substrate_file=configs.clinic_proc.topas_kinase_substrate_file,
+                expression_corrected_input=True,
+            )
+            logger.info(
+                "--- %.1f seconds --- ck substrate phosphorylation scoring"
+                % (time.time() - start_time)
+            )
 
-        start_time = time.time()
-        # 6) Run receptor tyrosine kinase substrate phosphorylation scoring
-        rtk_substrate_phosphorylation.calculate_rtk_scores(
-            results_folder=configs.results_folder,
-            metadata_file=configs.metadata_annotation,
-            extra_kinase_annot=configs.clinic_proc.extra_kinase_annot,
-            fasta_file=configs.preprocessing.fasta_file,
-        )
-        logger.info(
-            "--- %.1f seconds --- rtk substrate phosphorylation scoring"
-            % (time.time() - start_time)
-        )
+            start_time = time.time()
+            # 6) Run receptor tyrosine kinase substrate phosphorylation scoring
+            rtk_substrate_phosphorylation.calculate_rtk_scores(
+                results_folder=configs.results_folder,
+                metadata_file=configs.metadata_annotation,
+                extra_kinase_annot=configs.clinic_proc.extra_kinase_annot,
+                fasta_file=configs.preprocessing.fasta_file,
+            )
+            logger.info(
+                "--- %.1f seconds --- rtk substrate phosphorylation scoring"
+                % (time.time() - start_time)
+            )
 
-        start_time = time.time()
-        # 7) compute TOPAS scores (<1 minute)
-        topas.compute_topas_scores(
-            results_folder=configs.results_folder,
-            topas_annotation_file=configs.clinic_proc.prot_baskets,
-            metadata_file=configs.metadata_annotation,
-        )
-        logger.info("--- %.1f seconds --- TOPAS scoring" % (time.time() - start_time))
+            start_time = time.time()
+            # 7) compute TOPAS scores (<1 minute)
+            topas.compute_topas_scores(
+                results_folder=configs.results_folder,
+                topas_annotation_file=configs.clinic_proc.prot_baskets,
+                metadata_file=configs.metadata_annotation,
+            )
+            logger.info("--- %.1f seconds --- TOPAS scoring" % (time.time() - start_time))
 
         message = "Pipeline finished"
     except Exception as e:
