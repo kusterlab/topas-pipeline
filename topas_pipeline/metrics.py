@@ -40,6 +40,10 @@ def compute_metrics(
     sample_annotation_df = sample_annotation.load_sample_annotation(
         sample_annotation_file
     )
+    
+    # TODO: Assigning Batch Name PP to Batch Name if not present in the sample annotation file
+    if "Batch Name" not in sample_annotation_df.columns:
+        sample_annotation_df["Batch Name"] = sample_annotation_df["Batch Name PP"]
 
     if "pp" in data_types:
         data_types.append("phospho_score")

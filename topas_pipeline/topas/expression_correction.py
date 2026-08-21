@@ -35,16 +35,25 @@ def correct_phospho_for_protein_expression(
         results_folder / "preprocessed_pp2_agg_batchcorrected.csv",
         keep_identification_metadata_columns=False,
     )
-    full_df = load_full_proteome_df(results_folder / "preprocessed_fp2.csv")
-    if not all(phospho_df.columns.sort_values() == full_df.columns.sort_values()):
-        raise ValueError(
-            f"Missing columns in full: {set(phospho_df.columns) - set(full_df.columns)}\nMissing columns in phospho: {set(full_df.columns) - set(phospho_df.columns)}"
-        )
 
     # only use patient channels for predictions
     sample_annotation_df = sample_annotation.load_sample_annotation(
         sample_annotation_file
     )
+
+    full_df = load_full_proteome_df(results_folder / "preprocessed_fp2.csv")
+    if "Batch FP" in sample_annotation_df.columns:
+        fp_to_pp_mapping = sample_annotation_df.reset_index()[["Batch FP","Batch PP"]].set_index("Batch FP")["Batch PP"].to_dict()
+        full_df.columns = full_df.columns.to_series().replace(fp_to_pp_mapping,regex=True)
+    if not all(phospho_df.columns.sort_values() == full_df.columns.sort_values()):
+        raise ValueError(
+            f"Missing columns in full: {set(phospho_df.columns) - set(full_df.columns)}\nMissing columns in phospho: {set(full_df.columns) - set(phospho_df.columns)}"
+        )
+
+    # TODO: Assigning Batch PP to Batch if not present in the sample annotation file
+    if "Batch" not in sample_annotation_df.columns:
+        sample_annotation_df["Batch"] = sample_annotation_df["Batch PP"]
+
     patient_columns = sample_annotation.get_patient_column_names(
         sample_annotation_df, phospho_df.columns
     )

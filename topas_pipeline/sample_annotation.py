@@ -39,13 +39,13 @@ MANDATORY_COLUMNS = [
 def load_sample_annotation(sample_annotation_file: Union[str, Path]) -> pd.DataFrame:
     try:
         sample_annotation_df = pd.read_csv(
-            sample_annotation_file, dtype={"Batch Name": str}
+            sample_annotation_file, dtype={"Batch Name": str, "Batch Name FP": str, "Batch Name PP": str, "Experiment": str}
         )
     except PermissionError:
         raise PermissionError(
             f"Cannot open sample annotation file, check if you have it open in Excel. {sample_annotation_file}"
         )
-
+    
     sample_annotation_df["Sample name"] = sample_annotation_df[
         "Sample name"
     ].str.strip()
@@ -55,16 +55,25 @@ def load_sample_annotation(sample_annotation_file: Union[str, Path]) -> pd.DataF
         sample_annotation_df["is_reference"].astype("boolean").fillna(False)
     )
 
-    # create a new "Batch" column that contains the cohort name. This enables
-    # that we can handle the same Batch Name in multiple cohorts.
-    sample_annotation_df["Batch"] = (
-        sample_annotation_df["Cohort"] + "_Batch" + sample_annotation_df["Batch Name"]
-    )
     if "QC Lot" not in sample_annotation_df.columns:
         logger.info(
             "No 'QC Lot' column found in sample annotation file. Setting QC Lot = 1 for all QC samples."
         )
         sample_annotation_df.loc[sample_annotation_df["is_reference"], "QC Lot"] = 1
+    
+    # create a new "Batch" column that contains the cohort name. This enables
+    # that we can handle the same Batch Name in multiple cohorts.
+    if "Batch Name" not in sample_annotation_df.columns:
+        for data_type in ["FP", "PP"]:
+            sample_annotation_df[f"Batch {data_type}"] = (
+                sample_annotation_df["Cohort"] + "_Batch" + sample_annotation_df[f"Batch Name {data_type}"]
+            )
+    
+    else:
+        sample_annotation_df["Batch"] = (
+            sample_annotation_df["Cohort"] + "_Batch" + sample_annotation_df["Batch Name"]
+        )
+
 
     return sample_annotation_df
 

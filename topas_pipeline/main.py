@@ -18,6 +18,7 @@ from .topas import ck_substrate_phosphorylation
 from .topas import rtk_substrate_phosphorylation
 from .topas import topas
 from . import portal_updater
+from topas_pipeline.preprocess.proteome_preprocessor.proteome_preprocessor import ProteomePreprocessor
 
 logger = logging.getLogger(__name__)
 
@@ -70,15 +71,29 @@ def main(argv):
 
         start_time = time.time()
         # 1) preprocess data (~1.5 hours, mostly slow because of MaxLFQ)
-        preprocess.preprocess_raw(
-            results_folder=configs.results_folder,
-            sample_annotation_file=configs.sample_annotation,
-            metadata_annotation=configs.metadata_annotation,
-            run_simsi=configs.simsi.run_simsi,
-            simsi_folder=configs.simsi.simsi_folder,
-            preprocessing_config=configs.preprocessing,
-            data_types=configs.data_types,
-        )
+        if configs.quant_file_formats:
+            processor = ProteomePreprocessor(
+                configs.results_folder,
+                configs.sample_annotation,
+                configs.metadata_annotation,
+                configs.data_types,
+                configs.quant_strategy,
+                configs.quant_file_formats,
+                configs.preprocessing,
+                configs.simsi,
+            )
+            processor.preprocess()
+        else:
+            preprocess.preprocess_raw(
+                results_folder=configs.results_folder,
+                sample_annotation_file=configs.sample_annotation,
+                metadata_annotation=configs.metadata_annotation,
+                run_simsi=configs.simsi.run_simsi,
+                simsi_folder=configs.simsi.simsi_folder,
+                preprocessing_config=configs.preprocessing,
+                data_types=configs.data_types,
+            )
+
         logger.info("--- %.1f seconds --- preprocessing" % (time.time() - start_time))
 
         start_time = time.time()

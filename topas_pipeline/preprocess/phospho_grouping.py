@@ -193,6 +193,8 @@ def read_cohort_intensities_df(
         sample_annotation_df = sample_annotation.load_sample_annotation(
             sample_annotation_file
         )
+        if "Batch" not in sample_annotation_df.columns:
+            sample_annotation_df["Batch"] = sample_annotation_df["Batch PP"]
         channel_to_sample_id_dict = sample_annotation.get_channel_to_sample_id_dict(
             sample_annotation_df,
             remove_qc_failed=True,

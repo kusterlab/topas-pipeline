@@ -79,6 +79,8 @@ class Config:
     simsi: Simsi
     preprocessing: Preprocessing
     clinic_proc: ClinicProc
+    quant_strategy: str = None
+    quant_file_formats: dict = None
     report: Report = Report()
     portal: Portal = Portal()
     data_types: List[str] = field(default_factory=lambda: ["fp", "pp"])
