@@ -41,6 +41,7 @@ DIANN_REPORT_OUTPUT_COLUMNS = [
     "Fraction",
     "PEP",
     "Experiment",
+    "RT",
 ]
 
 DIANN_PSM_INPUT_COLUMNS = [
@@ -92,6 +93,7 @@ IONQUANT_COMBINED_ION_OUTPUT_COLUMNS = [
     "id",
     "Type",
     "Experiment",
+    "RT",
 ]
 
 IONQUANT_PSM_INPUT_COLUMNS = DIANN_PSM_INPUT_COLUMNS + ["Probability"]

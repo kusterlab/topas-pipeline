@@ -101,8 +101,15 @@ class IonQuantFileLoader(BaseResultFileLoader):
             raise ValueError(
                 f"Expected at most two columns ending with ' Intensity', found {len(intensity_cols)} columns instead."
             )
-
+        rt_cols = ionquant_df.columns[
+            ionquant_df.columns.str.endswith("Apex Retention Time")
+        ]
+        if len(rt_cols) > 2:
+            raise ValueError(
+                f"Expected at most two columns ending with 'Apex Retention Time', found {len(rt_cols)} columns instead."
+            )
         ionquant_df["Intensity"] = ionquant_df.loc[:, intensity_cols].mean(axis=1)
+        ionquant_df["RT"] = ionquant_df.loc[:, rt_cols].mean(axis=1)
         raw_files = [x.split()[0] for x in intensity_cols]
         spectral_count_columns = [f"{x} Spectral Count" for x in raw_files]
         # combined_ion_df["Reporter intensity count 1"] = combined_ion_df.loc[:, spectral_count_columns].sum(axis=1)
@@ -115,6 +122,7 @@ class IonQuantFileLoader(BaseResultFileLoader):
             "Mapped Genes": "Gene names",
             "Charge": "Charge",
             "Intensity": "Intensity",
+            "RT": "RT",
             # "Reporter intensity corrected 1": "Reporter intensity corrected 1",
             # "Reporter intensity count 1": "Reporter intensity count 1",
             # intensity_col: "Reporter intensity corrected 1",
@@ -156,7 +164,7 @@ class IonQuantFileLoader(BaseResultFileLoader):
         experiment_name = "-".join(
             item
             for item in re.search(
-                r"_P(\d+)(?:_[A-Za-z0-9]+)(?:_R(\d))?", ionquant_file_path
+                r"_P(\d+)(?:_[A-Za-z0-9]+)?(?:_R(\d))?", ionquant_file_path
             ).groups()
             if item is not None
         )
