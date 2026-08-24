@@ -86,6 +86,8 @@ def validate_sample_annotation(sample_annotation_df: pd.DataFrame) -> None:
     )  # make Sample name a regular column
 
     missing_cols = list(set(MANDATORY_COLUMNS) - set(sample_annotation_df.columns))
+    if "Batch Name" in missing_cols and sample_annotation_df.columns.str.startswith("Batch Name").any():
+        missing_cols.remove("Batch Name")
     if len(missing_cols) > 0:
         missing_str = ", ".join(missing_cols)
         raise ValueError(
@@ -105,9 +107,13 @@ def validate_sample_annotation(sample_annotation_df: pd.DataFrame) -> None:
         raise ValueError(f"Duplicated sample(s) in sample annotation: {duplicated}")
 
     # Check for duplicates in batch, tmt_channel
-    if sample_annotation_df[["Cohort", "Batch Name", "TMT Channel"]].duplicated().any():
+    index_cols = ["Cohort", "Batch Name", "TMT Channel"]
+    if "Batch Name" not in sample_annotation_df.columns:
+        index_cols = ["Cohort", "Batch Name PP", "TMT Channel"]
+
+    if sample_annotation_df[index_cols].duplicated().any():
         duplicated = sample_annotation_df[
-            sample_annotation_df[["Cohort", "Batch Name", "TMT Channel"]].duplicated()
+            sample_annotation_df[index_cols].duplicated()
         ]
         logger.info(
             f"Duplicated cohort, batch and tmt_channel in sample annotation: {duplicated}"
