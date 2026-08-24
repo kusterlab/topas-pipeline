@@ -57,13 +57,16 @@ def get_diann_result_files(
     result_file_paths = []
     for _, row in sample_annotation_df.copy().iterrows():
         batch_name = row[f"Batch Name {data_type.upper()}"]
-        experiment_name = row["Experiment"]
+        # experiment_name = row["Experiment"]
+        cohort = row["Cohort"]
+        plate_number = row[f"Plate_No_{data_type.upper()}"]
         if "-" in batch_name:
             batch_name, replicate_number = batch_name.split("-")
         else:
             replicate_number = None
         data_type_results_folder = (
-            Path(raw_data_folder) / experiment_name / data_type.upper()
+            # Path(raw_data_folder) / experiment_name / data_type.upper()
+            Path(raw_data_folder) / cohort /(f"Plate{plate_number}_" + data_type.upper())
         )
         matched_paths = [
             str(p)
@@ -101,13 +104,16 @@ def get_ionquant_result_files(
     result_file_paths = []
     for _, row in sample_annotation_df.copy().iterrows():
         batch_name = row[f"Batch Name {data_type.upper()}"]
-        experiment_name = row["Experiment"]
+        # experiment_name = row["Experiment"]
+        cohort = row["Cohort"]
+        plate_number = row[f"Plate_No_{data_type.upper()}"]
         if "-" in row[f"Batch Name {data_type.upper()}"]:
             batch_name, replicate_number = batch_name.split("-")
         else:
             replicate_number = None
         data_type_results_folder = (
-            Path(raw_data_folder) / experiment_name / data_type.upper()
+            # Path(raw_data_folder) / experiment_name / data_type.upper()
+            Path(raw_data_folder) / cohort / (f"Plate{plate_number}_" + data_type.upper())
         )
         matched_paths = [
             str(p)
