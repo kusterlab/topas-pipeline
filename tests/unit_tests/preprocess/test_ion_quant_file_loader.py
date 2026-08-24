@@ -18,9 +18,9 @@ class TestIonQuantFileLoader:
     def combined_ion_file_path(self, tmp_path):
         """Fixture to create a temporary IonQuant combined_ion file for testing"""
         combined_ion_content = (
-            "Modified Sequence\tCharge\tProtein\tMapped Proteins\tGene\tMapped Genes\tfile1_raw Intensity\tfile2_raw Intensity\n"
-            "AAAAAAAAAAATSGSGGC[57.0215]PPAPGLES[79.9663]GVGAVGC[57.0215]GY[79.9663]PR\t3\tsp|Q5VZB9|DMRTA_HUMAN\t\tDMRTA1\t\t0.0\t1659023.0\n"
-            "AAAAAAAATMALAAPSSPTPESPT[79.9663]M[15.9949]LTK\t3\tsp|Q9NQS7|INCE_HUMAN\t\tINCENP\t\t0.0\t1480978.0\n"
+            "Modified Sequence\tCharge\tProtein\tMapped Proteins\tGene\tMapped Genes\tfile1_raw Intensity\tfile2_raw Intensity\tfile1_raw Apex Retention Time\tfile2_raw Apex Retention Time\n"
+            "AAAAAAAAAAATSGSGGC[57.0215]PPAPGLES[79.9663]GVGAVGC[57.0215]GY[79.9663]PR\t3\tsp|Q5VZB9|DMRTA_HUMAN\t\tDMRTA1\t\t0.0\t1659023.0\t305.0\t306.0\n"
+            "AAAAAAAATMALAAPSSPTPESPT[79.9663]M[15.9949]LTK\t3\tsp|Q9NQS7|INCE_HUMAN\t\tINCENP\t\t0.0\t1480978.0\t1126.0\t1125.0\n"
         )
         tsv_path = tmp_path / "ionquant-output" / "combined_ion.tsv"
         tsv_path.parent.mkdir(parents=True, exist_ok=True)
@@ -98,6 +98,11 @@ class TestIonQuantFileLoader:
         # Check that the Charge column is correctly populated
         pd.testing.assert_series_equal(df["Charge"], pd.Series([3, 3], name="Charge"))
 
+        # Check that the RT column is correctly populated
+        pd.testing.assert_series_equal(
+            df["RT"], pd.Series([305.5, 1125.5], name="RT")
+        )
+
     def test_load_ionquant_psm_file(self, psm_file_path):
         """Test the load_psm_files method of IonQuantFileLoader"""
         loader = IonQuantFileLoader("dummy_path")  # The path is not used in this test
@@ -160,7 +165,8 @@ class TestIonQuantFileLoader:
 
         # Check dataframe output structure
         output_columns = [x for x in MQ_OUTPUT_COLUMNS if x != "Fraction"] + [
-            "Leading gene"
+            "Leading gene",
+            "RT"
         ]
         assert df.shape[0] == 2
         assert df.shape[1] == len(output_columns)

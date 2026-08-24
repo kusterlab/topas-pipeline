@@ -17,9 +17,9 @@ class TestDiannFileLoader:
     def diann_report_file_path(self, tmp_path):
         """Fixture to create a temporary DIANN report file for testing"""
         diann_report_content = (
-            "Modified.Sequence\tPrecursor.Charge\tMs1.Normalised\tRun\tPEP\n"
-            "DVFSGSDTDPDM(UniMod:35)AFC(UniMod:4)K\t2\t1234\tfile1_raw\t0.001\n"
-            "DVFSGSDTDPDMAFC(UniMod:4)K\t3\t1235\tfile2_raw\t0.002\n"
+            "Modified.Sequence\tPrecursor.Charge\tMs1.Normalised\tRun\tPEP\tRT\n"
+            "DVFSGSDTDPDM(UniMod:35)AFC(UniMod:4)K\t2\t1234\tfile1_raw\t0.001\t5.00\n"
+            "DVFSGSDTDPDMAFC(UniMod:4)K\t3\t1235\tfile2_raw\t0.002\t8.50\n"
         )
         tsv_path = tmp_path / "dia-quant-output" / "report.tsv"
         tsv_path.parent.mkdir(parents=True, exist_ok=True)
@@ -84,6 +84,11 @@ class TestDiannFileLoader:
         # Check that the Fraction column is correctly populated
         pd.testing.assert_series_equal(
             df["Fraction"], pd.Series([1, 1], name="Fraction")
+        )
+
+        # Check that the RT column is correctly populated
+        pd.testing.assert_series_equal(
+            df["RT"], pd.Series([300.00, 510.00], name="RT")
         )
 
     def test_load_diann_psm_file(self, diann_psm_file_path):
@@ -170,8 +175,8 @@ class TestDiannFileLoader:
 
         # Check dataframe output structure and columns
         assert df.shape[0] == 2
-        assert df.shape[1] == len(MQ_OUTPUT_COLUMNS)
-        assert sorted(df.columns.tolist()) == sorted(MQ_OUTPUT_COLUMNS)
+        assert df.shape[1] == len(MQ_OUTPUT_COLUMNS) + 1 # TODO: RT to MQ_OUTPUT_COLUMNS?
+        assert sorted(df.columns.tolist()) == sorted(MQ_OUTPUT_COLUMNS + ["RT"])
 
         # Check Modified sequence column of merged DataFrame
         pd.testing.assert_series_equal(

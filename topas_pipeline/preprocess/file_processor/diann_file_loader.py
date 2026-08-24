@@ -99,6 +99,7 @@ class DiannFileLoader(BaseResultFileLoader):
         report_df["Modified sequence"] = convert_mods_to_mq_format(
             report_df["Modified.Sequence"], DIANN_MOD_DICT
         )
+        report_df["RT"] = report_df["RT"] * 60  # Convert RT from minutes to seconds
         report_df["Charge"] = report_df["Precursor.Charge"]
         report_df["Raw file"] = report_df["Run"]
         report_df["id"] = report_df.index
@@ -118,6 +119,7 @@ class DiannFileLoader(BaseResultFileLoader):
             # "Experiment": "first",
             "Type": "first",
             "Fraction": "first",
+            "RT": "median",
         }
         report_df = (
             report_df[list(agg_funcs.keys()) + index_cols]
@@ -138,7 +140,7 @@ class DiannFileLoader(BaseResultFileLoader):
         experiment_name = "-".join(
             item
             for item in re.search(
-                r"_P(\d+)(?:_[A-Za-z0-9]+)(?:_R(\d))?", diann_report_file_path
+                r"_P(\d+)(?:_[A-Za-z0-9]+)?(?:_R(\d))?", diann_report_file_path
             ).groups()
             if item is not None
         )
