@@ -82,6 +82,7 @@ def main(argv):
                 configs.preprocessing,
                 configs.simsi,
             )
+            logger.info("Starting preprocessing with ProteomePreprocessorV2 ...")
             processor.preprocess()
         else:
             preprocess.preprocess_raw(
