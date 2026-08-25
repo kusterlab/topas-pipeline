@@ -80,6 +80,23 @@ class ProteomePreprocessor:
         )
         self.sample_annotation_df = self.sample_annotation_df.reset_index()
 
+        # Check if FP and PP result file paths exist for each sample
+        quit_flag = False
+        for data_type in self.data_types:
+            quant_file_format = self.quant_file_formats[data_type]
+            results_files = self.get_results_file_list(
+                data_type, quant_file_format
+            )
+            # Check if files exist for path in result_files
+            missing_files = [f for f in results_files if not os.path.exists(f)]
+            if missing_files:
+                logger.error(
+                    f"Missing {data_type} result files: {missing_files}. Please check the raw data folder and sample annotation."
+                )
+                quit_flag = True
+        if quit_flag:
+            raise FileNotFoundError("One or more result files are missing. Preprocessing aborted.")
+
         # For each data_type run its corresponding preprocess func
         for data_type in self.data_types:
             if os.path.exists(

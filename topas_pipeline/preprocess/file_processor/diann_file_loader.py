@@ -115,7 +115,7 @@ class DiannFileLoader(BaseResultFileLoader):
             "PEP": "max", # TODO: check if this is the right aggregation function for PEP
             "Raw file": "first",
             "id": "first",
-            "Intensity": "sum",
+            "Intensity": "mean",
             # "Experiment": "first",
             "Type": "first",
             "Fraction": "first",

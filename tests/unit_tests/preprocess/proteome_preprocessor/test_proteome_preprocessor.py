@@ -126,7 +126,9 @@ class TestPreprocess:
             data_types=["fp", "pp"],
             quant_file_formats={"fp": "diann", "pp": "ionquant"},
         )
-        with mock.patch.object(processor, "preprocess_proteome") as mock_preprocess:
+        with mock.patch.object(
+            processor, "get_results_file_list", return_value=[]
+        ), mock.patch.object(processor, "preprocess_proteome") as mock_preprocess:
             processor.preprocess(overwrite=True)
 
         assert mock_preprocess.call_count == 2
@@ -156,7 +158,9 @@ class TestPreprocess:
         processor = make_processor(data_types=["fp"])
         processor.results_folder = results_folder
 
-        with mock.patch.object(processor, "preprocess_proteome") as mock_preprocess:
+        with mock.patch.object(
+            processor, "get_results_file_list", return_value=[]
+        ), mock.patch.object(processor, "preprocess_proteome") as mock_preprocess:
             processor.preprocess(overwrite=False)
 
         mock_preprocess.assert_not_called()
@@ -184,7 +188,9 @@ class TestPreprocess:
         processor = make_processor(data_types=["fp"])
         processor.results_folder = results_folder
 
-        with mock.patch.object(processor, "preprocess_proteome") as mock_preprocess:
+        with mock.patch.object(
+            processor, "get_results_file_list", return_value=[]
+        ), mock.patch.object(processor, "preprocess_proteome") as mock_preprocess:
             processor.preprocess(overwrite=True)
 
         mock_preprocess.assert_called_once()
