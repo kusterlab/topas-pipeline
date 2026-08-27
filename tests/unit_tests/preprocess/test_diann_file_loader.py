@@ -18,8 +18,8 @@ class TestDiannFileLoader:
         """Fixture to create a temporary DIANN report file for testing"""
         diann_report_content = (
             "Modified.Sequence\tPrecursor.Charge\tMs1.Normalised\tRun\tPEP\tRT\n"
-            "DVFSGSDTDPDM(UniMod:35)AFC(UniMod:4)K\t2\t1234\tfile1_raw\t0.001\t5.00\n"
-            "DVFSGSDTDPDMAFC(UniMod:4)K\t3\t1235\tfile2_raw\t0.002\t8.50\n"
+            "DVFSGSDTDPDM(UniMod:35)AFC(UniMod:4)K\t2\t1234.0\tfile1_raw\t0.001\t5.00\n"
+            "DVFSGSDTDPDMAFC(UniMod:4)K\t3\t1235.0\tfile2_raw\t0.002\t8.50\n"
         )
         tsv_path = tmp_path / "dia-quant-output" / "report.tsv"
         tsv_path.parent.mkdir(parents=True, exist_ok=True)
@@ -199,5 +199,5 @@ class TestDiannFileLoader:
         # Check that the Reporter intensity corrected 1 column is correctly populated
         pd.testing.assert_series_equal(
             df["Reporter intensity corrected 1"],
-            pd.Series([1234, 1235], name="Reporter intensity corrected 1"),
+            pd.Series([1234.0, 1235.0], name="Reporter intensity corrected 1"),
         )
