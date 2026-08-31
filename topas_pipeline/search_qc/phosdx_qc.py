@@ -67,7 +67,7 @@ def load_plate_data(
     return concat_df
 
 
-def plot_bar_peptide_count(df_long: pd.DataFrame, title: str):
+def plot_bar_peptide_count(df_long: pd.DataFrame, title: str, **kwargs):
     """
     Plot a bar chart showing the count of unique peptides across batches.
     Args:
@@ -82,14 +82,62 @@ def plot_bar_peptide_count(df_long: pd.DataFrame, title: str):
         values="Reporter intensity corrected 1",
         aggfunc="sum",
     )
+    peptide_count = pivot_df.count()
     fig, ax = plt.subplots(figsize=(16, 10))
-    pivot_df.count().plot.bar(ax=ax)
-    ax.axhline(
-        y=pivot_df.count().median(),
-        color="k",
-        linestyle="--",
-        label="median of medians",
-    )
+
+    if kwargs.get("include_phospho_peptide_count", False):
+        phospho_peptides = pivot_df[pivot_df.index.str.contains("p")]
+        phospho_peptide_count = phospho_peptides.count()
+        counts_df = pd.DataFrame(
+            {
+                "Total Peptides": peptide_count,
+                "Phospho Peptides": phospho_peptide_count,
+            }
+        )
+        counts_df.plot.bar(ax=ax)
+
+        median_value = peptide_count.median()
+        ax.axhline(y=median_value, color="k", linestyle="--", label="Median")
+        ax.text(
+            x=0.99,
+            y=median_value * 1.01,
+            s=f"Median: {median_value:.0f}",
+            ha="right",
+            va="bottom",
+            color="k",
+            transform=ax.get_yaxis_transform()
+        )
+
+        median_phospho_value = phospho_peptide_count.median()
+        ax.axhline(
+            y=median_phospho_value,
+            color="k",
+            linestyle="-.",
+            label="Median (Phospho)",
+        )
+        ax.text(
+            x=0.99,
+            y=median_phospho_value * 1.01,
+            s=f"Median (Phospho): {median_phospho_value:.0f}",
+            ha="right",
+            va="bottom",
+            color="k",
+            transform=ax.get_yaxis_transform()
+        )
+    else:
+        peptide_count.plot.bar(ax=ax)
+        median_value = peptide_count.median()
+        ax.axhline(y=median_value, color="k", linestyle="--", label="Median")
+        ax.text(
+            x=0.99,
+            y=median_value * 1.01,
+            s=f"Median: {median_value:.0f}",
+            ha="right",
+            va="bottom",
+            color="k",
+            transform=ax.get_yaxis_transform()
+        )
+
     ax.set_ylabel("Count")
     ax.set_title(title)
     ax.tick_params(axis="x", rotation=90)
@@ -98,7 +146,7 @@ def plot_bar_peptide_count(df_long: pd.DataFrame, title: str):
     return fig
 
 
-def plot_bar_protein_count(df_long: pd.DataFrame, title: str):
+def plot_bar_protein_count(df_long: pd.DataFrame, title: str, **kwargs):
     """
     Plot a bar chart showing the count of proteins across batches.
     Args:
@@ -115,12 +163,22 @@ def plot_bar_protein_count(df_long: pd.DataFrame, title: str):
     )
     fig, ax = plt.subplots(figsize=(16, 10))
     pivot_df.count().plot.bar(ax=ax)
+    median_value = pivot_df.count().median()
     ax.axhline(
-        y=pivot_df.count().median(),
+        y=median_value,
         color="k",
         linestyle="--",
-        label="median of medians",
+        label="Median",
     )
+    ax.text(
+            x=0.99,
+            y=median_value * 1.01,
+            s=f"Median: {median_value:.0f}",
+            ha="right",
+            va="bottom",
+            color="k",
+            transform=ax.get_yaxis_transform()
+        )
     ax.set_ylabel("Count")
     ax.set_title(title)
     ax.legend(loc="upper right")
@@ -128,7 +186,7 @@ def plot_bar_protein_count(df_long: pd.DataFrame, title: str):
     return fig
 
 
-def plot_bar_peptide_sum_intensity(df_long: pd.DataFrame, title: str):
+def plot_bar_peptide_sum_intensity(df_long: pd.DataFrame, title: str, **kwargs):
     """
     Plot a bar chart showing the sum of peptide intensities across batches.
     Args:
@@ -145,12 +203,22 @@ def plot_bar_peptide_sum_intensity(df_long: pd.DataFrame, title: str):
     )
     fig, ax = plt.subplots(figsize=(16, 10))
     np.log10(pivot_df.sum()).plot.bar(ax=ax)
+    median_value = np.log10(pivot_df.sum().median())
     ax.axhline(
-        y=np.log10(pivot_df.sum().median()),
+        y=median_value,
         color="k",
         linestyle="--",
-        label="median of medians",
+        label="Median",
     )
+    ax.text(
+            x=0.99,
+            y=median_value * 1.01,
+            s=f"Median: {median_value:.2f}",
+            ha="right",
+            va="bottom",
+            color="k",
+            transform=ax.get_yaxis_transform()
+        )
     ax.set_ylabel("Summed intensity (log10)")
     ax.set_title(title)
     ax.legend(loc="upper right")
@@ -158,7 +226,7 @@ def plot_bar_peptide_sum_intensity(df_long: pd.DataFrame, title: str):
     return fig
 
 
-def plot_box_peptide_log_intensity(df_long: pd.DataFrame, title: str):
+def plot_box_peptide_log_intensity(df_long: pd.DataFrame, title: str, **kwargs):
     """
     Plot a box plot showing the distribution of peptide log intensities across batches.
     Args:
@@ -175,12 +243,22 @@ def plot_box_peptide_log_intensity(df_long: pd.DataFrame, title: str):
     )
     fig, ax = plt.subplots(figsize=(16, 10))
     sns.boxplot(data=np.log10(pivot_df), color="#1f77b4", ax=ax)
+    median_value = np.log10(pivot_df).median().median()
     ax.axhline(
-        y=np.log10(pivot_df).median().median(),
+        y=median_value,
         color="k",
         linestyle="--",
-        label="median of medians",
+        label="Median of medians",
     )
+    ax.text(
+            x=0.99,
+            y=median_value * 1.01,
+            s=f"Median of medians: {median_value:.2f}",
+            ha="right",
+            va="bottom",
+            color="k",
+            transform=ax.get_yaxis_transform()
+        )
     ax.set_ylabel("Intensity (log10)")
     ax.set_title(title)
     ax.tick_params(axis="x", rotation=90)
@@ -189,7 +267,7 @@ def plot_box_peptide_log_intensity(df_long: pd.DataFrame, title: str):
     return fig
 
 
-def plot_stacked_bar_missed_cleavages(df_long: pd.DataFrame, title: str):
+def plot_stacked_bar_missed_cleavages(df_long: pd.DataFrame, title: str, **kwargs):
     """
     Plot a stacked bar chart showing the distribution of missed cleavages across batches.
     Args:
@@ -218,7 +296,7 @@ def plot_stacked_bar_missed_cleavages(df_long: pd.DataFrame, title: str):
     return fig
 
 
-def plot_stacked_bar_precursor_charge(df_long: pd.DataFrame, title: str):
+def plot_stacked_bar_precursor_charge(df_long: pd.DataFrame, title: str, **kwargs):
     """
     Plot a stacked bar chart showing the distribution of precursor charges across batches.
     Args:
@@ -249,7 +327,7 @@ def plot_stacked_bar_precursor_charge(df_long: pd.DataFrame, title: str):
     return fig
 
 
-def plot_bar_enrichment_efficiency(df_long: pd.DataFrame, title: str):
+def plot_bar_enrichment_efficiency(df_long: pd.DataFrame, title: str, **kwargs):
     """
     Plot a bar chart showing the enrichment efficiency across batches.
     Args:
@@ -266,17 +344,49 @@ def plot_bar_enrichment_efficiency(df_long: pd.DataFrame, title: str):
     )
     enriched_peptides = pivot_df[pivot_df.index.str.contains("p")]
     total_peptides = pivot_df
-    enrichment_efficiency = (
+    fig, ax = plt.subplots(figsize=(16, 10))
+    enrichment_efficiency_intensity = (
         enriched_peptides.sum() / total_peptides.sum()
     ) * 100
-    fig, ax = plt.subplots(figsize=(16, 10))
-    enrichment_efficiency.plot.bar(ax=ax)
+    enrichment_efficiency_intensity.plot(ax=ax,label="Enrichment Efficiency (Intensity)")
+    median_value = enrichment_efficiency_intensity.median()
     ax.axhline(
-        y=enrichment_efficiency.median(),
+        y=median_value,
         color="k",
         linestyle="--",
-        label="median of medians",
+        label="Median (Intensity)",
     )
+    ax.text(
+            x=0.99,
+            y=median_value * 1.01,
+            s=f"Median (Intensity): {median_value:.2f}",
+            ha="right",
+            va="bottom",
+            color="k",
+            transform=ax.get_yaxis_transform()
+        )
+    enrichment_efficiency_count = (
+        enriched_peptides.count() / total_peptides.count()
+    ) * 100
+    enrichment_efficiency_count.plot(ax=ax,label="Enrichment Efficiency (Count)")
+    median_value = enrichment_efficiency_count.median()
+    ax.axhline(
+        y=median_value,
+        color="k",
+        linestyle="-.",
+        label="Median (Count)",
+    )
+    ax.text(
+            x=0.99,
+            y=median_value * 1.01,
+            s=f"Median (Count): {median_value:.2f}",
+            ha="right",
+            va="bottom",
+            color="k",
+            transform=ax.get_yaxis_transform()
+        )
+    ax.set_xticks(range(len(enrichment_efficiency_intensity.index)))
+    ax.set_xticklabels(enrichment_efficiency_intensity.index)
     ax.set_ylabel("Enrichment Efficiency (%)")
     ax.set_title(title)
     ax.tick_params(axis="x", rotation=90)
@@ -285,7 +395,7 @@ def plot_bar_enrichment_efficiency(df_long: pd.DataFrame, title: str):
     return fig
 
 
-def plot_stacked_bar_quartile_sum_intensity(df_long: pd.DataFrame, title: str):
+def plot_stacked_bar_quartile_sum_intensity(df_long: pd.DataFrame, title: str, **kwargs):
     """
     Plot a stacked bar chart showing the distribution of summed intensities across quartiles for each batch.
     Args:
@@ -316,6 +426,13 @@ QC_PLOT_REGISTRY = {
     "peptide_count": (
         plot_bar_peptide_count,
         {"title": "Peptide ID Count in {data_type} Plate {plate_no}"},
+    ),
+    "peptide_count_with_phospho_peptide_count": (
+        plot_bar_peptide_count,
+        {
+            "title": "Peptide ID Count in {data_type} Plate {plate_no}",
+            "include_phospho_peptide_count": True,
+        },
     ),
     "peptide_sum_intensity": (
         plot_bar_peptide_sum_intensity,
@@ -494,7 +611,7 @@ if __name__ == "__main__":
             "rt_quartile_sum_intensity",
         ],
         "pp": [
-            "peptide_count",
+            "peptide_count_with_phospho_peptide_count",
             "peptide_sum_intensity",
             "peptide_intensity",
             "protein_count",
