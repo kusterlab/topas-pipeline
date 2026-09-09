@@ -140,7 +140,7 @@ class DiannFileLoader(BaseResultFileLoader):
         experiment_name = "-".join(
             item
             for item in re.search(
-                r"_P(\d+)(?:_[A-Za-z0-9]+)?(?:_R(\d))?", diann_report_file_path
+                r"P(\d+).*?(?:_R(\d))?(?:/|$)", diann_report_file_path
             ).groups()
             if item is not None
         )
