@@ -109,13 +109,7 @@ build:
 unit-test:
   stage: test
   image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
-  variables:
-    # Work around pyarrow crashing with "Illegal instruction" on CI runners
-    # whose CPU doesn't support the SIMD code path pyarrow's runtime CPU
-    # detection picks by default. This runner only supports SSE4.1, and
-    # pyarrow's lowest selectable tier above that is NONE.
-    ARROW_USER_SIMD_LEVEL: "NONE"
   script:
     - python3 -m pytest tests/unit_tests
   tags:
-    - docker
+    - topas
