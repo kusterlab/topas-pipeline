@@ -105,3 +105,11 @@ build:
         coverage_format: cobertura
         path: coverage.xml
 
+
+unit-test:
+  stage: test
+  image: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+  script:
+    - python3 -m pytest tests/unit_tests
+  tags:
+    - docker
