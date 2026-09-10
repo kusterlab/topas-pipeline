@@ -56,6 +56,7 @@ build-cached-rootless:
   variables:
     BUILDKITD_FLAGS: --oci-worker-no-process-sandbox
     CACHE_IMAGE: $CI_REGISTRY_IMAGE:cache
+    CONTAINER_IMAGE: $CI_REGISTRY_IMAGE
   before_script:
     - mkdir -p ~/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > ~/.docker/config.json
@@ -69,7 +70,7 @@ build-cached-rootless:
         --local dockerfile=. \
         --export-cache type=registry,ref=$CACHE_IMAGE \
         --import-cache type=registry,ref=$CACHE_IMAGE \
-        --output type=image,\"name=$CONTAINER_IMAGE:$CI_COMMIT_REF_SLUG,$CI_REGISTRY_IMAGE:$CI_COMMIT_SHA,$CONTAINER_IMAGE:latest\",push=true
+        --output type=image,\"name=$CONTAINER_IMAGE:$CI_COMMIT_REF_SLUG,$CONTAINER_IMAGE:$CI_COMMIT_SHA,$CONTAINER_IMAGE:latest\",push=true
   tags:
     - docker
 
