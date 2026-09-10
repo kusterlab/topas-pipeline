@@ -33,7 +33,9 @@ RUN pip install poetry==1.5.1
 RUN poetry config virtualenvs.create false
 ADD pyproject.toml /root/pyproject.toml
 ADD poetry.lock /root/poetry.lock
-RUN poetry install --no-cache
+# Patch the broken library inline for rootless builds
+RUN poetry --no-cache install && \
+    pip install --no-cache-dir --force-reinstall --no-binary=charset-normalizer charset-normalizer
 
 COPY . /root/topas-pipeline
 ADD hash.file /root/hash.file
