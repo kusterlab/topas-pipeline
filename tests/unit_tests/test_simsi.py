@@ -340,6 +340,7 @@ class TestFindSimsiEvidenceFile:
             "topas_pipeline.simsi.find_matching_summaries_folder",
             return_value=simsi_summaries_folder,
         )
+        mocker.patch("topas_pipeline.simsi.write_simsi_summaries_folder_to_cache")
         mocker.patch("os.path.isfile", return_value=True)
 
         # Assert
