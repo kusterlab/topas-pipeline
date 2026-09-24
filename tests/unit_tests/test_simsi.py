@@ -150,6 +150,7 @@ class TestRunSimsiDataType:
         )
         mocker.patch("topas_pipeline.simsi.run_simsi_single")
         mocker.patch("topas_pipeline.simsi.store_results_for_reuse")
+        mocker.patch("topas_pipeline.simsi.write_simsi_summaries_folder_to_cache")
         simsi_config = config.Simsi(
             run_simsi=True,
             simsi_folder="simsi",
