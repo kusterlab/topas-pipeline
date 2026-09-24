@@ -16,6 +16,7 @@ from . import config
 PATIENT_PREFIX = "pat_"
 REF_CHANNEL_PREFIX = "ref_"
 OTHER_CHANNEL_PREFIX = "excl_"  # channels not in sample annotation, will be ignored for normalization and z-scoring purposes
+TMT_CHANNEL_PREFIX = "Reporter intensity corrected"
 
 
 # TODO: change "pp" and "fp" string values to these Enums!
