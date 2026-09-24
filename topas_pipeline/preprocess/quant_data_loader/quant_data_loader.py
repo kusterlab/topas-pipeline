@@ -5,7 +5,7 @@ from topas_pipeline.preprocess.preprocess_tools import (
     merge_ms1_columns,
     median_centering,
 )
-from topas_pipeline.utils import filter_for_intensity_columns
+from topas_pipeline.utils import filter_for_intensity_columns, TMT_CHANNEL_PREFIX
 
 
 class BaseQuantDataLoader(ABC):
@@ -104,4 +104,5 @@ class BaseQuantDataLoader(ABC):
         return df
 
     def redistribute_ms1_intensity(self, df: pd.DataFrame) -> pd.DataFrame:
+        df[f"{TMT_CHANNEL_PREFIX} 1"] = df["MS1"]
         return df
