@@ -1,6 +1,6 @@
 FROM python:3.9.13
 
-MAINTAINER Cecilia Jensen "cecilia.jensen@tum.de"
+MAINTAINER Matthew The "matthew.the@tum.de"
 
 LABEL website=https://github.com/kusterlab/topas-pipeline
 LABEL description="TOPAS pipeline"
@@ -18,8 +18,11 @@ WORKDIR /root
 RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF
 RUN echo "deb https://download.mono-project.com/repo/debian stable-buster main" | tee /etc/apt/sources.list.d/mono-official-stable.list
 
+# Delete old index data: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1078608
 # Bypass the clock check for expired release
-RUN apt-get -o Acquire::Check-Valid-Until=false update && apt-get install -y \
+RUN rm -rf /var/lib/apt/lists/* \
+    && apt-get -o Acquire::Check-Valid-Until=false update \
+    && apt-get install -y \
         mono-devel \
         zip \
     && rm -rf /var/lib/apt/lists/*
