@@ -1,6 +1,6 @@
-FROM python:3.9.13
+FROM python:3.10.21
 
-MAINTAINER Cecilia Jensen "cecilia.jensen@tum.de"
+MAINTAINER Matthew The "matthew.the@tum.de"
 
 LABEL website=https://github.com/kusterlab/topas-pipeline
 LABEL description="TOPAS pipeline"
@@ -13,10 +13,6 @@ ARG DEBIAN_FRONTEND=noninteractive
 # set root directory
 ENV HOME /root
 WORKDIR /root
-
-# for mono installation
-RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF
-RUN echo "deb https://download.mono-project.com/repo/debian stable-buster main" | tee /etc/apt/sources.list.d/mono-official-stable.list
 
 RUN apt-get update && apt-get install -y \
         mono-devel \
@@ -32,7 +28,9 @@ RUN pip install poetry==1.5.1
 RUN poetry config virtualenvs.create false
 ADD pyproject.toml /root/pyproject.toml
 ADD poetry.lock /root/poetry.lock
-RUN poetry install --no-cache
+# Patch the broken library inline for rootless builds
+RUN poetry --no-cache install && \
+    pip install --no-cache-dir --force-reinstall --no-binary=charset-normalizer charset-normalizer
 
 COPY . /root/topas-pipeline
 ADD hash.file /root/hash.file
