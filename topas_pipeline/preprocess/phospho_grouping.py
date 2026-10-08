@@ -28,32 +28,52 @@ INDEX_COLS = [
     "Proteins",
 ]
 
-
-def aggregate_modified_sequences(results_folder: str) -> pd.DataFrame:
+def aggregate_modified_sequences(results_folder:str) -> pd.DataFrame:
     """Aggregate modified sequence rows with localization within +/-2 amino acids.
 
     Args:
         results_folder (str): _description_
     """
+    # check for results folder
     results_folder = Path(results_folder)
     if os.path.exists(results_folder / "preprocessed_pp2_agg.csv"):
         logger.info(f"Phospho grouping skipped - found file already processed")
         return
-    pp_df = read_preprocessed_pp2(results_folder)
+    else:
+        pp_df = read_preprocessed_pp2(results_folder)
+        agg_pp_df = run_pipeline(pp_df)
+        # 7.5 minutes for full matrix
+        agg_pp_file = results_folder / "preprocessed_pp2_agg.csv"
+        logger.info(f"Writing aggregated modified sequence groups to {agg_pp_file}")
+        agg_pp_df.to_csv(agg_pp_file, index=False, float_format="%.6g")
+        return
 
-    # clean Mod_seq string
+
+def run_pipeline(pp_df: pd.DataFrame):
+    pp_df = clean_modified_seq(pp_df)
+    pp_df = replace_metadata_cells(pp_df)
+    agg_pp_df = aggregate_sequences_and_filter(pp_df)
+    agg_pp_df = aggregate_imputation_status(agg_pp_df)
+    return agg_pp_df
+
+
+def clean_modified_seq(pp_df: pd.DataFrame):
+    # clean Mod_seq string: standardize modification site naming
     replace_dict = {
         r"\(Acetyl \(Protein N-term\)\)": "(ac)",
         r"M\(Oxidation \(M\)\)": "M",
         r"p([STY])": r"\1(ph)",
     }
-
+    # clean padding
     pp_df["Modified sequence"] = pp_df["Modified sequence"].str[1:-1]
     for old, new in replace_dict.items():
         pp_df["Modified sequence"] = pp_df["Modified sequence"].replace(
             old, new, regex=True
         )
+    return pp_df
 
+
+def replace_metadata_cells(pp_df: pd.DataFrame):
     # replace empty metadata cells (=measured in sample) with ";" to recognize
     # when imputed data is combined with measured values in the aggregation
     # 1.5 minutes for full matrix
@@ -61,7 +81,10 @@ def aggregate_modified_sequences(results_folder: str) -> pd.DataFrame:
     pp_df.loc[:, pp_df.filter(like="Identification metadata").columns] = pp_df.loc[
         :, pp_df.filter(like="Identification metadata").columns
     ].fillna(";")
+    return pp_df
 
+
+def aggregate_sequences_and_filter(pp_df: pd.DataFrame):
     # 4.5 minutes for full matrix
     agg_pp_df = pa.aggregateModifiedSequenceGroups(
         pp_df,
@@ -69,7 +92,10 @@ def aggregate_modified_sequences(results_folder: str) -> pd.DataFrame:
         agg_cols={"Gene names": "first", "Proteins": "first"}
         | {c: "sum" for c in pp_df.filter(like="Identification metadata").columns},
     )
+    return agg_pp_df
 
+
+def aggregate_imputation_status(agg_pp_df: pd.DataFrame):
     # aggregate metadata imputation status. the most common case is a non-aggregated
     # measured value, we convert these into nans to speed up the .map() function
     # 3.5 minutes for full matrix
@@ -78,12 +104,6 @@ def aggregate_modified_sequences(results_folder: str) -> pd.DataFrame:
         .replace(r"^;+$|^$", np.nan, regex=True)
         .map(aggregate_imputations, na_action="ignore")
     )
-
-    # 7.5 minutes for full matrix
-    agg_pp_file = results_folder / "preprocessed_pp2_agg.csv"
-    logger.info(f"Writing aggregated modified sequence groups to {agg_pp_file}")
-    agg_pp_df.to_csv(agg_pp_file, index=False, float_format="%.6g")
-
     return agg_pp_df
 
 
@@ -114,33 +134,52 @@ def aggregate_imputations(x):
 
 def summarize_annotations(annotations):
     annotations = set(annotations)  # ensure set
+    #NOTE empty means normally measured
+    has_quan_oor = has_quan_OOR(annotations)
+    has_imputed = has_imputed_f(annotations)
+    has_partial = has_partially_imputed(annotations)
+    has_measured = has_empty(annotations)
 
-    if not has_quan_OOR(annotations):
-        # just a fallback logic. Shoult not happen
-        if not has_partially_imputed(annotations) and not has_empty(annotations):
-            return "imputed;"
-        return "partially imputed;"
+    if has_imputed and has_partial:
+        raise ValueError(
+            f"Invalid annotation combination: {annotations}"
+        )
 
-    # has quan_OOR
-    annotations.discard("quan_OOR")
+    states = set()
 
-    if not has_imputed(annotations) and not has_partially_imputed(annotations):
-        return "partially quan_OOR;"
-    elif has_partially_imputed(annotations) or (
-        has_imputed(annotations) and has_empty(annotations)
-    ):
-        return "partially imputed;quan_OOR;"
-    elif annotations == {"imputed"}:
-        return "imputed;quan_OOR;"
+    if has_imputed and has_measured:
+        states.add("partially_imputed")
+    elif has_partial:
+        states.add("partially_imputed")
+    elif has_imputed:
+        states.add("imputed")
+    elif has_measured or has_quan_oor:
+        states.add("measured")
     else:
-        raise ValueError(f"Unexpected annotation combination: {annotations}")
+        raise ValueError(
+            f"No valid annotation available: {annotations}"
+        )
+
+    if has_quan_oor:
+        states.add("quan_OOR")
+
+    rules = {
+        frozenset(["measured"]): "",
+        frozenset(["imputed"]): "imputed;",
+        frozenset(["partially_imputed"]): "partially imputed;",
+        frozenset(["measured", "quan_OOR"]): "quan_OOR;",
+        frozenset(["imputed", "quan_OOR"]): "imputed;quan_OOR;",
+        frozenset(["partially_imputed", "quan_OOR"]): "partially imputed;quan_OOR;",
+    }
+
+    return rules[frozenset(states)]
 
 
 def has_quan_OOR(annotations):
     return "quan_OOR" in annotations
 
 
-def has_imputed(annotations):
+def has_imputed_f(annotations):
     return "imputed" in annotations
 
 
