@@ -19,6 +19,7 @@ from topas_pipeline.preprocess.proteome_preprocessor.utils import (
 from topas_pipeline.preprocess.file_processor.result_file_loader_factory import (
     ResultFileLoaderFactory,
 )
+from topas_pipeline.search_qc.constants import QC_PHOSPHO_SPIKEIN_PEPTIDES
 
 logger = logging.getLogger("PhosDx_QC")
 logging.basicConfig(level=logging.INFO)
@@ -141,7 +142,7 @@ def plot_bar_peptide_count(df_long: pd.DataFrame, title: str, **kwargs):
     ax.set_ylabel("Count")
     ax.set_title(title)
     ax.tick_params(axis="x", rotation=90)
-    ax.legend(loc="upper right")
+    ax.legend(loc="upper left", framealpha=0.5)
     fig.tight_layout()
     return fig
 
@@ -181,7 +182,7 @@ def plot_bar_protein_count(df_long: pd.DataFrame, title: str, **kwargs):
         )
     ax.set_ylabel("Count")
     ax.set_title(title)
-    ax.legend(loc="upper right")
+    ax.legend(loc="upper left", framealpha=0.5)
     fig.tight_layout()
     return fig
 
@@ -201,6 +202,74 @@ def plot_bar_peptide_sum_intensity(df_long: pd.DataFrame, title: str, **kwargs):
         values="Reporter intensity corrected 1",
         aggfunc="sum",
     )
+    peptide_intensity = np.log10(pivot_df.sum())
+    fig, ax = plt.subplots(figsize=(16, 10))
+
+    if kwargs.get("include_phospho_peptide_intensity", False):
+        phospho_peptides = pivot_df[pivot_df.index.str.contains("p")]
+        phospho_peptide_intensity = np.log10(phospho_peptides.sum())
+        intensities_df = pd.DataFrame(
+            {
+                "Total Peptides": peptide_intensity,
+                "Phospho Peptides": phospho_peptide_intensity,
+            }
+        )
+        intensities_df.plot.bar(ax=ax)
+
+        median_value = peptide_intensity.median()
+        ax.axhline(y=median_value, color="k", linestyle="--", label="Median")
+        ax.text(
+            x=0.99,
+            y=median_value * 1.01,
+            s=f"Median: {median_value:.2f}",
+            ha="right",
+            va="bottom",
+            color="k",
+            transform=ax.get_yaxis_transform()
+        )
+
+        median_phospho_value = phospho_peptide_intensity.median()
+        ax.axhline(
+            y=median_phospho_value,
+            color="k",
+            linestyle="-.",
+            label="Median (Phospho)",
+        )
+        ax.text(
+            x=0.89,
+            y=median_phospho_value * 1.01,
+            s=f"Median (Phospho): {median_phospho_value:.2f}",
+            ha="right",
+            va="bottom",
+            color="k",
+            transform=ax.get_yaxis_transform()
+        )
+    else:
+        peptide_intensity.plot.bar(ax=ax)
+        median_value = peptide_intensity.median()
+        ax.axhline(y=median_value, color="k", linestyle="--", label="Median")
+        ax.text(
+            x=0.99,
+            y=median_value * 1.01,
+            s=f"Median: {median_value:.2f}",
+            ha="right",
+            va="bottom",
+            color="k",
+            transform=ax.get_yaxis_transform()
+        )
+
+    ax.set_ylabel("Summed intensity (log10)")
+    ax.set_title(title)
+    ax.tick_params(axis="x", rotation=90)
+    ax.legend(loc="upper left", framealpha=0.5)
+    fig.tight_layout()
+    return fig
+
+
+
+
+
+
     fig, ax = plt.subplots(figsize=(16, 10))
     np.log10(pivot_df.sum()).plot.bar(ax=ax)
     median_value = np.log10(pivot_df.sum().median())
@@ -262,7 +331,7 @@ def plot_box_peptide_log_intensity(df_long: pd.DataFrame, title: str, **kwargs):
     ax.set_ylabel("Intensity (log10)")
     ax.set_title(title)
     ax.tick_params(axis="x", rotation=90)
-    ax.legend(loc="upper right")
+    ax.legend(loc="upper left", framealpha=0.5)
     fig.tight_layout()
     return fig
 
@@ -291,7 +360,7 @@ def plot_stacked_bar_missed_cleavages(df_long: pd.DataFrame, title: str, **kwarg
     grouped_df.T.plot(kind="bar", stacked=True, ax=ax)
     ax.set_ylabel("Percentage")
     ax.set_title(title)
-    ax.legend(loc="upper right")
+    ax.legend(loc="upper left", framealpha=0.5)
     fig.tight_layout()
     return fig
 
@@ -322,7 +391,7 @@ def plot_stacked_bar_precursor_charge(df_long: pd.DataFrame, title: str, **kwarg
     pivot_df.T.plot(kind="bar", stacked=True, ax=ax)
     ax.set_ylabel("Percentage")
     ax.set_title(title)
-    ax.legend(loc="upper right")
+    ax.legend(loc="upper left", framealpha=0.5)
     fig.tight_layout()
     return fig
 
@@ -390,7 +459,7 @@ def plot_bar_enrichment_efficiency(df_long: pd.DataFrame, title: str, **kwargs):
     ax.set_ylabel("Enrichment Efficiency (%)")
     ax.set_title(title)
     ax.tick_params(axis="x", rotation=90)
-    ax.legend(loc="upper right")
+    ax.legend(loc="upper left", framealpha=0.5)
     fig.tight_layout()
     return fig
 
@@ -417,7 +486,87 @@ def plot_stacked_bar_quartile_sum_intensity(df_long: pd.DataFrame, title: str, *
     pivot_df_grouped.T.plot(kind="bar", stacked=True, ax=ax)
     ax.set_ylabel("Summed Intensity (%)")
     ax.set_title(title)
-    ax.legend(loc="upper right")
+    ax.legend(loc="upper left", framealpha=0.5)
+    fig.tight_layout()
+    return fig
+
+def plot_bar_spikein_peptide_count(df_long: pd.DataFrame, title: str, **kwargs):
+    """
+    Plot a bar chart showing the count of spike-in peptides across batches.
+    Args:
+        df_long (pd.DataFrame): Long-format DataFrame containing 'Modified sequence', 'Batch', and 'Reporter intensity corrected 1' columns.
+        title (str): Title of the plot.
+    Returns:
+        matplotlib.figure.Figure: The generated figure object.
+    """
+    df_spikein = df_long[df_long["Modified sequence"].isin(QC_PHOSPHO_SPIKEIN_PEPTIDES)]
+    pivot_df = df_spikein.pivot_table(
+        index="Modified sequence",
+        columns="Batch",
+        values="Reporter intensity corrected 1",
+        aggfunc="sum",
+    )
+    fig, ax = plt.subplots(figsize=(16, 10))
+    pivot_df.count().plot.bar(ax=ax)
+    median_value = pivot_df.count().median()
+    ax.axhline(
+        y=median_value,
+        color="k",
+        linestyle="--",
+        label="Median",
+    )
+    ax.text(
+            x=0.99,
+            y=median_value * 1.01,
+            s=f"Median: {median_value:.0f}",
+            ha="right",
+            va="bottom",
+            color="k",
+            transform=ax.get_yaxis_transform()
+        )
+    ax.set_ylabel("Count")
+    ax.set_title(title)
+    ax.legend(loc="upper left", framealpha=0.5)
+    fig.tight_layout()
+    return fig
+
+def plot_bar_spikein_peptide_summed_intensity(df_long: pd.DataFrame, title: str, **kwargs):
+    """
+    Plot a bar chart showing the summed intensity of spike-in peptides across batches.
+    Args:
+        df_long (pd.DataFrame): Long-format DataFrame containing 'Modified sequence', 'Batch', and 'Reporter intensity corrected 1' columns.
+        title (str): Title of the plot.
+    Returns:
+        matplotlib.figure.Figure: The generated figure object.
+    """
+    df_spikein = df_long[df_long["Modified sequence"].isin(QC_PHOSPHO_SPIKEIN_PEPTIDES)]
+    pivot_df = df_spikein.pivot_table(
+        index="Modified sequence",
+        columns="Batch",
+        values="Reporter intensity corrected 1",
+        aggfunc="sum",
+    )
+    fig, ax = plt.subplots(figsize=(16, 10))
+    np.log10(pivot_df.sum()).plot.bar(ax=ax)
+    median_value = np.log10(pivot_df.sum()).median()
+    ax.axhline(
+        y=median_value,
+        color="k",
+        linestyle="--",
+        label="Median",
+    )
+    ax.text(
+        x=0.99,
+        y=median_value * 1.01,
+        s=f"Median: {median_value:.2f}",
+        ha="right",
+        va="bottom",
+        color="k",
+        transform=ax.get_yaxis_transform()
+    )
+    ax.set_ylabel("Summed Intensity (log10)")
+    ax.set_title(title)
+    ax.legend(loc="upper left", framealpha=0.5)
     fig.tight_layout()
     return fig
 
@@ -437,6 +586,13 @@ QC_PLOT_REGISTRY = {
     "peptide_sum_intensity": (
         plot_bar_peptide_sum_intensity,
         {"title": "Peptide Summed Intensity in {data_type} Plate {plate_no}"},
+    ),
+    "peptide_sum_intensity_with_phospho_peptide_intensity": (
+        plot_bar_peptide_sum_intensity,
+        {
+            "title": "Peptide Summed Intensity in {data_type} Plate {plate_no}",
+            "include_phospho_peptide_intensity": True,
+        },
     ),
     "peptide_intensity": (
         plot_box_peptide_log_intensity,
@@ -468,6 +624,18 @@ QC_PLOT_REGISTRY = {
         plot_stacked_bar_quartile_sum_intensity,
         {
             "title": "Summed Intensity by RT Quartile in {data_type} Plate {plate_no}"
+        },
+    ),
+    "spikein_peptide_count": (
+        plot_bar_spikein_peptide_count,
+        {
+            "title": "Count of Phospho Spike-in Peptides in {data_type} Plate {plate_no}"
+        },
+    ),
+    "spikein_peptide_summed_intensity": (
+        plot_bar_spikein_peptide_summed_intensity,
+        {
+            "title": "Summed Intensity of Phospho Spike-in Peptides in {data_type} Plate {plate_no}"
         },
     ),
 }
@@ -619,6 +787,9 @@ if __name__ == "__main__":
             "precursor_charge",
             "phospho_enrichment_efficiency",
             "rt_quartile_sum_intensity",
+            "spikein_peptide_count",
+            "spikein_peptide_summed_intensity",
+            "peptide_sum_intensity_with_phospho_peptide_intensity",
         ],
     }
     qc_engine = QCEngine(QC_PLOT_REGISTRY)
