@@ -12,7 +12,7 @@ import seaborn as sns
 from tqdm import tqdm
 
 from topas_pipeline import config as config
-from topas_pipeline.sample_annotation import load_sample_annotation
+from topas_pipeline.sample_annotation import load_sample_annotation, filter_sample_annotation
 from topas_pipeline.preprocess.proteome_preprocessor.utils import (
     RESULT_FILE_GETTER_REGISTRY,
 )
@@ -720,6 +720,10 @@ class QCEngine:
         os.makedirs(results_folder, exist_ok=True)
         # Load the sample annotation file
         sample_annotation_df = load_sample_annotation(sample_annotation_path)
+        sample_annotation_df = filter_sample_annotation(
+            sample_annotation_df, remove_qc_failed=True, remove_replicates=True
+        )
+        sample_annotation_df = sample_annotation_df.reset_index()
         sample_annotation_df = sample_annotation_df[:]
         for data_type in datatypes:
             logger.info(f"Processing data type: {data_type}")
