@@ -266,35 +266,6 @@ def plot_bar_peptide_sum_intensity(df_long: pd.DataFrame, title: str, **kwargs):
     return fig
 
 
-
-
-
-
-    fig, ax = plt.subplots(figsize=(16, 10))
-    np.log10(pivot_df.sum()).plot.bar(ax=ax)
-    median_value = np.log10(pivot_df.sum().median())
-    ax.axhline(
-        y=median_value,
-        color="k",
-        linestyle="--",
-        label="Median",
-    )
-    ax.text(
-            x=0.99,
-            y=median_value * 1.01,
-            s=f"Median: {median_value:.2f}",
-            ha="right",
-            va="bottom",
-            color="k",
-            transform=ax.get_yaxis_transform()
-        )
-    ax.set_ylabel("Summed intensity (log10)")
-    ax.set_title(title)
-    ax.legend(loc="upper right")
-    fig.tight_layout()
-    return fig
-
-
 def plot_box_peptide_log_intensity(df_long: pd.DataFrame, title: str, **kwargs):
     """
     Plot a box plot showing the distribution of peptide log intensities across batches.
@@ -473,7 +444,7 @@ def plot_stacked_bar_quartile_sum_intensity(df_long: pd.DataFrame, title: str, *
     Returns:
         matplotlib.figure.Figure: The generated figure object.
     """
-    quartile_bins = pd.qcut(df_long["RT"], 4, labels=False)
+    quartile_bins = pd.qcut(df_long["RT"], 4, labels=["Q1", "Q2", "Q3", "Q4"])
     df_long["Quartile"] = quartile_bins
     pivot_df = df_long.pivot_table(
         index="Quartile",
