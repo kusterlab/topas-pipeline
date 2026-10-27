@@ -5,9 +5,28 @@ from typing import Union
 
 
 def keep_protein_name_from_fasta_header(value: Union[str, float]):
+    """Keep the accession from a Swiss-Prot FASTA header.
+
+    >>> keep_protein_name_from_fasta_header("sp|P04637|P53_HUMAN")
+    'P04637'
+    >>> keep_protein_name_from_fasta_header("sp|P04637|P53_HUMAN;sp|P04637|P53_HUMAN")
+    'P04637;P04637'
+    >>> keep_protein_name_from_fasta_header("tr|P04637|P53_HUMAN;tr|P04637|P53_HUMAN")
+    'P04637;P04637'
+    >>> keep_protein_name_from_fasta_header("rev_sp|P04637|P53_HUMAN;rev_sp|P04637|P53_HUMAN")
+    'rev_P04637;rev_P04637'
+    >>> keep_protein_name_from_fasta_header("P04637")
+    'P04637'
+    >>> keep_protein_name_from_fasta_header("P04637;P04637")
+    'P04637;P04637'
+    >>> bool(np.isnan(keep_protein_name_from_fasta_header(np.nan)))
+    True
+    """
     if not pd.isnull(value):
-        if "sp" in value:
-            return value.split("|")[1]
+        if value.startswith("sp|") or value.startswith("tr|"):
+            return ";".join([v.split("|")[1] for v in value.split(";")])
+        elif value.startswith("rev_sp|") or value.startswith("rev_tr|"):
+            return ";".join([f"rev_{v.split('|')[1]}" for v in value.split(";")])
         else:
             return value
     else:
